@@ -1,0 +1,14 @@
+{
+    "name": "UnCredibles.Minigames.Template",
+    "rootNamespace": "",
+    "references": ["UnCredibles.Minigames", "UnCredibles.Player"],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

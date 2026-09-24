@@ -1,3 +1,10 @@
 ﻿<Solution>
   <Project Path="Assembly-CSharp.csproj" />
+  <Project Path="UnCredibles.Core.csproj" />
+  <Project Path="UnCredibles.Minigames.CrossyRoad.csproj" />
+  <Project Path="UnCredibles.UI.csproj" />
+  <Project Path="UnCredibles.Minigames.csproj" />
+  <Project Path="UnCredibles.Minigames.Template.csproj" />
+  <Project Path="UnCredibles.Player.csproj" />
+  <Project Path="UnCredibles.Tests.EditMode.csproj" />
 </Solution>
