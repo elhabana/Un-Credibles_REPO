@@ -71,6 +71,20 @@ namespace UnCredibles.UI.PartyLobby
             _ => string.Empty,
         };
 
+        // Connection cards only: these are not gameplay slots or ready states yet.
+        public void RenderConnection(ulong? clientId, ulong localId)
+        {
+            bool occupied = clientId.HasValue;
+            crown.SetActive(occupied && clientId.Value == 0);
+            nameText.text = !occupied ? "LIBRE" : clientId.Value == 0 ? "HOST" : $"JUGADOR {clientId.Value}";
+            inputText.text = occupied ? (clientId.Value == localId ? "Tu" : "Online") : "";
+            statusText.text = occupied ? "CONECTADO" : "Esperando jugador";
+            background.color = occupied ? occupiedColor : emptyColor;
+            addAIButton.gameObject.SetActive(false);
+            inviteButton.gameObject.SetActive(false);
+            removeButton.gameObject.SetActive(false);
+        }
+
         private static string StatusLabel(PlayerSlot slot, bool invitesEnabled) => slot.State switch
         {
             SlotState.Empty => invitesEnabled ? string.Empty : "Press SPACE / A to join",

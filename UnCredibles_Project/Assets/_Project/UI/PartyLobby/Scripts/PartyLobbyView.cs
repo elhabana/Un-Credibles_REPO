@@ -18,6 +18,7 @@ namespace UnCredibles.UI.PartyLobby
         [SerializeField] private Button backButton;
 
         private bool locked;
+        private string onlineSignature;
 
         private void Awake()
         {
@@ -57,9 +58,35 @@ namespace UnCredibles.UI.PartyLobby
         private void HandleInitialized()
         {
             modeText.text = controller.Mode == SessionMode.Online ? "MULTIPLAYER" : "SINGLEPLAYER";
+            if (controller.Mode == SessionMode.Online)
+            {
+                hintText.text = "Comparte el codigo para invitar. Las partidas online estaran disponibles proximamente.";
+                RenderOnline();
+                return;
+            }
             hintText.text = "SPACE / A: join & ready     ESC / START: cancel & leave";
             controller.Players.SlotChanged += RenderSlot;
             RenderAll();
+        }
+
+        private void Update()
+        {
+            if (controller.Players != null && controller.Mode == SessionMode.Online) RenderOnline();
+        }
+
+        private void RenderOnline()
+        {
+            var connection = CoreRoot.Instance.Online;
+            if (!connection.IsConnected) return;
+            var ids = new System.Collections.Generic.List<ulong>(connection.Connections);
+            ids.Sort();
+            string signature = connection.JoinCode + ":" + string.Join(",", ids);
+            if (signature == onlineSignature) return;
+            onlineSignature = signature;
+            modeText.text = $"MULTIPLAYER {ids.Count}/4  |  CODIGO: {connection.JoinCode}";
+            countdownText.gameObject.SetActive(false);
+            for (int i = 0; i < slotViews.Length; i++)
+                slotViews[i].RenderConnection(i < ids.Count ? ids[i] : (ulong?)null, connection.LocalClientId);
         }
 
         private void HandleCountdownTick(int secondsLeft)

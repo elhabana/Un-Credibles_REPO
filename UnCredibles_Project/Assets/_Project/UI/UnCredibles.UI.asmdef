@@ -1,7 +1,7 @@
 {
     "name": "UnCredibles.UI",
     "rootNamespace": "",
-    "references": ["UnCredibles.Core", "UnCredibles.Player", "UnCredibles.Minigames", "Unity.InputSystem", "Unity.TextMeshPro", "UnityEngine.UI"],
+    "references": ["UnCredibles.Networking", "UnCredibles.Core", "UnCredibles.Player", "UnCredibles.Minigames", "Unity.InputSystem", "Unity.TextMeshPro", "UnityEngine.UI"],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

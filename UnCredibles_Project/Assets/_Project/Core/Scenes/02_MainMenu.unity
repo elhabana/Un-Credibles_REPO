@@ -2704,6 +2704,7 @@ MonoBehaviour:
   createRoomButton: {fileID: 1243649652}
   joinRoomButton: {fileID: 1620135157}
   backButton: {fileID: 1924450479}
+  roomCodeInput: {fileID: 216293861}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

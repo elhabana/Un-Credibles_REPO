@@ -27,7 +27,7 @@ namespace UnCredibles.UI.PartyLobby
 
         public PlayerRegistry Players { get; private set; }
         public SessionMode Mode { get; private set; }
-        public bool InvitesEnabled => Mode == SessionMode.Online;
+        public bool InvitesEnabled => false; // Invitations are shared through the room code.
         public bool IsCountingDown => countdown != null;
 
         public event Action Initialized;
@@ -44,9 +44,12 @@ namespace UnCredibles.UI.PartyLobby
             Mode = core.GameFlow.Session;
             core.GameFlow.ChangeState(GameState.PartyLobby);
 
-            RebuildDeviceMap();
-            Players.SlotChanged += HandleSlotChanged;
-            joinListener = InputSystem.onAnyButtonPress.Call(HandleAnyButton);
+            if (Mode == SessionMode.Local)
+            {
+                RebuildDeviceMap();
+                Players.SlotChanged += HandleSlotChanged;
+                joinListener = InputSystem.onAnyButtonPress.Call(HandleAnyButton);
+            }
             Initialized?.Invoke();
             EvaluateCountdown();
         }
@@ -60,7 +63,7 @@ namespace UnCredibles.UI.PartyLobby
         // Lobby input of players already joined: Jump toggles Ready, Pause un-readies or leaves.
         private void Update()
         {
-            if (Players == null || starting) return;
+            if (Players == null || starting || Mode == SessionMode.Online) return;
             foreach (var slot in Players.Slots)
             {
                 if (!slot.IsOccupied || slot.IsAI || slot.Input == null) continue;
@@ -139,7 +142,7 @@ namespace UnCredibles.UI.PartyLobby
 
         private void EvaluateCountdown()
         {
-            if (starting) return;
+            if (starting || Mode == SessionMode.Online) return;
             bool canStart = Players.OccupiedCount >= minPlayers && Players.AllPlayersReady && HasHuman();
             if (canStart && countdown == null) countdown = StartCoroutine(CountdownRoutine());
             else if (!canStart) StopCountdown(true);
@@ -199,6 +202,6 @@ namespace UnCredibles.UI.PartyLobby
             return false;
         }
 
-        private bool CanEdit() => Players != null && !starting;
+        private bool CanEdit() => Players != null && !starting && Mode == SessionMode.Local;
     }
 }

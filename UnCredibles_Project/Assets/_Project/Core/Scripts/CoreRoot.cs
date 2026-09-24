@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnCredibles.Minigames;
 using UnCredibles.Players;
+using UnCredibles.Networking;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -32,6 +33,7 @@ namespace UnCredibles.Core
         public MinigameManager Minigames => minigames;
         public InputManager Input => input;
         public AudioManager Audio => audioManager;
+        public RelayConnection Online { get; private set; }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics() => Instance = null;
@@ -44,6 +46,8 @@ namespace UnCredibles.Core
                 return;
             }
             Instance = this;
+            // NGO persists its own root; never attach it to Core's scene objects.
+            Online = new GameObject("Online Connection").AddComponent<RelayConnection>();
 
             GameFlow = new GameFlowManager();
             Players = new PlayerRegistry();
@@ -81,6 +85,8 @@ namespace UnCredibles.Core
 
         public void ReturnToMainMenu()
         {
+            if (GameFlow.Session == SessionMode.Online) Online.Disconnect();
+            GameFlow.SetSession(SessionMode.Local);
             minigames.ExitActiveMinigame();
             Match.CancelMatch();
             Players.Clear();
@@ -90,6 +96,7 @@ namespace UnCredibles.Core
         // Called by the PartyLobby when every player is ready.
         public bool StartMatch(int rounds)
         {
+            if (GameFlow.Session == SessionMode.Online) return false;
             Players.GetActivePlayers(playersBuffer);
             Match.StartMatch(playersBuffer, rounds);
             return StartNextRound();
@@ -121,6 +128,7 @@ namespace UnCredibles.Core
         private void OnDestroy()
         {
             if (Instance != this) return;
+            if (Online != null) Destroy(Online.gameObject);
             minigames.MinigameStarted -= HandleMinigameStarted;
             minigames.MinigameFinished -= HandleMinigameFinished;
             Players.Clear();
@@ -128,6 +136,12 @@ namespace UnCredibles.Core
         }
 
         private void HandleMinigameStarted(IMinigame minigame) => GameFlow.ChangeState(GameState.Minigame);
+
+        private void Update()
+        {
+            if (GameFlow.Session == SessionMode.Online && !Online.IsConnected && !sceneFlow.IsLoading)
+                ReturnToMainMenu();
+        }
 
         private void HandleMinigameFinished(MinigameData data, IReadOnlyList<MinigameResult> results)
         {
