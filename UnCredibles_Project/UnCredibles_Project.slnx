@@ -1,5 +1,6 @@
 ﻿<Solution>
   <Project Path="Assembly-CSharp.csproj" />
+  <Project Path="UnCredibles.Minigames.Churro.csproj" />
   <Project Path="UnCredibles.Core.csproj" />
   <Project Path="UnCredibles.Minigames.CrossyRoad.csproj" />
   <Project Path="UnCredibles.UI.csproj" />
