@@ -130,6 +130,7 @@ namespace UnCredibles.Players
             if (slot.IsConnected == connected) return true;
             slot.IsConnected = connected;
             if (!connected) slot.State = SlotState.Disconnected;
+            else if (slot.State == SlotState.Disconnected) slot.State = slot.IsAI ? SlotState.AI : SlotState.Occupied; // reconnected
             SlotChanged?.Invoke(slot);
             return true;
         }
