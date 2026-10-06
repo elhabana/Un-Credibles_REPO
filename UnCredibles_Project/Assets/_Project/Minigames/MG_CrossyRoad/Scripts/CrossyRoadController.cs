@@ -13,15 +13,17 @@ namespace UnCredibles.Minigames.CrossyRoad
         [SerializeField] private CrossyRoadBoard board;
         [SerializeField] private CrossyRoadTraffic traffic;
         [SerializeField] private CrossyRoadGrandmas grandmas;
+        [SerializeField] private CrossyRoadOil oil;
         [SerializeField] private CrossyRoadPlayer playerPrefab;
         [SerializeField] private Transform playersParent;
 
         private readonly List<CrossyRoadPlayer> avatars = new List<CrossyRoadPlayer>(PlayerRegistry.MaxPlayers);
         private readonly List<CrossyRoadAIBrain> brains = new List<CrossyRoadAIBrain>(PlayerRegistry.MaxPlayers);
         private readonly float[] respawnTimers = new float[PlayerRegistry.MaxPlayers];
-        private System.Func<Vector2Int, CrossyRoadPlayer, bool> isMoveBlocked;
+        private System.Func<Vector3, CrossyRoadPlayer, bool> isMoveBlocked;
 
         private CrossyRoadSettings Settings => board.Settings;
+        private float Radius => Settings.PlayerRadius;
 
         protected override void OnInitialize(MinigameContext context)
         {
@@ -29,29 +31,22 @@ namespace UnCredibles.Minigames.CrossyRoad
             board.Build();
             traffic.Initialize();
             grandmas.Initialize();
+            oil.Initialize();
 
             foreach (var player in Players)
             {
                 var avatar = Spawns.Spawn(playerPrefab, player, playersParent);
-                var preferred = board.WorldToCell(Spawns.GetSpawnPoint(player.SlotIndex).position);
-                var spawnCell = FindFreeSpawnCell(preferred.x);
-                avatar.Setup(player, board, spawnCell, Settings.GetPlayerColor(player.SlotIndex), Settings.GrandmaColor);
-                avatar.CellReached += HandleCellReached;
+                var spawnPoint = Spawns.GetSpawnPoint(player.SlotIndex).position;
+                var preferred = new Vector3(spawnPoint.x, board.transform.position.y, board.LaneToZ(CrossyRoadBoard.SpawnLane));
+                avatar.Setup(player, board, FindFreeSpawn(preferred, null), Settings.GetPlayerColor(player.SlotIndex), Settings.GrandmaColor);
                 avatars.Add(avatar);
 
                 if (player.Input is AIInput aiInput)
-                    brains.Add(new CrossyRoadAIBrain(avatar, aiInput, board, traffic, grandmas));
+                    brains.Add(new CrossyRoadAIBrain(avatar, aiInput, board, traffic, grandmas, oil));
             }
         }
 
         protected override void OnGameStarted() { }
-
-        protected override void OnDestroy()
-        {
-            base.OnDestroy();
-            foreach (var avatar in avatars)
-                if (avatar != null) avatar.CellReached -= HandleCellReached;
-        }
 
         private void Update()
         {
@@ -62,49 +57,75 @@ namespace UnCredibles.Minigames.CrossyRoad
 
             float deltaTime = Time.deltaTime;
             grandmas.Tick(deltaTime);
+            oil.Tick(deltaTime);
             foreach (var brain in brains) brain.Tick(deltaTime); // before avatars read their input
 
             for (int i = 0; i < avatars.Count; i++)
             {
-                var avatar = avatars[i];
-                if (!avatar.IsAlive)
+                if (!avatars[i].IsAlive)
                 {
+                    avatars[i].TickDead(deltaTime);
                     TickRespawn(i, deltaTime);
                     continue;
                 }
+                avatars[i].Tick(deltaTime, isMoveBlocked, oil.IsOnOil(avatars[i].Position));
+            }
 
-                avatar.Tick(deltaTime, isMoveBlocked);
-                if (IsHitByCar(avatar)) KillPlayer(i);
+            SeparatePlayers();
+
+            for (int i = 0; i < avatars.Count; i++)
+            {
+                var avatar = avatars[i];
+                if (!avatar.IsAlive) continue;
+                // Players cannot walk into cars, so any overlap now means a car ran into them.
+                if (!avatar.IsInvulnerable && traffic.Overlaps(avatar.Position, Radius)) KillPlayer(i);
+                else HandlePickupAndDelivery(avatar);
             }
         }
 
-        private void HandleCellReached(CrossyRoadPlayer avatar)
+        private void HandlePickupAndDelivery(CrossyRoadPlayer avatar)
         {
-            if (!IsPlaying) return;
-            int lane = avatar.Cell.y;
-
-            if (lane == CrossyRoadBoard.PickupLane && !avatar.IsCarrying && grandmas.TryTake(avatar.Cell.x))
+            if (!avatar.IsCarrying)
             {
-                avatar.SetCarrying(avatar.Cell.x);
+                int grandma = grandmas.FindAvailableNear(avatar.Position, Settings.PickupRadius);
+                if (grandma >= 0 && grandmas.TryTake(grandma)) avatar.SetCarrying(grandma);
                 return;
             }
 
-            if (lane == board.GoalLane && avatar.IsCarrying)
+            if (avatar.Lane < board.GoalLane) return;
+            grandmas.Return(avatar.CarriedGrandma);
+            avatar.SetCarrying(-1);
+            Score.AddScore(avatar.Slot.PlayerId, Settings.PointsPerDelivery);
+            if (Settings.ReturnToSpawnAfterDelivery) avatar.Respawn(FindFreeSpawn(avatar.SpawnPosition, avatar), 0f);
+        }
+
+        // Soft push so avatars never stand inside each other.
+        private void SeparatePlayers()
+        {
+            float minDistance = Radius * 2f;
+            for (int a = 0; a < avatars.Count; a++)
             {
-                grandmas.Return(avatar.CarriedGrandmaColumn);
-                avatar.SetCarrying(-1);
-                Score.AddScore(avatar.Slot.PlayerId, Settings.PointsPerDelivery);
-                if (Settings.ReturnToSpawnAfterDelivery)
-                    avatar.Respawn(FindFreeSpawnCell(avatar.SpawnColumn, avatar), 0f);
+                if (!avatars[a].IsAlive) continue;
+                for (int b = a + 1; b < avatars.Count; b++)
+                {
+                    if (!avatars[b].IsAlive) continue;
+                    var offset = avatars[b].Position - avatars[a].Position;
+                    offset.y = 0f;
+                    float distance = offset.magnitude;
+                    if (distance >= minDistance) continue;
+
+                    var push = (distance > 0.001f ? offset / distance : Vector3.right) * ((minDistance - distance) * 0.5f);
+                    TryPush(avatars[a], -push);
+                    TryPush(avatars[b], push);
+                }
             }
         }
 
-        private bool IsHitByCar(CrossyRoadPlayer avatar)
+        // Never push a player into a car.
+        private void TryPush(CrossyRoadPlayer avatar, Vector3 offset)
         {
-            if (avatar.IsInvulnerable) return false;
-            var position = avatar.transform.position;
-            int road = board.RoadIndex(board.WorldToLane(position.z));
-            return road >= 0 && traffic.IsHit(road, position.x, Settings.PlayerHalfWidth);
+            var target = board.ClampInside(avatar.Position + offset, Radius);
+            if (!traffic.Overlaps(target, Radius)) avatar.MoveTo(target);
         }
 
         private void KillPlayer(int index)
@@ -112,7 +133,9 @@ namespace UnCredibles.Minigames.CrossyRoad
             var avatar = avatars[index];
             if (avatar.IsCarrying)
             {
-                grandmas.Return(avatar.CarriedGrandmaColumn);
+                // She flies off with a lot of force, then goes back to her spot as usual.
+                grandmas.Launch(avatar.CarryPosition);
+                grandmas.Return(avatar.CarriedGrandma);
                 avatar.SetCarrying(-1);
             }
             avatar.Kill();
@@ -125,38 +148,40 @@ namespace UnCredibles.Minigames.CrossyRoad
             if (respawnTimers[index] > 0f) return;
 
             var avatar = avatars[index];
-            var cell = FindFreeSpawnCell(avatar.SpawnColumn, avatar);
-            if (IsCellBlocked(cell, avatar)) return; // spawn lane full, try again next frame
-            avatar.Respawn(cell, Settings.InvulnerableTime);
+            var position = FindFreeSpawn(avatar.SpawnPosition, avatar);
+            if (IsOccupied(position, avatar)) return; // spawn lane full, try again next frame
+            avatar.Respawn(position, Settings.InvulnerableTime);
         }
 
-        // Closest free cell of the spawn lane to the preferred column.
-        private Vector2Int FindFreeSpawnCell(int preferredColumn, CrossyRoadPlayer self = null)
+        // Closest free spot of the spawn lane to the preferred position.
+        private Vector3 FindFreeSpawn(Vector3 preferred, CrossyRoadPlayer self)
         {
-            for (int offset = 0; offset < board.Columns; offset++)
+            float step = Radius * 2.5f;
+            int attempts = Mathf.CeilToInt(Settings.BoardWidth / step);
+            for (int i = 0; i <= attempts; i++)
             {
-                var left = new Vector2Int(preferredColumn - offset, CrossyRoadBoard.SpawnLane);
-                if (board.IsInside(left) && !IsCellBlocked(left, self)) return left;
-                var right = new Vector2Int(preferredColumn + offset, CrossyRoadBoard.SpawnLane);
-                if (board.IsInside(right) && !IsCellBlocked(right, self)) return right;
+                for (int side = 1; side >= -1; side -= 2)
+                {
+                    var candidate = board.ClampInside(preferred + Vector3.right * (side * i * step), Radius);
+                    if (!IsOccupied(candidate, self)) return candidate;
+                    if (i == 0) break;
+                }
             }
-            return new Vector2Int(Mathf.Clamp(preferredColumn, 0, board.Columns - 1), CrossyRoadBoard.SpawnLane);
+            return board.ClampInside(preferred, Radius);
         }
 
-        // Players cannot hop into a cell taken by another player or by a car.
-        private bool IsMoveBlocked(Vector2Int cell, CrossyRoadPlayer self) =>
-            IsCellBlocked(cell, self) || IsCarInCell(cell);
+        private bool IsMoveBlocked(Vector3 position, CrossyRoadPlayer self) => traffic.Overlaps(position, Radius);
 
-        private bool IsCarInCell(Vector2Int cell)
+        private bool IsOccupied(Vector3 position, CrossyRoadPlayer self)
         {
-            int road = board.RoadIndex(cell.y);
-            return road >= 0 && traffic.IsHit(road, board.ColumnToX(cell.x), Settings.PlayerHalfWidth);
-        }
-
-        private bool IsCellBlocked(Vector2Int cell, CrossyRoadPlayer self)
-        {
+            float minDistance = Radius * 2f;
             foreach (var other in avatars)
-                if (other != self && other.IsAlive && other.Cell == cell) return true;
+            {
+                if (other == self || !other.IsAlive) continue;
+                var offset = other.Position - position;
+                offset.y = 0f;
+                if (offset.sqrMagnitude < minDistance * minDistance) return true;
+            }
             return false;
         }
     }

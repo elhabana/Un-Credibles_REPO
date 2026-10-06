@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 763b37c0c3ea6918fceecc89e87ebc83, type: 3}
   m_Name: CR_Settings
   m_EditorClassIdentifier: 
-  columns: 13
+  boardWidth: 12
   cellSize: 1.5
   roadLanes:
   - direction: 1
@@ -40,10 +40,18 @@ MonoBehaviour:
     minSpawnInterval: 1.5
     maxSpawnInterval: 2.8
     carLength: 2
-  hopDuration: 0.15
-  hopHeight: 0.4
-  moveThreshold: 0.5
-  playerHalfWidth: 0.3
+  - direction: -1
+    speed: 4
+    minSpawnInterval: 1.5
+    maxSpawnInterval: 2.8
+    carLength: 2
+  moveSpeed: 5
+  emptyHandedSpeedMultiplier: 1.3
+  turnSpeed: 900
+  inputDeadZone: 0.2
+  playerRadius: 0.4
+  walkBobHeight: 0.12
+  walkBobFrequency: 12
   respawnDelay: 1
   invulnerableTime: 1.5
   playerColors:
@@ -51,11 +59,30 @@ MonoBehaviour:
   - {r: 0.25, g: 0.5, b: 0.95, a: 1}
   - {r: 0.3, g: 0.8, b: 0.35, a: 1}
   - {r: 0.95, g: 0.8, b: 0.2, a: 1}
+  squashWidth: 1.6
+  squashHeight: 0.08
+  squashDuration: 0.08
+  vanishDuration: 0.25
+  grandmaLaunchSpeed: {x: 9, y: 14}
+  grandmaLaunchUp: {x: 9, y: 13}
+  grandmaSpinSpeed: 900
+  grandmaGravity: 20
+  oilDropInterval: {x: 6, y: 12}
+  oilLifetime: 8
+  oilRadius: 1.5
+  maxOilSlicks: 4
+  oilAcceleration: 4
+  oilFriction: 0.15
+  oilMaxSpeedMultiplier: 1.4
+  oilSlideBoost: 1.25
+  oilAfterSlip: 0.6
+  grandmaCount: 6
+  pickupRadius: 0.9
   pointsPerDelivery: 1
   grandmaRespawnDelay: 2
   returnToSpawnAfterDelivery: 0
   grandmaColor: {r: 0.75, g: 0.55, b: 0.85, a: 1}
-  offscreenMargin: 6
+  offscreenMargin: 11
   carColors:
   - {r: 0.95, g: 0.45, b: 0.1, a: 1}
   - {r: 0.15, g: 0.7, b: 0.85, a: 1}

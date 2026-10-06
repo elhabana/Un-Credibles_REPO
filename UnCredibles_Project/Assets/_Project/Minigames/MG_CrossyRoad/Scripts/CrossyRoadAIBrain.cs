@@ -3,79 +3,145 @@ using UnityEngine;
 
 namespace UnCredibles.Minigames.CrossyRoad
 {
-    // Simple bot: fetch the nearest grandma, then cross when the next lane is clear.
-    // It only writes into an AIInput, exactly like a human pressing keys.
+    // Bot that plans a little ahead: every decision it scores 8 directions (plus standing still)
+    // by how much they bring it closer to its goal, discarding the ones a car will cross soon.
+    // That lets it walk diagonally, slip sideways into gaps and only wait when nothing is safe.
+    // It only writes into an AIInput, like a human pressing keys.
     public sealed class CrossyRoadAIBrain
     {
-        private const float MinReaction = 0.08f;
-        private const float MaxReaction = 0.3f;
-        private const float SafetyMargin = 0.25f;
+        private const int PredictionSteps = 3;
+        private const float StepSeconds = 0.15f;
+        private const float OilPenalty = 0.6f;
+
+        private static readonly Vector2[] Directions =
+        {
+            new Vector2(0f, 1f), new Vector2(0.7071f, 0.7071f), new Vector2(1f, 0f), new Vector2(0.7071f, -0.7071f),
+            new Vector2(0f, -1f), new Vector2(-0.7071f, -0.7071f), new Vector2(-1f, 0f), new Vector2(-0.7071f, 0.7071f),
+        };
 
         private readonly CrossyRoadPlayer player;
         private readonly AIInput input;
         private readonly CrossyRoadBoard board;
         private readonly CrossyRoadTraffic traffic;
         private readonly CrossyRoadGrandmas grandmas;
+        private readonly CrossyRoadOil oil;
+
+        // Personality, rolled once per bot so they do not all move the same way.
+        private readonly float reactionMin;
+        private readonly float reactionMax;
+        private readonly float safetyMargin;   // extra distance kept from cars
+        private readonly float lateralBias;    // tendency to drift sideways while crossing
+
         private float thinkTimer;
+        private Vector2 decision;
+        private int targetGrandma = -1;
+        private float goalX;
+        private bool wasCarrying;
 
         public CrossyRoadAIBrain(CrossyRoadPlayer player, AIInput input, CrossyRoadBoard board,
-            CrossyRoadTraffic traffic, CrossyRoadGrandmas grandmas)
+            CrossyRoadTraffic traffic, CrossyRoadGrandmas grandmas, CrossyRoadOil oil)
         {
             this.player = player;
             this.input = input;
             this.board = board;
             this.traffic = traffic;
             this.grandmas = grandmas;
+            this.oil = oil;
+
+            reactionMin = Random.Range(0.06f, 0.12f);
+            reactionMax = reactionMin + Random.Range(0.08f, 0.18f);
+            safetyMargin = Random.Range(0.05f, 0.3f);
+            lateralBias = Random.Range(-0.35f, 0.35f);
         }
 
         public void Tick(float deltaTime)
         {
-            input.SetMove(Vector2.zero);
-            if (!player.IsAlive || player.IsHopping) return;
+            if (!player.IsAlive)
+            {
+                decision = Vector2.zero;
+                input.SetMove(decision);
+                return;
+            }
 
+            // Re-think a few times per second, like a person reacting.
             thinkTimer -= deltaTime;
-            if (thinkTimer > 0f) return;
-            thinkTimer = Random.Range(MinReaction, MaxReaction);
-
-            var direction = ChooseDirection();
-            input.SetMove(new Vector2(direction.x, direction.y));
+            if (thinkTimer <= 0f)
+            {
+                thinkTimer = Random.Range(reactionMin, reactionMax);
+                decision = Decide();
+            }
+            input.SetMove(decision);
         }
 
-        private Vector2Int ChooseDirection()
+        private Vector2 Decide()
         {
-            var cell = player.Cell;
+            var position = player.Position;
+            var target = CurrentTarget(position);
+            var toTarget = new Vector2(target.x - position.x, target.z - position.z);
+            if (toTarget.sqrMagnitude < 0.01f) return Vector2.zero;
+            var goalDirection = toTarget.normalized;
 
-            // Standing on a road with a car coming: escape to whichever neighbour lane is safe.
-            if (!IsSafe(cell))
+            var best = Vector2.zero;
+            float bestScore = IsSafe(position, Vector2.zero) ? 0f : float.MinValue;
+            foreach (var direction in Directions)
             {
-                if (IsSafe(cell + Vector2Int.up)) return Vector2Int.up;
-                if (IsSafe(cell + Vector2Int.down)) return Vector2Int.down;
+                if (!IsSafe(position, direction)) continue;
+
+                float score = Vector2.Dot(direction, goalDirection);
+                score += direction.x * lateralBias * 0.3f;          // personality
+                if (direction == decision) score += 0.15f;          // keep course, avoid jitter
+                if (CrossesOil(position, direction)) score -= OilPenalty; // avoid slicks when there is another way
+                if (score > bestScore)
+                {
+                    bestScore = score;
+                    best = direction;
+                }
             }
 
-            if (player.IsCarrying) return Step(Vector2Int.up);
-
-            if (cell.y > CrossyRoadBoard.PickupLane)
-            {
-                // Line up with a free grandma while crossing back, then go down.
-                int target = grandmas.NearestAvailable(cell.x);
-                if (cell.y == CrossyRoadBoard.SpawnLane && target >= 0 && target != cell.x)
-                    return new Vector2Int(target > cell.x ? 1 : -1, 0);
-                return Step(Vector2Int.down);
-            }
-
-            int column = grandmas.NearestAvailable(cell.x);
-            return column < 0 || column == cell.x ? Vector2Int.zero : new Vector2Int(column > cell.x ? 1 : -1, 0);
+            // Nothing safe at all (a car is about to hit us): run away along Z, whichever side is free.
+            if (bestScore == float.MinValue)
+                best = IsSafe(position, Vector2.up) ? Vector2.up : Vector2.down;
+            return best;
         }
 
-        private Vector2Int Step(Vector2Int direction) => IsSafe(player.Cell + direction) ? direction : Vector2Int.zero;
-
-        private bool IsSafe(Vector2Int cell)
+        private Vector3 CurrentTarget(Vector3 position)
         {
-            if (!board.IsInside(cell)) return false;
-            int road = board.RoadIndex(cell.y);
-            if (road < 0) return true;
-            float lookAhead = board.Settings.HopDuration + SafetyMargin + MaxReaction;
-            return !traffic.IsDangerous(road, board.ColumnToX(cell.x), board.Settings.PlayerHalfWidth, lookAhead);
+            if (player.IsCarrying)
+            {
+                // Pick a random drop point once per trip so bots cross diagonally, not in a straight line.
+                if (!wasCarrying) goalX = Random.Range(-board.HalfWidth + 1f, board.HalfWidth - 1f);
+                wasCarrying = true;
+                return new Vector3(board.transform.position.x + goalX, position.y, board.LaneToZ(board.GoalLane));
+            }
+
+            wasCarrying = false;
+            if (!grandmas.IsAvailable(targetGrandma)) targetGrandma = grandmas.NearestAvailable(position);
+            return targetGrandma >= 0
+                ? grandmas.GetPosition(targetGrandma)
+                : new Vector3(position.x, position.y, board.LaneToZ(CrossyRoadBoard.SpawnLane));
+        }
+
+        private bool CrossesOil(Vector3 position, Vector2 direction)
+        {
+            var step = new Vector3(direction.x, 0f, direction.y) * (player.CurrentSpeed * StepSeconds);
+            for (int i = 1; i <= PredictionSteps; i++)
+                if (oil.IsOnOil(position + step * i)) return true;
+            return false;
+        }
+
+        // Walk that way for the next half second: is any car going to be there?
+        private bool IsSafe(Vector3 position, Vector2 direction)
+        {
+            float radius = board.Settings.PlayerRadius + safetyMargin;
+            float speed = player.CurrentSpeed;
+            var step = new Vector3(direction.x, 0f, direction.y) * speed;
+            for (int i = 0; i <= PredictionSteps; i++)
+            {
+                float time = i * StepSeconds;
+                var future = board.ClampInside(position + step * time, board.Settings.PlayerRadius);
+                if (traffic.OverlapsAt(future, radius, time)) return false;
+            }
+            return true;
         }
     }
 }
