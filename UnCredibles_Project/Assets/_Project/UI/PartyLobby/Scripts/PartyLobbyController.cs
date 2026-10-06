@@ -19,10 +19,13 @@ namespace UnCredibles.UI.PartyLobby
         [SerializeField, Min(0)] private int countdownSeconds = 3;
         [SerializeField, Range(1, PlayerRegistry.MaxPlayers)] private int minPlayers = 1;
 
-        private const float BatPadRetrySeconds = 3f;
+        // A phone that drops in the lobby keeps its slot this long (screen lock, app switch, Wi-Fi blip).
+        private const float PhoneReconnectSeconds = 10f;
 
         private readonly Dictionary<InputDevice, int> deviceSlots = new Dictionary<InputDevice, int>();
         private readonly int[] joinFrame = new int[PlayerRegistry.MaxPlayers];
+        private readonly Dictionary<BatPadInput, float> phoneTimeouts = new Dictionary<BatPadInput, float>();
+        private readonly List<BatPadInput> expiredPhones = new List<BatPadInput>();
         private CoreRoot core;
         private BatPadService batPad;
         private IDisposable joinListener;
@@ -64,11 +67,11 @@ namespace UnCredibles.UI.PartyLobby
                 joinListener = InputSystem.onAnyButtonPress.Call(HandleAnyButton);
             }
 
-            RemoveDisconnectedPhones();
+            WaitForDisconnectedPhones();
             if (UsesPhones)
             {
                 batPad.PhoneDisconnected += HandlePhoneDisconnected;
-                batPad.RoomChanged += HandleBatPadRoomChanged;
+                batPad.PhoneReconnected += HandlePhoneReconnected;
                 batPad.OpenRoom(PhoneRoomCode);
             }
 
@@ -83,7 +86,7 @@ namespace UnCredibles.UI.PartyLobby
             if (batPad != null)
             {
                 batPad.PhoneDisconnected -= HandlePhoneDisconnected;
-                batPad.RoomChanged -= HandleBatPadRoomChanged;
+                batPad.PhoneReconnected -= HandlePhoneReconnected;
             }
         }
 
@@ -91,6 +94,7 @@ namespace UnCredibles.UI.PartyLobby
         private void Update()
         {
             if (Players == null || starting) return;
+            RemoveExpiredPhones();
             if (UsesPhones) JoinPressingPhones();
             if (Mode == SessionMode.Online) return;
             foreach (var slot in Players.Slots)
@@ -179,25 +183,38 @@ namespace UnCredibles.UI.PartyLobby
             }
         }
 
-        // The room dropped (network, server restart): try again while the lobby is open.
-        private void HandleBatPadRoomChanged()
-        {
-            if (batPad.ControllerUrl == null) Invoke(nameof(ReopenBatPadRoom), BatPadRetrySeconds);
-        }
-
-        private void ReopenBatPadRoom() => batPad.OpenRoom(PhoneRoomCode);
-
+        // CoreRoot already marked the slot as Disconnected; the phone gets a few seconds to come back.
         private void HandlePhoneDisconnected(BatPadInput phone)
         {
             var slot = FindSlot(phone);
-            if (slot != null) RemovePhone(slot);
+            if (slot == null) return;
+            if (Mode == SessionMode.Local) Players.SetReady(slot.SlotIndex, false); // no countdown without it
+            phoneTimeouts[phone] = Time.unscaledTime + PhoneReconnectSeconds;
         }
 
-        // Phones that dropped during the match free their slot when the players are back in the lobby.
-        private void RemoveDisconnectedPhones()
+        private void HandlePhoneReconnected(BatPadInput phone) => phoneTimeouts.Remove(phone);
+
+        // Phones that dropped during the match get the same time to come back once the lobby opens.
+        private void WaitForDisconnectedPhones()
         {
             foreach (var slot in Players.Slots)
-                if (slot.Input is BatPadInput { IsConnected: false }) RemovePhone(slot);
+                if (slot.Input is BatPadInput { IsConnected: false } phone)
+                    phoneTimeouts[phone] = Time.unscaledTime + PhoneReconnectSeconds;
+        }
+
+        private void RemoveExpiredPhones()
+        {
+            if (phoneTimeouts.Count == 0) return;
+            expiredPhones.Clear();
+            foreach (var pair in phoneTimeouts)
+                if (Time.unscaledTime >= pair.Value) expiredPhones.Add(pair.Key);
+
+            foreach (var phone in expiredPhones)
+            {
+                phoneTimeouts.Remove(phone);
+                var slot = FindSlot(phone);
+                if (slot != null && !phone.IsConnected) RemovePhone(slot);
+            }
         }
 
         // Online the lobby is not editable (CanEdit), but phones still come and go.

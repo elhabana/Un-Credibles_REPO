@@ -63,6 +63,7 @@ namespace UnCredibles.Core
             minigames.MinigameStarted += HandleMinigameStarted;
             minigames.MinigameFinished += HandleMinigameFinished;
             batPad.PhoneDisconnected += HandlePhoneDisconnected;
+            batPad.PhoneReconnected += HandlePhoneReconnected;
         }
 
         private IEnumerator Start()
@@ -137,16 +138,20 @@ namespace UnCredibles.Core
             minigames.MinigameStarted -= HandleMinigameStarted;
             minigames.MinigameFinished -= HandleMinigameFinished;
             batPad.PhoneDisconnected -= HandlePhoneDisconnected;
+            batPad.PhoneReconnected -= HandlePhoneReconnected;
             Players.Clear();
             Instance = null;
         }
 
-        // Outside the lobby a phone that drops keeps its slot (and score) as Disconnected; the lobby removes it.
-        private void HandlePhoneDisconnected(BatPadInput phone)
+        // A phone that drops keeps its slot (and score) as Disconnected until it comes back;
+        // the lobby frees the slot if it takes too long.
+        private void HandlePhoneDisconnected(BatPadInput phone) => SetPhoneConnected(phone, false);
+        private void HandlePhoneReconnected(BatPadInput phone) => SetPhoneConnected(phone, true);
+
+        private void SetPhoneConnected(BatPadInput phone, bool connected)
         {
-            if (GameFlow.State == GameState.PartyLobby) return;
             foreach (var slot in Players.Slots)
-                if (slot.Input == phone) Players.SetConnected(slot.SlotIndex, false);
+                if (slot.Input == phone) Players.SetConnected(slot.SlotIndex, connected);
         }
 
         private void HandleMinigameStarted(IMinigame minigame) => GameFlow.ChangeState(GameState.Minigame);

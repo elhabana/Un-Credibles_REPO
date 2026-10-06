@@ -17,14 +17,17 @@ namespace UnCredibles.BatPad
         private readonly bool[] held = new bool[ActionCount];
         private Vector2 move;
 
-        internal BatPadInput(int phoneId)
+        internal BatPadInput(int phoneId, string clientId)
         {
             PhoneId = phoneId;
+            ClientId = clientId ?? string.Empty;
             for (int i = 0; i < ActionCount; i++) pressedFrame[i] = -1;
         }
 
-        // Number the server gave this phone inside the room (not the lobby slot).
-        public int PhoneId { get; }
+        // Number the server gave this phone inside the room (not the lobby slot); it can change on reconnection.
+        public int PhoneId { get; internal set; }
+        // Stored by the phone's browser: the same phone keeps it when it reconnects.
+        public string ClientId { get; }
         public int SlotIndex { get; internal set; } = NoSlot;
         public bool IsConnected { get; internal set; } = true;
 
