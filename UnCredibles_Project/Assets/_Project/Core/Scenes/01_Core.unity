@@ -133,6 +133,7 @@ GameObject:
   - component: {fileID: 1004}
   - component: {fileID: 1005}
   - component: {fileID: 1006}
+  - component: {fileID: 1007}
   m_Layer: 0
   m_Name: Core Systems
   m_TagString: Untagged
@@ -171,6 +172,7 @@ MonoBehaviour:
   minigames: {fileID: 1004}
   input: {fileID: 1005}
   audioManager: {fileID: 1006}
+  batPad: {fileID: 1007}
   pointsByPlacement: 04000000030000000200000001000000
 --- !u!114 &1003
 MonoBehaviour:
@@ -226,6 +228,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   musicSource: {fileID: 0}
   sfxSource: {fileID: 0}
+--- !u!114 &1007
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f1a3b28af9cc4e0a8aeb64c11f74d228, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  serverUrl: https://batpad.batpad-studio.workers.dev
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

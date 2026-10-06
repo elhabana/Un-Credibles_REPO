@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using UnCredibles.BatPad;
 using UnCredibles.Core;
 using UnCredibles.Players;
 using UnCredibles.Players.Inputs;
@@ -18,17 +19,28 @@ namespace UnCredibles.UI.PartyLobby
         [SerializeField, Min(0)] private int countdownSeconds = 3;
         [SerializeField, Range(1, PlayerRegistry.MaxPlayers)] private int minPlayers = 1;
 
+        private const float BatPadRetrySeconds = 3f;
+
         private readonly Dictionary<InputDevice, int> deviceSlots = new Dictionary<InputDevice, int>();
         private readonly int[] joinFrame = new int[PlayerRegistry.MaxPlayers];
         private CoreRoot core;
+        private BatPadService batPad;
         private IDisposable joinListener;
         private Coroutine countdown;
         private bool starting;
 
         public PlayerRegistry Players { get; private set; }
+        public BatPadService BatPad => batPad;
         public SessionMode Mode { get; private set; }
         public bool InvitesEnabled => false; // Invitations are shared through the room code.
         public bool IsCountingDown => countdown != null;
+
+        // Phones are local players of this machine: always offline, and only on the host online
+        // (remote players cannot scan the host's screen).
+        public bool UsesPhones => Mode == SessionMode.Local || core.Online.IsHost;
+
+        // Online, the BatPad room reuses the Relay join code so players only share one code.
+        private string PhoneRoomCode => Mode == SessionMode.Online ? core.Online.JoinCode : null;
 
         public event Action Initialized;
         public event Action<int> CountdownTick; // 3, 2, 1 ... 0 = START
@@ -40,6 +52,7 @@ namespace UnCredibles.UI.PartyLobby
             while (CoreRoot.Instance == null) yield return null;
 
             core = CoreRoot.Instance;
+            batPad = core.BatPad;
             Players = core.Players;
             Mode = core.GameFlow.Session;
             core.GameFlow.ChangeState(GameState.PartyLobby);
@@ -50,6 +63,15 @@ namespace UnCredibles.UI.PartyLobby
                 Players.SlotChanged += HandleSlotChanged;
                 joinListener = InputSystem.onAnyButtonPress.Call(HandleAnyButton);
             }
+
+            RemoveDisconnectedPhones();
+            if (UsesPhones)
+            {
+                batPad.PhoneDisconnected += HandlePhoneDisconnected;
+                batPad.RoomChanged += HandleBatPadRoomChanged;
+                batPad.OpenRoom(PhoneRoomCode);
+            }
+
             Initialized?.Invoke();
             EvaluateCountdown();
         }
@@ -58,12 +80,19 @@ namespace UnCredibles.UI.PartyLobby
         {
             joinListener?.Dispose();
             if (Players != null) Players.SlotChanged -= HandleSlotChanged;
+            if (batPad != null)
+            {
+                batPad.PhoneDisconnected -= HandlePhoneDisconnected;
+                batPad.RoomChanged -= HandleBatPadRoomChanged;
+            }
         }
 
         // Lobby input of players already joined: Jump toggles Ready, Pause un-readies or leaves.
         private void Update()
         {
-            if (Players == null || starting || Mode == SessionMode.Online) return;
+            if (Players == null || starting) return;
+            if (UsesPhones) JoinPressingPhones();
+            if (Mode == SessionMode.Online) return;
             foreach (var slot in Players.Slots)
             {
                 if (!slot.IsOccupied || slot.IsAI || slot.Input == null) continue;
@@ -90,7 +119,9 @@ namespace UnCredibles.UI.PartyLobby
             var slot = Players.Slots[slotIndex];
             bool wasHost = slot.IsHost;
             if (slot.Input is DeviceInput device) deviceSlots.Remove(device.Device);
+            var phone = slot.Input as BatPadInput;
             if (!Players.RemovePlayer(slotIndex)) return false;
+            if (phone != null) batPad.AssignSlot(phone, BatPadInput.NoSlot);
             if (wasHost) AssignHost();
             return true;
         }
@@ -129,6 +160,64 @@ namespace UnCredibles.UI.PartyLobby
             deviceSlots[control.device] = slot.SlotIndex;
             joinFrame[slot.SlotIndex] = Time.frameCount;
             if (!HasHost()) Players.SetHost(slot.SlotIndex);
+        }
+
+        // Phones join like gamepads: pressing A on a connected phone takes the first free slot.
+        private void JoinPressingPhones()
+        {
+            foreach (var phone in batPad.Phones)
+            {
+                if (!phone.WasPressed(PlayerAction.Jump) || FindSlot(phone) != null) continue;
+                // Online the 4 places are shared between network connections and the host's phones.
+                if (Mode == SessionMode.Online &&
+                    core.Online.Connections.Count + Players.OccupiedCount >= PlayerRegistry.MaxPlayers) return;
+                if (!Players.TryAddPlayer(PlayerType.PrestoPadPlayer, phone, null, out var slot)) return; // lobby full
+
+                joinFrame[slot.SlotIndex] = Time.frameCount;
+                batPad.AssignSlot(phone, slot.SlotIndex);
+                if (Mode == SessionMode.Local && !HasHost()) Players.SetHost(slot.SlotIndex);
+            }
+        }
+
+        // The room dropped (network, server restart): try again while the lobby is open.
+        private void HandleBatPadRoomChanged()
+        {
+            if (batPad.ControllerUrl == null) Invoke(nameof(ReopenBatPadRoom), BatPadRetrySeconds);
+        }
+
+        private void ReopenBatPadRoom() => batPad.OpenRoom(PhoneRoomCode);
+
+        private void HandlePhoneDisconnected(BatPadInput phone)
+        {
+            var slot = FindSlot(phone);
+            if (slot != null) RemovePhone(slot);
+        }
+
+        // Phones that dropped during the match free their slot when the players are back in the lobby.
+        private void RemoveDisconnectedPhones()
+        {
+            foreach (var slot in Players.Slots)
+                if (slot.Input is BatPadInput { IsConnected: false }) RemovePhone(slot);
+        }
+
+        // Online the lobby is not editable (CanEdit), but phones still come and go.
+        private void RemovePhone(PlayerSlot slot)
+        {
+            if (Mode == SessionMode.Local)
+            {
+                RemovePlayer(slot.SlotIndex);
+                return;
+            }
+            var phone = slot.Input as BatPadInput;
+            if (starting || !Players.RemovePlayer(slot.SlotIndex)) return;
+            if (phone != null) batPad.AssignSlot(phone, BatPadInput.NoSlot);
+        }
+
+        private PlayerSlot FindSlot(IPlayerInput input)
+        {
+            foreach (var slot in Players.Slots)
+                if (slot.Input == input) return slot;
+            return null;
         }
 
         private static bool IsJoinButton(InputControl control) => control.device switch

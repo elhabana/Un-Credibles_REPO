@@ -5,6 +5,7 @@
   <Project Path="UnCredibles.Minigames.CrossyRoad.csproj" />
   <Project Path="UnCredibles.UI.csproj" />
   <Project Path="UnCredibles.Minigames.csproj" />
+  <Project Path="UnCredibles.BatPad.csproj" />
   <Project Path="UnCredibles.Minigames.Template.csproj" />
   <Project Path="UnCredibles.Player.csproj" />
   <Project Path="UnCredibles.Networking.csproj" />

@@ -1,5 +1,6 @@
 using System.Collections;
 using TMPro;
+using UnCredibles.BatPad;
 using UnCredibles.Core;
 using UnCredibles.Players;
 using UnityEngine;
@@ -16,14 +17,25 @@ namespace UnCredibles.UI.PartyLobby
         [SerializeField] private TMP_Text countdownText;
         [SerializeField] private TMP_Text hintText;
         [SerializeField] private Button backButton;
+        [Header("BatPad")]
+        [SerializeField] private RawImage batPadQr;
+        [SerializeField] private TMP_Text batPadText;
 
         private bool locked;
         private string onlineSignature;
+        private readonly System.Collections.Generic.List<PlayerSlot> phoneSlots = new System.Collections.Generic.List<PlayerSlot>();
+        private Texture2D batPadQrTexture;
 
         private void Awake()
         {
             for (int i = 0; i < slotViews.Length; i++) slotViews[i].Setup(i);
             countdownText.gameObject.SetActive(false);
+            RenderBatPad();
+        }
+
+        private void OnDestroy()
+        {
+            if (batPadQrTexture != null) Destroy(batPadQrTexture);
         }
 
         private void OnEnable()
@@ -47,6 +59,7 @@ namespace UnCredibles.UI.PartyLobby
             controller.CountdownCancelled -= HandleCountdownCancelled;
             backButton.onClick.RemoveListener(controller.BackToMainMenu);
             if (controller.Players != null) controller.Players.SlotChanged -= RenderSlot;
+            if (controller.BatPad != null) controller.BatPad.RoomChanged -= RenderBatPad;
             foreach (var view in slotViews)
             {
                 view.AddAIClicked -= HandleAddAI;
@@ -58,6 +71,9 @@ namespace UnCredibles.UI.PartyLobby
         private void HandleInitialized()
         {
             modeText.text = controller.Mode == SessionMode.Online ? "MULTIPLAYER" : "SINGLEPLAYER";
+            if (controller.UsesPhones) controller.BatPad.RoomChanged += RenderBatPad;
+            RenderBatPad();
+
             if (controller.Mode == SessionMode.Online)
             {
                 hintText.text = "Comparte el codigo para invitar. Las partidas online estaran disponibles proximamente.";
@@ -67,6 +83,23 @@ namespace UnCredibles.UI.PartyLobby
             hintText.text = "SPACE / A: join & ready     ESC / START: cancel & leave";
             controller.Players.SlotChanged += RenderSlot;
             RenderAll();
+        }
+
+        // QR of the phone controller once the room is open; a status text meanwhile.
+        // Hidden where phones are not used (online clients).
+        private void RenderBatPad()
+        {
+            bool initialized = controller.Players != null;
+            bool usesPhones = !initialized || controller.UsesPhones;
+            string url = initialized && usesPhones ? controller.BatPad.ControllerUrl : null;
+
+            if (batPadQrTexture != null) Destroy(batPadQrTexture);
+            batPadQrTexture = url != null ? QrTexture.Create(url) : null;
+
+            batPadQr.texture = batPadQrTexture;
+            batPadQr.gameObject.SetActive(batPadQrTexture != null);
+            batPadText.gameObject.SetActive(usesPhones);
+            batPadText.text = url != null ? "Scan to play with your phone" : "Connecting phone controller...";
         }
 
         private void Update()
@@ -80,13 +113,32 @@ namespace UnCredibles.UI.PartyLobby
             if (!connection.IsConnected) return;
             var ids = new System.Collections.Generic.List<ulong>(connection.Connections);
             ids.Sort();
-            string signature = connection.JoinCode + ":" + string.Join(",", ids);
+
+            // The host's phones fill the cards after the network connections.
+            phoneSlots.Clear();
+            foreach (var slot in controller.Players.Slots)
+                if (slot.Input is BatPadInput) phoneSlots.Add(slot);
+
+            string signature = connection.JoinCode + ":" + string.Join(",", ids) + ":" + PhoneSignature();
             if (signature == onlineSignature) return;
             onlineSignature = signature;
-            modeText.text = $"MULTIPLAYER {ids.Count}/4  |  CODIGO: {connection.JoinCode}";
+            // Same code for friends online and for the BatPad room of the phones.
+            modeText.text = $"MULTIPLAYER {ids.Count + phoneSlots.Count}/4  |  CODIGO: {connection.JoinCode}";
             countdownText.gameObject.SetActive(false);
             for (int i = 0; i < slotViews.Length; i++)
-                slotViews[i].RenderConnection(i < ids.Count ? ids[i] : (ulong?)null, connection.LocalClientId);
+            {
+                int phoneIndex = i - ids.Count;
+                if (i < ids.Count) slotViews[i].RenderConnection(ids[i], connection.LocalClientId);
+                else if (phoneIndex < phoneSlots.Count) slotViews[i].RenderPhone(phoneSlots[phoneIndex].SlotIndex + 1);
+                else slotViews[i].RenderConnection(null, connection.LocalClientId);
+            }
+        }
+
+        private string PhoneSignature()
+        {
+            var text = new System.Text.StringBuilder();
+            foreach (var slot in phoneSlots) text.Append(slot.SlotIndex).Append(',');
+            return text.ToString();
         }
 
         private void HandleCountdownTick(int secondsLeft)

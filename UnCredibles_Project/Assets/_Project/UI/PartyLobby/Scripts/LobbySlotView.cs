@@ -65,7 +65,7 @@ namespace UnCredibles.UI.PartyLobby
         {
             InputSourceType.Keyboard => "Keyboard",
             InputSourceType.Gamepad => "Gamepad",
-            InputSourceType.PrestoPad => "PrestoPad",
+            InputSourceType.PrestoPad => "BatPad",
             InputSourceType.Network => "Online",
             InputSourceType.AI => "AI",
             _ => string.Empty,
@@ -80,6 +80,19 @@ namespace UnCredibles.UI.PartyLobby
             inputText.text = occupied ? (clientId.Value == localId ? "Tu" : "Online") : "";
             statusText.text = occupied ? "CONECTADO" : "Esperando jugador";
             background.color = occupied ? occupiedColor : emptyColor;
+            addAIButton.gameObject.SetActive(false);
+            inviteButton.gameObject.SetActive(false);
+            removeButton.gameObject.SetActive(false);
+        }
+
+        // Online card of a phone that joined the host through BatPad.
+        public void RenderPhone(int number)
+        {
+            crown.SetActive(false);
+            nameText.text = $"MOVIL {number}";
+            inputText.text = "BatPad (Host)";
+            statusText.text = "CONECTADO";
+            background.color = occupiedColor;
             addAIButton.gameObject.SetActive(false);
             inviteButton.gameObject.SetActive(false);
             removeButton.gameObject.SetActive(false);

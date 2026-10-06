@@ -1,7 +1,7 @@
 {
-    "name": "UnCredibles.Core",
+    "name": "UnCredibles.BatPad",
     "rootNamespace": "",
-    "references": ["UnCredibles.Networking", "UnCredibles.Player", "UnCredibles.Minigames", "UnCredibles.BatPad", "Unity.InputSystem"],
+    "references": ["UnCredibles.Player"],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
