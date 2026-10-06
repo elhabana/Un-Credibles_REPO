@@ -7,5 +7,6 @@
   <Project Path="UnCredibles.UI.csproj" />
   <Project Path="UnCredibles.Tests.EditMode.csproj" />
   <Project Path="UnCredibles.Player.csproj" />
+  <Project Path="UnCredibles.BatPad.csproj" />
   <Project Path="UnCredibles.Minigames.Template.csproj" />
 </Solution>

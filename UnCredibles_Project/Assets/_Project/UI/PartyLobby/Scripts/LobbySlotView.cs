@@ -65,7 +65,7 @@ namespace UnCredibles.UI.PartyLobby
         {
             InputSourceType.Keyboard => "Keyboard",
             InputSourceType.Gamepad => "Gamepad",
-            InputSourceType.PrestoPad => "PrestoPad",
+            InputSourceType.PrestoPad => "BatPad",
             InputSourceType.Network => "Online",
             InputSourceType.AI => "AI",
             _ => string.Empty,

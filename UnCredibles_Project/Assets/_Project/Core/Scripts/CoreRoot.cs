@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using UnCredibles.BatPad;
 using UnCredibles.Minigames;
 using UnCredibles.Players;
 using UnityEngine;
@@ -15,6 +16,7 @@ namespace UnCredibles.Core
         [SerializeField] private MinigameManager minigames;
         [SerializeField] private InputManager input;
         [SerializeField] private AudioManager audioManager;
+        [SerializeField] private BatPadService batPad;
         [Tooltip("Match points given for 1st, 2nd, 3rd and 4th place in each minigame.")]
         [SerializeField] private int[] pointsByPlacement = { 4, 3, 2, 1 };
         [Tooltip("Seconds the minigame's own results stay visible before the Results scene.")]
@@ -32,6 +34,7 @@ namespace UnCredibles.Core
         public MinigameManager Minigames => minigames;
         public InputManager Input => input;
         public AudioManager Audio => audioManager;
+        public BatPadService BatPad => batPad;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics() => Instance = null;
@@ -55,6 +58,7 @@ namespace UnCredibles.Core
             minigames.Bind(Players, sceneFlow);
             minigames.MinigameStarted += HandleMinigameStarted;
             minigames.MinigameFinished += HandleMinigameFinished;
+            batPad.PhoneDisconnected += HandlePhoneDisconnected;
         }
 
         private IEnumerator Start()
@@ -84,6 +88,7 @@ namespace UnCredibles.Core
             minigames.ExitActiveMinigame();
             Match.CancelMatch();
             Players.Clear();
+            batPad.ClearSlots(); // phones stay connected but have to join again from the lobby
             sceneFlow.LoadContent(GameScenes.MainMenu, () => GameFlow.ChangeState(GameState.MainMenu));
         }
 
@@ -123,8 +128,17 @@ namespace UnCredibles.Core
             if (Instance != this) return;
             minigames.MinigameStarted -= HandleMinigameStarted;
             minigames.MinigameFinished -= HandleMinigameFinished;
+            batPad.PhoneDisconnected -= HandlePhoneDisconnected;
             Players.Clear();
             Instance = null;
+        }
+
+        // Outside the lobby a phone that drops keeps its slot (and score) as Disconnected; the lobby removes it.
+        private void HandlePhoneDisconnected(BatPadInput phone)
+        {
+            if (GameFlow.State == GameState.PartyLobby) return;
+            foreach (var slot in Players.Slots)
+                if (slot.Input == phone) Players.SetConnected(slot.SlotIndex, false);
         }
 
         private void HandleMinigameStarted(IMinigame minigame) => GameFlow.ChangeState(GameState.Minigame);

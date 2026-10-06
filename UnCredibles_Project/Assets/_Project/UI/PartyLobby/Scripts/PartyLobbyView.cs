@@ -1,5 +1,6 @@
 using System.Collections;
 using TMPro;
+using UnCredibles.BatPad;
 using UnCredibles.Core;
 using UnCredibles.Players;
 using UnityEngine;
@@ -16,13 +17,23 @@ namespace UnCredibles.UI.PartyLobby
         [SerializeField] private TMP_Text countdownText;
         [SerializeField] private TMP_Text hintText;
         [SerializeField] private Button backButton;
+        [Header("BatPad")]
+        [SerializeField] private RawImage batPadQr;
+        [SerializeField] private TMP_Text batPadText;
 
         private bool locked;
+        private Texture2D batPadQrTexture;
 
         private void Awake()
         {
             for (int i = 0; i < slotViews.Length; i++) slotViews[i].Setup(i);
             countdownText.gameObject.SetActive(false);
+            RenderBatPad();
+        }
+
+        private void OnDestroy()
+        {
+            if (batPadQrTexture != null) Destroy(batPadQrTexture);
         }
 
         private void OnEnable()
@@ -46,6 +57,7 @@ namespace UnCredibles.UI.PartyLobby
             controller.CountdownCancelled -= HandleCountdownCancelled;
             backButton.onClick.RemoveListener(controller.BackToMainMenu);
             if (controller.Players != null) controller.Players.SlotChanged -= RenderSlot;
+            if (controller.BatPad != null) controller.BatPad.RoomChanged -= RenderBatPad;
             foreach (var view in slotViews)
             {
                 view.AddAIClicked -= HandleAddAI;
@@ -59,7 +71,22 @@ namespace UnCredibles.UI.PartyLobby
             modeText.text = controller.Mode == SessionMode.Online ? "MULTIPLAYER" : "SINGLEPLAYER";
             hintText.text = "SPACE / A: join & ready     ESC / START: cancel & leave";
             controller.Players.SlotChanged += RenderSlot;
+            controller.BatPad.RoomChanged += RenderBatPad;
             RenderAll();
+            RenderBatPad();
+        }
+
+        // QR of the phone controller once the room is open; a status text meanwhile.
+        private void RenderBatPad()
+        {
+            string url = controller.BatPad != null ? controller.BatPad.ControllerUrl : null;
+
+            if (batPadQrTexture != null) Destroy(batPadQrTexture);
+            batPadQrTexture = url != null ? QrTexture.Create(url) : null;
+
+            batPadQr.texture = batPadQrTexture;
+            batPadQr.gameObject.SetActive(batPadQrTexture != null);
+            batPadText.text = url != null ? "Scan to play with your phone" : "Connecting phone controller...";
         }
 
         private void HandleCountdownTick(int secondsLeft)
