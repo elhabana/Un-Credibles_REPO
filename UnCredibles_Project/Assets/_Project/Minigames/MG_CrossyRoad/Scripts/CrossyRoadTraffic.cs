@@ -7,6 +7,7 @@ namespace UnCredibles.Minigames.CrossyRoad
     public sealed class CrossyRoadTraffic : MonoBehaviour
     {
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
+        private const float CarDepthRatio = 0.7f; // car depth relative to the lane depth
 
         [SerializeField] private CrossyRoadBoard board;
         [SerializeField] private Transform carPrefab;
@@ -103,6 +104,46 @@ namespace UnCredibles.Minigames.CrossyRoad
             return false;
         }
 
+        // Does a circle (player) on the ground overlap any car? Checks every lane it touches,
+        // so a player standing between two lanes is tested against both.
+        public bool Overlaps(Vector3 worldPosition, float radius) => OverlapsAt(worldPosition, radius, 0f);
+
+        // A random car currently driving over the playable area (used to drop oil slicks).
+        public bool TryGetRandomCarOnBoard(out Vector3 position)
+        {
+            position = default;
+            if (lanes.Length == 0) return false;
+            float limit = board.HalfWidth - board.Settings.OilRadius;
+            int startLane = Random.Range(0, lanes.Length);
+            for (int i = 0; i < lanes.Length; i++)
+            {
+                var lane = lanes[(startLane + i) % lanes.Length];
+                foreach (var car in lane.Cars)
+                {
+                    if (Mathf.Abs(car.X) > limit) continue;
+                    position = new Vector3(board.transform.position.x + car.X, board.transform.position.y, lane.Z);
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // Same test with every car moved `seconds` into the future (used by the AI to plan).
+        public bool OverlapsAt(Vector3 worldPosition, float radius, float seconds)
+        {
+            float halfDepth = board.CellSize * CarDepthRatio * 0.5f;
+            float x = worldPosition.x - board.transform.position.x;
+            foreach (var lane in lanes)
+            {
+                if (Mathf.Abs(worldPosition.z - lane.Z) >= halfDepth + radius) continue;
+                float reach = lane.HalfLength + radius;
+                float travel = lane.Velocity * seconds;
+                foreach (var car in lane.Cars)
+                    if (Mathf.Abs(car.X + travel - x) < reach) return true;
+            }
+            return false;
+        }
+
         // Start with cars already on the road instead of empty lanes.
         private void Prefill(Lane lane)
         {
@@ -131,7 +172,7 @@ namespace UnCredibles.Minigames.CrossyRoad
         {
             var car = pool.Count > 0 ? pool.Pop() : CreateCar();
             car.X = x;
-            car.Transform.localScale = new Vector3(lane.HalfLength * 2f, 0.8f, board.CellSize * 0.7f);
+            car.Transform.localScale = new Vector3(lane.HalfLength * 2f, 0.8f, board.CellSize * CarDepthRatio);
             car.Transform.position = new Vector3(board.transform.position.x + x, board.transform.position.y, lane.Z);
             block.SetColor(BaseColorId, board.Settings.GetCarColor(colorIndex++));
             foreach (var carRenderer in car.Renderers) carRenderer.SetPropertyBlock(block);

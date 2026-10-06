@@ -108,20 +108,21 @@ namespace UnCredibles.Minigames.CrossyRoad
 
         private void BuildProps()
         {
-            int extraColumns = Mathf.CeilToInt(sideExtent / board.CellSize);
+            float cell = board.CellSize;
+            float outer = board.HalfWidth + sideExtent;
             for (int lane = -rowsBelow; lane <= board.GoalLane + rowsAbove; lane++)
             {
                 bool insideBoard = lane >= 0 && lane <= board.GoalLane;
                 if (insideBoard && board.GetLaneType(lane) == LaneType.Road) continue;
 
-                for (int column = -extraColumns; column < board.Columns + extraColumns; column++)
+                // Props on a grid of lane-sized spots, never inside the playable area.
+                for (float x = -outer + cell * 0.5f; x < outer; x += cell)
                 {
-                    bool playableCell = insideBoard && column >= 0 && column < board.Columns;
-                    if (playableCell) continue;
+                    if (insideBoard && Mathf.Abs(x) < board.HalfWidth + cell * 0.5f) continue;
 
                     // Rows in front of the camera only get low props so they never hide the players.
                     bool lowOnly = lane < 0;
-                    var position = new Vector3(board.ColumnToX(column), board.transform.position.y, board.LaneToZ(lane));
+                    var position = new Vector3(board.transform.position.x + x, board.transform.position.y, board.LaneToZ(lane));
                     double roll = random.NextDouble();
                     if (!lowOnly && roll < treeDensity) PlaceTree(position);
                     else if (roll < treeDensity + rockDensity) PlaceRock(position);
