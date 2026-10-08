@@ -15,14 +15,16 @@ namespace UnCredibles.Minigames.Churro
             [Min(0f), Tooltip("Degrees per second gained every second.")] public float acceleration;
             [Min(1f)] public float maxSpeed;
             [Tooltip("The kid sometimes brakes and spins the other way during this round.")] public bool reverses;
+            [Tooltip("Beach balls are thrown at the players during this round (duck to dodge).")] public bool balls;
+            [Tooltip("Seconds between two balls (random in range).")] public Vector2 ballInterval;
         }
 
         [Header("Rounds")]
         [SerializeField] private Round[] rounds =
         {
-            new Round { arms = 1, startSpeed = 55f, acceleration = 9f, maxSpeed = 330f, reverses = true },
-            new Round { arms = 1, startSpeed = 70f, acceleration = 12f, maxSpeed = 400f, reverses = true },
-            new Round { arms = 2, startSpeed = 50f, acceleration = 6f, maxSpeed = 220f, reverses = true },
+            new Round { arms = 1, startSpeed = 55f, acceleration = 9f, maxSpeed = 330f, reverses = true, balls = true, ballInterval = new Vector2(5f, 8f) },
+            new Round { arms = 1, startSpeed = 70f, acceleration = 12f, maxSpeed = 400f, reverses = true, balls = true, ballInterval = new Vector2(3.5f, 6f) },
+            new Round { arms = 2, startSpeed = 50f, acceleration = 6f, maxSpeed = 220f, reverses = true, balls = true, ballInterval = new Vector2(3f, 5f) },
         };
         [SerializeField, Min(0f)] private float roundIntroSeconds = 1.5f;
         [SerializeField, Min(0f)] private float roundOutroSeconds = 2.5f;
@@ -37,6 +39,16 @@ namespace UnCredibles.Minigames.Churro
         [SerializeField, Min(0.05f), Tooltip("Seconds the kid takes to brake to a stop.")] private float brakeSeconds = 0.35f;
         [SerializeField, Min(0f), Tooltip("Seconds stopped before spinning the other way.")] private float reversePause = 0.2f;
         [SerializeField, Min(0.05f), Tooltip("Seconds to get back to the previous speed.")] private float reaccelerateSeconds = 0.5f;
+
+        [Header("Beach balls")]
+        [SerializeField, Min(0f), Tooltip("Seconds of spinning before the first ball of a round.")] private float ballFirstDelay = 3f;
+        [SerializeField, Min(0.3f), Tooltip("Seconds from the throw until the ball reaches the player.")] private float ballFlightSeconds = 1.1f;
+        [SerializeField, Min(0f), Tooltip("A ball never arrives closer than this (s) to the churro passing the same player.")]
+        private float ballSafetyGap = 0.8f;
+        [SerializeField, Min(0.1f), Tooltip("Height of the ball centre above the float (standing players are hit, ducking ones are not).")]
+        private float ballHeight = 0.95f;
+        [SerializeField, Min(0.05f)] private float ballRadius = 0.28f;
+        [SerializeField, Min(1f), Tooltip("Distance outside the float the ball is thrown from.")] private float ballThrowDistance = 7f;
 
         [Header("Churro")]
         [SerializeField, Min(0.05f), Tooltip("Height of the churro above the float, in metres.")]
@@ -66,6 +78,13 @@ namespace UnCredibles.Minigames.Churro
         public float RoundIntroSeconds => roundIntroSeconds;
         public float RoundOutroSeconds => roundOutroSeconds;
 
+        public float BallFirstDelay => ballFirstDelay;
+        public float BallFlightSeconds => ballFlightSeconds;
+        public float BallSafetyGap => ballSafetyGap;
+        public float BallHeight => ballHeight;
+        public float BallRadius => ballRadius;
+        public float BallThrowDistance => ballThrowDistance;
+
         public float StartClearance => startClearance;
         public float FirstReverseDelay => firstReverseDelay;
         public Vector2 ReverseInterval => reverseInterval;
@@ -92,6 +111,8 @@ namespace UnCredibles.Minigames.Churro
         {
             if (aiMaxLead < aiMinLead) aiMaxLead = aiMinLead;
             if (reverseInterval.y < reverseInterval.x) reverseInterval.y = reverseInterval.x;
+            for (int i = 0; i < rounds.Length; i++)
+                if (rounds[i].ballInterval.y < rounds[i].ballInterval.x) rounds[i].ballInterval.y = rounds[i].ballInterval.x;
             for (int i = 0; i < rounds.Length; i++)
                 if (rounds[i].maxSpeed < rounds[i].startSpeed) rounds[i].maxSpeed = rounds[i].startSpeed;
         }

@@ -28,6 +28,9 @@ namespace UnCredibles.Minigames.Churro
         public int Direction { get; private set; } = 1;   // 1 = clockwise, -1 = counter-clockwise
         public float AngularVelocity => Speed * Direction;
         public bool IsBraking => phase == Phase.Braking || phase == Phase.Paused;
+        public bool IsChangingDirection => phase != Phase.Spinning;
+        public float Acceleration => round.acceleration;
+        public float MaxSpeed => round.maxSpeed;
         public int ArmCount { get; private set; } = 1;
         public float ArmSpacing => 360f / ArmCount;
         public Vector3 Center => transform.position;
@@ -101,6 +104,12 @@ namespace UnCredibles.Minigames.Churro
                 PreviousAngle += 360f;
             }
             ApplyRotation();
+        }
+
+        // No direction change for the next `seconds` (a beach ball is flying: its timing must hold).
+        public void HoldDirection(float seconds)
+        {
+            if (phase == Phase.Spinning) reverseTimer = Mathf.Max(reverseTimer, seconds);
         }
 
         // Did any arm touch [targetAngle - halfWidth, targetAngle + halfWidth] during the last Tick?

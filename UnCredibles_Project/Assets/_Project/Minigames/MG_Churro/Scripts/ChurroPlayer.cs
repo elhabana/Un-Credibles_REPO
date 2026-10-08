@@ -4,7 +4,8 @@ using UnityEngine;
 
 namespace UnCredibles.Minigames.Churro
 {
-    // Avatar standing on a float. It can only jump; when hit it flies into the water.
+    // Avatar standing on a float. It can jump (churro) or duck while holding Crouch (beach balls);
+    // never both at once. When hit it flies into the water.
     // Ticked by ChurroController, it has no Update of its own.
     public sealed class ChurroPlayer : MonoBehaviour
     {
@@ -24,12 +25,16 @@ namespace UnCredibles.Minigames.Churro
         private Quaternion remoteRotation;
         private float remoteHeight;
         private bool hasRemote;
+        private bool remoteDucking;
+        private float duck; // 0 standing .. 1 fully crouched, only visual
 
         public PlayerSlot Slot { get; private set; }
         public float Angle { get; private set; }
         public bool IsIn { get; private set; }            // still playing this round
         public bool IsGrounded => IsIn && height <= 0f;
         public float FeetHeight => height;
+        public Vector3 FloatPosition => floatPosition;
+        public bool IsDucking { get; private set; }
 
         public void Setup(PlayerSlot slot, ChurroSettings churroSettings, Vector3 center, Color color)
         {
@@ -56,6 +61,9 @@ namespace UnCredibles.Minigames.Churro
             verticalSpeed = 0f;
             transform.SetPositionAndRotation(floatPosition, floatRotation);
             visual.localPosition = Vector3.zero;
+            IsDucking = false;
+            duck = 0f;
+            visual.localScale = Vector3.one;
             gameObject.SetActive(true);
         }
 
@@ -72,11 +80,17 @@ namespace UnCredibles.Minigames.Churro
             knockVelocity = awayFromCenter.normalized * settings.KnockoutSpeed + Vector3.up * settings.KnockoutSpeed * 0.6f;
             transform.position = floatPosition + Vector3.up * height;
             visual.localPosition = Vector3.zero;
+            IsDucking = false;
+            visual.localScale = Vector3.one;
         }
 
         private void TickOnFloat(float deltaTime, bool canJump)
         {
-            if (canJump && height <= 0f && Slot.Input != null && Slot.Input.WasPressed(PlayerAction.Jump))
+            var input = Slot.Input;
+            // Ducking only on the float; while ducking there is no jump.
+            IsDucking = canJump && height <= 0f && input != null && input.IsHeld(PlayerAction.Crouch);
+            AnimateDuck(deltaTime, IsDucking);
+            if (!IsDucking && canJump && height <= 0f && input != null && input.WasPressed(PlayerAction.Jump))
                 verticalSpeed = settings.JumpVelocity;
 
             if (height <= 0f && verticalSpeed <= 0f) return;
@@ -87,11 +101,12 @@ namespace UnCredibles.Minigames.Churro
         }
 
         // Online client: the host decides; we only follow its position smoothly.
-        public void ApplyRemote(bool isIn, bool visible, float feetHeight, Vector3 position, Quaternion rotation)
+        public void ApplyRemote(bool isIn, bool visible, float feetHeight, bool ducking, Vector3 position, Quaternion rotation)
         {
             bool appeared = visible && !gameObject.activeSelf;
             if (gameObject.activeSelf != visible) gameObject.SetActive(visible);
             IsIn = isIn;
+            remoteDucking = ducking;
             remoteHeight = isIn ? feetHeight : 0f;
             remotePosition = position;
             remoteRotation = rotation;
@@ -112,6 +127,14 @@ namespace UnCredibles.Minigames.Churro
                 Quaternion.Slerp(transform.rotation, remoteRotation, blend));
             height = Mathf.Lerp(height, remoteHeight, blend);
             visual.localPosition = new Vector3(0f, height, 0f);
+            AnimateDuck(deltaTime, remoteDucking && IsIn);
+        }
+
+        // Squashed down while ducking, back up quickly when released.
+        private void AnimateDuck(float deltaTime, bool ducking)
+        {
+            duck = Mathf.MoveTowards(duck, ducking ? 1f : 0f, deltaTime * 12f);
+            visual.localScale = new Vector3(1f + duck * 0.2f, 1f - duck * 0.5f, 1f + duck * 0.2f);
         }
 
         // Simple ballistic flight into the pool, then hidden until the next round.

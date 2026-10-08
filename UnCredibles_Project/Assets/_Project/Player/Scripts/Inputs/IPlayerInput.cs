@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace UnCredibles.Players.Inputs
 {
-    public enum PlayerAction { Jump, Interact, Ability, Pause }
+    public enum PlayerAction { Jump, Interact, Ability, Pause, Crouch }
 
     // Gameplay only talks to this interface, never to a concrete device.
     public interface IPlayerInput : IDisposable

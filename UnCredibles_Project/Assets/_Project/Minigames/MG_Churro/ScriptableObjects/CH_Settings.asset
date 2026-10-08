@@ -18,16 +18,22 @@ MonoBehaviour:
     acceleration: 9
     maxSpeed: 330
     reverses: 1
+    balls: 1
+    ballInterval: {x: 5, y: 8}
   - arms: 1
     startSpeed: 70
     acceleration: 12
     maxSpeed: 400
     reverses: 1
+    balls: 1
+    ballInterval: {x: 3.5, y: 6}
   - arms: 2
     startSpeed: 50
     acceleration: 6
     maxSpeed: 220
     reverses: 1
+    balls: 1
+    ballInterval: {x: 3, y: 5}
   roundIntroSeconds: 1.5
   roundOutroSeconds: 2.5
   startClearance: 30
@@ -36,6 +42,12 @@ MonoBehaviour:
   brakeSeconds: 0.35
   reversePause: 0.2
   reaccelerateSeconds: 0.5
+  ballFirstDelay: 3
+  ballFlightSeconds: 1.1
+  ballSafetyGap: 0.8
+  ballHeight: 0.95
+  ballRadius: 0.28
+  ballThrowDistance: 7
   churroHeight: 0.35
   churroRadius: 0.15
   jumpVelocity: 6.5

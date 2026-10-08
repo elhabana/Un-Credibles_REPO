@@ -33,7 +33,9 @@ namespace UnCredibles.Minigames.Churro
         private void HandleRoundStarted(int round, int total)
         {
             roundText.text = $"Round {round} / {total}";
-            Show($"ROUND {round}", introVisibleSeconds);
+            // The first round also reminds the two controls.
+            if (round == 1) Show("ROUND 1\n<size=40%>SPACE / A: salta el churro  ·  CTRL / B: agáchate ante las pelotas</size>", introVisibleSeconds + 1f);
+            else Show($"ROUND {round}", introVisibleSeconds);
         }
 
         private void HandleRoundEnded(int round, IReadOnlyList<ChurroPlayer> survivors)
