@@ -15,32 +15,32 @@ MonoBehaviour:
   lawnWidth: 26
   lawnDepth: 16
   cellSize: 0.4
-  regrowSeconds: 25
-  minCutHeight: 0.5
+  regrowSeconds: 20
+  minCutHeight: 0.4
   tallGrassColor: {r: 0.27, g: 0.62, b: 0.22, a: 1}
   stripeGrassColor: {r: 0.33, g: 0.7, b: 0.27, a: 1}
   cutColor: {r: 0.45, g: 0.3, b: 0.16, a: 1}
-  speed: 5.5
-  acceleration: 9
-  braking: 14
-  turnSpeed: 280
-  grip: 7
-  boostMultiplier: 1.9
-  boostSeconds: 0.45
-  boostCooldown: 2.5
-  bumpForce: 5
+  speed: 8.5
+  acceleration: 24
+  braking: 28
+  turnSpeed: 380
+  grip: 9
+  boostMultiplier: 1.7
+  boostSeconds: 0.4
+  boostCooldown: 1.6
+  bumpForce: 8
   mowerRadius: 0.55
-  bladeRadius: 0.6
+  bladeRadius: 0.75
   bladeOffset: 0.25
   playerColors:
   - {r: 0.9, g: 0.25, b: 0.25, a: 1}
   - {r: 0.25, g: 0.5, b: 0.95, a: 1}
   - {r: 0.95, g: 0.55, b: 0.15, a: 1}
   - {r: 0.75, g: 0.3, b: 0.85, a: 1}
-  cellsPerBag: 300
-  bagSpacing: 0.75
+  cellsPerBag: 200
+  bagSpacing: 0.8
   bagRadius: 0.32
-  slowdownPerBag: 0.03
+  slowdownPerBag: 0.02
   minSpeedFactor: 0.6
   pickupDelay: 0.35
   scatterDistance: 1

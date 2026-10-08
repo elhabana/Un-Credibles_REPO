@@ -11,28 +11,28 @@ namespace UnCredibles.Minigames.MowTheLawn
         [SerializeField, Min(0.1f), Tooltip("Size of one grass cell. Smaller = finer trail, more work.")]
         private float cellSize = 0.4f;
         [SerializeField, Min(0.5f), Tooltip("Seconds for a cut cell to grow back completely.")]
-        private float regrowSeconds = 25f;
+        private float regrowSeconds = 20f;
         [SerializeField, Range(0f, 1f), Tooltip("Grass below this height is too short to be cut again.")]
-        private float minCutHeight = 0.5f;
+        private float minCutHeight = 0.4f;
         [SerializeField] private Color tallGrassColor = new Color(0.27f, 0.62f, 0.22f);
         [SerializeField] private Color stripeGrassColor = new Color(0.33f, 0.7f, 0.27f);
         [SerializeField] private Color cutColor = new Color(0.45f, 0.3f, 0.16f);
 
         [Header("Mowers")]
-        [SerializeField, Min(0.1f), Tooltip("Top speed with the stick fully pushed.")] private float speed = 5.5f;
-        [SerializeField, Min(0.1f), Tooltip("Speed gained per second.")] private float acceleration = 9f;
-        [SerializeField, Min(0.1f), Tooltip("Speed lost per second when releasing or slowing down.")] private float braking = 14f;
-        [SerializeField, Min(1f), Tooltip("Degrees per second at top speed (faster when slow).")] private float turnSpeed = 280f;
+        [SerializeField, Min(0.1f), Tooltip("Top speed with the stick fully pushed.")] private float speed = 8.5f;
+        [SerializeField, Min(0.1f), Tooltip("Speed gained per second.")] private float acceleration = 24f;
+        [SerializeField, Min(0.1f), Tooltip("Speed lost per second when releasing or slowing down.")] private float braking = 28f;
+        [SerializeField, Min(1f), Tooltip("Degrees per second at top speed (faster when slow).")] private float turnSpeed = 380f;
         [SerializeField, Min(0.5f), Tooltip("How fast the mower stops sliding sideways. Lower = more drift.")]
-        private float grip = 7f;
-        [SerializeField, Min(1f), Tooltip("Speed multiplier while the turbo (Jump) lasts.")] private float boostMultiplier = 1.9f;
-        [SerializeField, Min(0.05f)] private float boostSeconds = 0.45f;
-        [SerializeField, Min(0f), Tooltip("Seconds before the turbo can be used again.")] private float boostCooldown = 2.5f;
-        [SerializeField, Min(0f), Tooltip("Push given to two mowers that crash into each other.")] private float bumpForce = 5f;
+        private float grip = 9f;
+        [SerializeField, Min(1f), Tooltip("Speed multiplier while the turbo (Jump) lasts.")] private float boostMultiplier = 1.7f;
+        [SerializeField, Min(0.05f)] private float boostSeconds = 0.4f;
+        [SerializeField, Min(0f), Tooltip("Seconds before the turbo can be used again.")] private float boostCooldown = 1.6f;
+        [SerializeField, Min(0f), Tooltip("Push given to two mowers that crash into each other.")] private float bumpForce = 8f;
         [SerializeField, Min(0.1f), Tooltip("Body radius for collisions with other mowers and bags.")]
         private float mowerRadius = 0.55f;
         [SerializeField, Min(0.1f), Tooltip("Radius of grass cut around the blade.")]
-        private float bladeRadius = 0.6f;
+        private float bladeRadius = 0.75f;
         [SerializeField, Min(0.1f), Tooltip("Distance of the blade in front of the mower centre.")]
         private float bladeOffset = 0.25f;
         [SerializeField] private Color[] playerColors =
@@ -43,10 +43,10 @@ namespace UnCredibles.Minigames.MowTheLawn
 
         [Header("Bags")]
         [SerializeField, Min(1f), Tooltip("Grass cells (fully grown) needed to fill one bag.")]
-        private float cellsPerBag = 300f;
-        [SerializeField, Min(0.2f), Tooltip("Distance between bags in the tail.")] private float bagSpacing = 0.75f;
+        private float cellsPerBag = 200f;
+        [SerializeField, Min(0.2f), Tooltip("Distance between bags in the tail.")] private float bagSpacing = 0.8f;
         [SerializeField, Min(0.1f)] private float bagRadius = 0.32f;
-        [SerializeField, Range(0f, 0.05f), Tooltip("Speed lost per bag carried.")] private float slowdownPerBag = 0.03f;
+        [SerializeField, Range(0f, 0.05f), Tooltip("Speed lost per bag carried.")] private float slowdownPerBag = 0.02f;
         [SerializeField, Range(0.1f, 1f), Tooltip("Never slower than this fraction of the speed.")]
         private float minSpeedFactor = 0.6f;
         [SerializeField, Min(0f), Tooltip("Seconds a dropped bag cannot be picked up.")]
