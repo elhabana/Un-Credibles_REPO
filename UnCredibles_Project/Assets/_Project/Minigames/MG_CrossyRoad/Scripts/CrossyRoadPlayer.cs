@@ -43,7 +43,7 @@ namespace UnCredibles.Minigames.CrossyRoad
         public Vector3 CarryPosition => carriedGrandma != null ? carriedGrandma.transform.position : transform.position + Vector3.up;
         public int Lane => board.WorldToLane(transform.position.z);
 
-        public void Setup(PlayerSlot slot, CrossyRoadBoard gameBoard, Vector3 spawnPosition, Color color, Color grandmaColor)
+        public void Setup(PlayerSlot slot, CrossyRoadBoard gameBoard, Vector3 spawnPosition, Color grandmaColor)
         {
             Slot = slot;
             board = gameBoard;
@@ -51,8 +51,7 @@ namespace UnCredibles.Minigames.CrossyRoad
             SpawnPosition = spawnPosition;
 
             var block = new MaterialPropertyBlock();
-            block.SetColor(BaseColorId, color);
-            foreach (var body in bodyRenderers) body.SetPropertyBlock(block);
+            PlayerPresentation.Attach(this, slot, bodyRenderers);
             if (carriedGrandma != null)
             {
                 block.SetColor(BaseColorId, grandmaColor);

@@ -8,7 +8,6 @@ namespace UnCredibles.Minigames.Churro
     // Ticked by ChurroController, it has no Update of its own.
     public sealed class ChurroPlayer : MonoBehaviour
     {
-        private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
         private const float SinkDepth = 1.5f;
 
         [SerializeField] private Transform visual;
@@ -31,16 +30,14 @@ namespace UnCredibles.Minigames.Churro
         public bool IsGrounded => IsIn && height <= 0f;
         public float FeetHeight => height;
 
-        public void Setup(PlayerSlot slot, ChurroSettings churroSettings, Vector3 center, Color color)
+        public void Setup(PlayerSlot slot, ChurroSettings churroSettings, Vector3 center)
         {
             Slot = slot;
             settings = churroSettings;
             floatPosition = transform.position;
             Angle = ChurroSpinner.AngleOf(center, floatPosition);
 
-            var block = new MaterialPropertyBlock();
-            block.SetColor(BaseColorId, color);
-            foreach (var body in bodyRenderers) body.SetPropertyBlock(block);
+            PlayerPresentation.Attach(this, slot, bodyRenderers);
 
             // Face the kid in the middle.
             var toCenter = center - floatPosition;

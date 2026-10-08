@@ -44,7 +44,7 @@ namespace UnCredibles.Minigames.Churro
             foreach (var player in Players)
             {
                 var avatar = Spawns.Spawn(playerPrefab, player, playersParent);
-                avatar.Setup(player, settings, spinner.Center, settings.GetPlayerColor(player.SlotIndex));
+                avatar.Setup(player, settings, spinner.Center);
                 avatars.Add(avatar);
                 floatDistance = Vector3.Distance(Flat(avatar.transform.position), Flat(spinner.Center));
             }

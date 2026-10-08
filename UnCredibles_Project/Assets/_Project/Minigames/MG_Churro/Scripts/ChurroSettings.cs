@@ -37,11 +37,6 @@ namespace UnCredibles.Minigames.Churro
         [SerializeField, Min(0.05f), Tooltip("Player body radius used for the hit test.")]
         private float playerRadius = 0.35f;
         [SerializeField] private float knockoutSpeed = 7f;
-        [SerializeField] private Color[] playerColors =
-        {
-            new Color(0.9f, 0.25f, 0.25f), new Color(0.25f, 0.5f, 0.95f),
-            new Color(0.3f, 0.8f, 0.35f), new Color(0.95f, 0.8f, 0.2f),
-        };
 
         [Header("AI")]
         [SerializeField, Min(0f), Tooltip("Earliest a bot jumps before the churro arrives (s).")]
@@ -64,7 +59,7 @@ namespace UnCredibles.Minigames.Churro
         public float PlayerRadius => playerRadius;
         public float KnockoutSpeed => knockoutSpeed;
         public Color GetPlayerColor(int slotIndex) =>
-            playerColors.Length > 0 ? playerColors[slotIndex % playerColors.Length] : Color.white;
+            UnCredibles.Players.PlayerIdentity.ColorFor(slotIndex);
 
         public float AIMinLead => aiMinLead;
         public float AIMaxLead => aiMaxLead;

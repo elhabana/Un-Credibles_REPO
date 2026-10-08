@@ -1,0 +1,68 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fc38a5df3a0b8c2e8ecd9b3704ab6bea, type: 3}
+  m_Name: MW_Settings
+  m_EditorClassIdentifier: 
+  lawnWidth: 30
+  lawnDepth: 17
+  visualMargin: 6
+  cellSize: 0.4
+  regrowSeconds: 20
+  minCutHeight: 0.4
+  tallGrassColor: {r: 0.13, g: 0.33, b: 0.09, a: 1}
+  stripeGrassColor: {r: 0.17, g: 0.4, b: 0.12, a: 1}
+  cutColor: {r: 0.45, g: 0.3, b: 0.16, a: 1}
+  bladeHeight: 0.4
+  bladesPerCell: 12
+  speed: 7
+  acceleration: 10
+  braking: 18
+  turnSpeed: 340
+  grip: 9
+  boostMultiplier: 2.8
+  boostSeconds: 0.6
+  boostCooldown: 5
+  bumpForce: 8
+  mowerRadius: 0.55
+  bladeRadius: 0.75
+  bladeOffset: 0.25
+  playerColors:
+  - {r: 0.9, g: 0.25, b: 0.25, a: 1}
+  - {r: 0.25, g: 0.5, b: 0.95, a: 1}
+  - {r: 0.95, g: 0.55, b: 0.15, a: 1}
+  - {r: 0.75, g: 0.3, b: 0.85, a: 1}
+  cellsPerBag: 180
+  bagSpacing: 0.8
+  bagRadius: 0.32
+  slowdownPerBag: 0.02
+  minSpeedFactor: 0.6
+  pickupDelay: 0.35
+  scatterDistance: 1
+  maxLooseBags: 48
+  looseBagLifetime: 10
+  tailProtectSeconds: 2
+  cutCooldown: 1
+  ramBagsLost: 3
+  stunSeconds: 1.1
+  ramImmunitySeconds: 2
+  ramAngle: 60
+  ramKnockForce: 12
+  binRadius: 0.95
+  deliverRadius: 2.1
+  unloadInterval: 0.12
+  binInset: 1.1
+  frenzySeconds: 30
+  frenzyPointsPerBag: 2
+  frenzySpeed: 1.15
+  aiThinkInterval: 0.35
+  aiLooseBagRange: 6
+  aiAttackRange: 5

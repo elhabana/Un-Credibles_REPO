@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: MW_GrassBlade_M
+  m_Shader: {fileID: 4800000, guid: e9fe6b516120dde27ace46bffb2bcff7, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 1
+  m_DoubleSidedGI: 1
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs: []
+    m_Ints: []
+    m_Floats:
+    - _DryAmount: 0.22
+    - _Translucency: 0.35
+    - _Variation: 0.14
+    - _WindScale: 0.25
+    - _WindSpeed: 1.6
+    - _WindStrength: 0.12
+    m_Colors:
+    - _BaseColor: {r: 0.09, g: 0.27, b: 0.06, a: 1}
+    - _DryColor: {r: 0.76, g: 0.78, b: 0.36, a: 1}
+    - _TipColor: {r: 0.52, g: 0.82, b: 0.28, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

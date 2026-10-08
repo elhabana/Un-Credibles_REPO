@@ -66,8 +66,12 @@ namespace UnCredibles.UI.PartyLobby
         public event Action CountdownCancelled;
         public event Action<string> Notice;     // short message for the hint line
 
-        private IEnumerator Start()
+        private void OnEnable() => StartCoroutine(Initialize());
+
+        private IEnumerator Initialize()
         {
+            // Let views subscribe and discard the button that opened the lobby.
+            yield return null;
             // CoreSceneLoader brings Core in when this scene is played directly.
             while (CoreRoot.Instance == null) yield return null;
 
@@ -106,9 +110,13 @@ namespace UnCredibles.UI.PartyLobby
             EvaluateCountdown();
         }
 
-        private void OnDestroy()
+        private void OnDisable()
         {
+            StopAllCoroutines();
+            countdown = null;
+            starting = false;
             joinListener?.Dispose();
+            joinListener = null;
             if (Players != null) Players.SlotChanged -= HandleSlotChanged;
             if (room != null)
             {
@@ -120,6 +128,10 @@ namespace UnCredibles.UI.PartyLobby
                 batPad.PhoneDisconnected -= HandlePhoneDisconnected;
                 batPad.PhoneReconnected -= HandlePhoneReconnected;
             }
+            Players = null;
+            deviceSlots.Clear();
+            phoneTimeouts.Clear();
+            expiredPhones.Clear();
         }
 
         // Lobby input of the players of this machine: Jump toggles Ready, Pause un-readies or leaves.

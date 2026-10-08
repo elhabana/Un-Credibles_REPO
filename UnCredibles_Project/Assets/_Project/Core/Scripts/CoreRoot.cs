@@ -103,11 +103,13 @@ namespace UnCredibles.Core
         public void OpenPartyLobby(SessionMode mode)
         {
             GameFlow.SetSession(mode);
-            sceneFlow.LoadContent(GameScenes.PartyLobby);
+            sceneFlow.LoadContent(GameScenes.PartyLobby, () => GameFlow.ChangeState(GameState.PartyLobby));
         }
 
         public void ReturnToMainMenu()
         {
+            // Close the lobby before clearing players or disconnecting its room.
+            GameFlow.ChangeState(GameState.MainMenu);
             IsConnectionLost = false;
             Time.timeScale = 1f;
             AudioListener.pause = false;

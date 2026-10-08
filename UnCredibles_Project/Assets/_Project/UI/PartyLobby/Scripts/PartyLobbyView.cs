@@ -70,6 +70,8 @@ namespace UnCredibles.UI.PartyLobby
 
         private void HandleInitialized()
         {
+            locked = false;
+            countdownText.gameObject.SetActive(false);
             if (controller.UsesPhones) controller.BatPad.RoomChanged += RenderBatPad;
             RenderBatPad();
             hintText.text = !controller.IsOnline

@@ -45,11 +45,6 @@ namespace UnCredibles.Minigames.CrossyRoad
         [SerializeField, Min(0f)] private float walkBobFrequency = 12f;
         [SerializeField, Min(0f)] private float respawnDelay = 1f;
         [SerializeField, Min(0f)] private float invulnerableTime = 1.5f;
-        [SerializeField] private Color[] playerColors =
-        {
-            new Color(0.9f, 0.25f, 0.25f), new Color(0.25f, 0.5f, 0.95f),
-            new Color(0.3f, 0.8f, 0.35f), new Color(0.95f, 0.8f, 0.2f),
-        };
 
         [Header("Hit by a car (cartoon)")]
         [SerializeField, Min(1f), Tooltip("How wide the flattened player gets.")] private float squashWidth = 1.6f;
@@ -121,7 +116,7 @@ namespace UnCredibles.Minigames.CrossyRoad
         public float RespawnDelay => respawnDelay;
         public float InvulnerableTime => invulnerableTime;
         public Color GetPlayerColor(int slotIndex) =>
-            playerColors.Length > 0 ? playerColors[slotIndex % playerColors.Length] : Color.white;
+            UnCredibles.Players.PlayerIdentity.ColorFor(slotIndex);
 
         public Vector3 SquashScale => new Vector3(squashWidth, squashHeight, squashWidth);
         public float SquashDuration => squashDuration;
