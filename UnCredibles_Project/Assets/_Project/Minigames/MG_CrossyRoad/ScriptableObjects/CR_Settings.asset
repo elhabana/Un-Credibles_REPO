@@ -80,7 +80,7 @@ MonoBehaviour:
   oilAfterSlip: 0.6
   startSpeedMultiplier: 0.5
   endSpeedMultiplier: 1.2
-  startSpawnMultiplier: 2.4
+  startSpawnMultiplier: 3.5
   endSpawnMultiplier: 0.75
   difficultyRamp: 1
   finalRushSeconds: 30
