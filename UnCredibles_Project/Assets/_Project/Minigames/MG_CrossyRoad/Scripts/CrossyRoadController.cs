@@ -41,7 +41,7 @@ namespace UnCredibles.Minigames.CrossyRoad
                 var avatar = Spawns.Spawn(playerPrefab, player, playersParent);
                 var spawnPoint = Spawns.GetSpawnPoint(player.SlotIndex).position;
                 var preferred = new Vector3(spawnPoint.x, board.transform.position.y, board.LaneToZ(CrossyRoadBoard.SpawnLane));
-                avatar.Setup(player, board, FindFreeSpawn(preferred, null), Settings.GetPlayerColor(player.SlotIndex), Settings.GrandmaColor);
+                avatar.Setup(player, board, FindFreeSpawn(preferred, null), Settings.GrandmaColor);
                 avatars.Add(avatar);
             }
 

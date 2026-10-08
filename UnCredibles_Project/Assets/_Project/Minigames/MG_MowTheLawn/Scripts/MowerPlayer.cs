@@ -12,7 +12,6 @@ namespace UnCredibles.Minigames.MowTheLawn
     // exactly the path it drove. Ticked by MowTheLawnController, it has no Update of its own.
     public sealed class MowerPlayer : MonoBehaviour
     {
-        private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
         private const float PathStep = 0.12f;         // distance between recorded path points
         private const float RemoteSnapDistance = 3f;
         private const float StickDeadZone = 0.15f;
@@ -33,7 +32,7 @@ namespace UnCredibles.Minigames.MowTheLawn
         private readonly List<Vector3> tailPositions = new List<Vector3>(16);
         private MowTheLawnSettings settings;
         private MowBags bags;
-        private Color color;
+        private Color color => PlayerIdentity.ColorFor(Slot.SlotIndex, Slot.IsAI);
         private float clippings;
         private float bobTime;
         private Vector3 fillScale;
@@ -76,16 +75,12 @@ namespace UnCredibles.Minigames.MowTheLawn
         // Global speed change (the final frenzy makes everybody faster).
         public float SpeedMultiplier { get; set; } = 1f;
 
-        public void Setup(PlayerSlot slot, MowTheLawnSettings mowSettings, MowBags bagPool, Color playerColor)
+        public void Setup(PlayerSlot slot, MowTheLawnSettings mowSettings, MowBags bagPool)
         {
             Slot = slot;
             settings = mowSettings;
             bags = bagPool;
-            color = playerColor;
-
-            var block = new MaterialPropertyBlock();
-            block.SetColor(BaseColorId, color);
-            foreach (var body in bodyRenderers) body.SetPropertyBlock(block);
+            PlayerPresentation.Attach(this, slot, bodyRenderers);
             if (fillIndicator != null) fillScale = fillIndicator.localScale;
             if (boostFlame != null) flameScale = boostFlame.localScale;
             if (turboRing != null) ringScale = turboRing.localScale;

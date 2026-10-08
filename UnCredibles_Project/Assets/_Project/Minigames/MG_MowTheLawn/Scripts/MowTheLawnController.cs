@@ -46,7 +46,7 @@ namespace UnCredibles.Minigames.MowTheLawn
             {
                 var bin = Instantiate(binPrefab, CornerOf(player.SlotIndex), Quaternion.identity, playersParent);
                 bin.name = $"Bin_{player.SlotIndex}";
-                bin.Setup(player.SlotIndex, settings.GetPlayerColor(player.SlotIndex));
+                bin.Setup(player.SlotIndex, PlayerIdentity.ColorFor(player.SlotIndex, player.IsAI));
                 bins.Add(bin);
 
                 var mower = Spawns.Spawn(mowerPrefab, player, playersParent);
@@ -54,7 +54,7 @@ namespace UnCredibles.Minigames.MowTheLawn
                 var toCenter = lawn.Center - mower.transform.position;
                 toCenter.y = 0f;
                 if (toCenter.sqrMagnitude > 0.01f) mower.transform.rotation = Quaternion.LookRotation(toCenter);
-                mower.Setup(player, settings, bags, settings.GetPlayerColor(player.SlotIndex));
+                mower.Setup(player, settings, bags);
                 mowers.Add(mower);
             }
 
@@ -73,6 +73,8 @@ namespace UnCredibles.Minigames.MowTheLawn
 
         private void Update()
         {
+            // An online host can wait for clients after the scene loads, before OnInitialize.
+            if (State == MinigameState.None || State == MinigameState.Initialize || State == MinigameState.Exit) return;
             float deltaTime = Time.deltaTime;
             lawn.Tick(deltaTime);
             bags.Tick(deltaTime, !IsReplica);

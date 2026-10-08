@@ -24,6 +24,7 @@ namespace UnCredibles.Minigames
             var point = GetSpawnPoint(player.SlotIndex);
             var instance = Instantiate(prefab, point.position, point.rotation, parent);
             instance.name = $"{prefab.name}_{player.SlotIndex}";
+            PlayerPresentation.Attach(instance, player);
             return instance;
         }
     }

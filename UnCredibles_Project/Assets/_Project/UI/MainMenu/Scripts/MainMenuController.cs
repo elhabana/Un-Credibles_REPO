@@ -7,6 +7,7 @@ namespace UnCredibles.UI.MainMenu
 {
     public sealed class MainMenuController : MonoBehaviour
     {
+        public event System.Action SettingsRequested;
         [SerializeField] private Button singleplayerButton;
         [SerializeField] private Button multiplayerButton;
         [SerializeField] private Button settingsButton;
@@ -16,21 +17,24 @@ namespace UnCredibles.UI.MainMenu
         [SerializeField] private Button joinRoomButton;
         [SerializeField] private Button backButton;
         [SerializeField] private TMP_InputField roomCodeInput;
-        private TMP_Text connectionStatus;
+        [SerializeField] private TMP_Text connectionStatus;
         private bool enteringOnline;
 
         private void Awake()
         {
             // Reuse the existing canvas and font; no separate debug overlay in the menu.
-            connectionStatus = Instantiate(createRoomButton.GetComponentInChildren<TMP_Text>(), multiplayerSetupPanel.transform);
-            connectionStatus.name = "Connection Status";
-            connectionStatus.raycastTarget = false;
-            var rect = connectionStatus.rectTransform;
-            rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
-            rect.pivot = new Vector2(0.5f, 0.5f);
-            rect.anchoredPosition = new Vector2(0, -110);
-            rect.sizeDelta = new Vector2(600, 80);
-            connectionStatus.fontSize = 20;
+            if (connectionStatus == null)
+            {
+                connectionStatus = Instantiate(createRoomButton.GetComponentInChildren<TMP_Text>(), multiplayerSetupPanel.transform);
+                connectionStatus.name = "Connection Status";
+                connectionStatus.raycastTarget = false;
+                var rect = connectionStatus.rectTransform;
+                rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
+                rect.pivot = new Vector2(0.5f, 0.5f);
+                rect.anchoredPosition = new Vector2(0, -110);
+                rect.sizeDelta = new Vector2(600, 80);
+                connectionStatus.fontSize = 20;
+            }
             connectionStatus.text = "";
             ShowMultiplayerSetup(false);
         }
@@ -91,7 +95,9 @@ namespace UnCredibles.UI.MainMenu
             enteringOnline = true;
             CoreRoot.Instance.Online.JoinHost(roomCodeInput.text);
         }
-        private void OpenSettings() => Debug.Log("Settings menu is not available yet.", this);
+        private void OpenSettings() => SettingsRequested?.Invoke();
+
+        public void ResetView() => ShowMultiplayerSetup(false);
 
         private void ShowMultiplayerSetup(bool show)
         {

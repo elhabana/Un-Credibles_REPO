@@ -39,11 +39,6 @@ namespace UnCredibles.Minigames.MowTheLawn
         private float bladeRadius = 0.75f;
         [SerializeField, Min(0.1f), Tooltip("Distance of the blade in front of the mower centre.")]
         private float bladeOffset = 0.25f;
-        [SerializeField] private Color[] playerColors =
-        {
-            new Color(0.9f, 0.25f, 0.25f), new Color(0.25f, 0.5f, 0.95f),
-            new Color(0.95f, 0.55f, 0.15f), new Color(0.75f, 0.3f, 0.85f),
-        };
 
         [Header("Bags")]
         [SerializeField, Min(1f), Tooltip("Grass cells (fully grown) needed to fill one bag.")]
@@ -146,6 +141,6 @@ namespace UnCredibles.Minigames.MowTheLawn
         public float SpeedFactor(int bags) => Mathf.Max(minSpeedFactor, 1f - slowdownPerBag * bags);
 
         public Color GetPlayerColor(int slotIndex) =>
-            playerColors.Length > 0 ? playerColors[Mathf.Abs(slotIndex) % playerColors.Length] : Color.white;
+            UnCredibles.Players.PlayerIdentity.ColorFor(slotIndex);
     }
 }
