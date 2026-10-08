@@ -8,6 +8,7 @@ namespace UnCredibles.Networking
     {
         public struct Row
         {
+            public int PlayerId;
             public string Name;
             public int Placement;
             public int Gained;
@@ -27,6 +28,7 @@ namespace UnCredibles.Networking
             writer.WriteValueSafe((byte)Rows.Count);
             foreach (var row in Rows)
             {
+                writer.WriteValueSafe(row.PlayerId);
                 writer.WriteValueSafe(row.Name ?? string.Empty);
                 writer.WriteValueSafe(row.Placement);
                 writer.WriteValueSafe(row.Gained);
@@ -44,6 +46,7 @@ namespace UnCredibles.Networking
             for (int i = 0; i < count; i++)
             {
                 var row = new Row();
+                reader.ReadValueSafe(out row.PlayerId);
                 reader.ReadValueSafe(out row.Name);
                 reader.ReadValueSafe(out row.Placement);
                 reader.ReadValueSafe(out row.Gained);

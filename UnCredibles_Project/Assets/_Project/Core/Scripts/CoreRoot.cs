@@ -293,6 +293,7 @@ namespace UnCredibles.Core
                     if (result.PlayerId == standing.PlayerId) gained = Match.PointsFor(result.Placement);
                 standings.Rows.Add(new OnlineStandings.Row
                 {
+                    PlayerId = standing.PlayerId,
                     Name = Players.TryGetByPlayerId(standing.PlayerId, out var slot) ? slot.PlayerName : $"Player {standing.PlayerId + 1}",
                     Placement = standing.Placement,
                     Gained = gained,
