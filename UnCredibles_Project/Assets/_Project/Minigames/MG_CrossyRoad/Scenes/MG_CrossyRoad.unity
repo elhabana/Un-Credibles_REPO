@@ -502,6 +502,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   board: {fileID: 412}
   carPrefab: {fileID: 101, guid: 2b2cb49c5b6a7182595d0fcef7f78e07, type: 3}
+  oilTruckPrefab: {fileID: 101, guid: bc0333feeffa835cb32a38c65f5cb3f9, type: 3}
 --- !u!1 &320
 GameObject:
   m_ObjectHideFlags: 0

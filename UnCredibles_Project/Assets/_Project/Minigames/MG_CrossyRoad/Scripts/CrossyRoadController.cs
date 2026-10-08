@@ -65,7 +65,7 @@ namespace UnCredibles.Minigames.CrossyRoad
 
             // Cars already drive during the countdown so the scene feels alive.
             if (State == MinigameState.Waiting || State == MinigameState.Countdown || IsPlaying)
-                traffic.Tick(Time.deltaTime);
+                traffic.Tick(Time.deltaTime, IsPlaying);
             if (!IsPlaying) return;
             EnsureBrains(); // an online player who left is now a bot
 

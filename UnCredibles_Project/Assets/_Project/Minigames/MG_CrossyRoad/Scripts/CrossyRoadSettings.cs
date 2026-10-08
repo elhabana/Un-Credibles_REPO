@@ -65,8 +65,10 @@ namespace UnCredibles.Minigames.CrossyRoad
         [SerializeField, Min(0.1f)] private float grandmaGravity = 20f;
 
         [Header("Oil slicks")]
-        [SerializeField, Tooltip("Seconds between two oil drops (random in range).")]
-        private Vector2 oilDropInterval = new Vector2(6f, 12f);
+        [SerializeField, Range(0f, 1f), Tooltip("Chance that a new vehicle is a leaking oil truck.")]
+        private float oilTruckChance = 0.18f;
+        [SerializeField, Min(0), Tooltip("Oil trucks on the road at the same time.")] private int maxOilTrucks = 2;
+        [SerializeField, Min(1), Tooltip("Oil slicks each truck leaks while crossing the board.")] private int oilDropsPerTruck = 2;
         [SerializeField, Min(0.5f)] private float oilLifetime = 8f;
         [SerializeField, Min(0.1f)] private float oilRadius = 1.5f;
         [SerializeField, Min(1)] private int maxOilSlicks = 4;
@@ -93,10 +95,11 @@ namespace UnCredibles.Minigames.CrossyRoad
         [Header("Traffic")]
         [SerializeField, Min(1f), Tooltip("Lane depths outside the board where cars appear and disappear.")]
         private float offscreenMargin = 9f;
-        [SerializeField] private Color[] carColors =
+        [SerializeField, Tooltip("Plain cars. Avoid black and yellow: those are the oil trucks.")]
+        private Color[] carColors =
         {
             new Color(0.95f, 0.45f, 0.1f), new Color(0.15f, 0.7f, 0.85f),
-            new Color(0.95f, 0.95f, 0.95f), new Color(0.2f, 0.2f, 0.25f),
+            new Color(0.95f, 0.95f, 0.95f), new Color(0.9f, 0.22f, 0.25f),
         };
 
         [Header("Lane colors")]
@@ -131,7 +134,9 @@ namespace UnCredibles.Minigames.CrossyRoad
         public float GrandmaSpinSpeed => grandmaSpinSpeed;
         public float GrandmaGravity => grandmaGravity;
 
-        public Vector2 OilDropInterval => oilDropInterval;
+        public float OilTruckChance => oilTruckChance;
+        public int MaxOilTrucks => maxOilTrucks;
+        public int OilDropsPerTruck => oilDropsPerTruck;
         public float OilLifetime => oilLifetime;
         public float OilRadius => oilRadius;
         public int MaxOilSlicks => maxOilSlicks;

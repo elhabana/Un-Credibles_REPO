@@ -5,6 +5,7 @@ using UnityEngine;
 namespace UnCredibles.Minigames.CrossyRoad
 {
     // Cars of every road lane. Pooled, moved from a single Tick and hit-tested without physics.
+    // Some of them are oil trucks: easy to tell apart, and the only vehicles that leak oil slicks.
     public sealed class CrossyRoadTraffic : MonoBehaviour
     {
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
@@ -12,6 +13,8 @@ namespace UnCredibles.Minigames.CrossyRoad
 
         [SerializeField] private CrossyRoadBoard board;
         [SerializeField] private Transform carPrefab;
+        [SerializeField, Tooltip("Leaking oil truck. Same size as a car of its lane, its own look.")]
+        private Transform oilTruckPrefab;
 
         private sealed class Car
         {
@@ -19,6 +22,10 @@ namespace UnCredibles.Minigames.CrossyRoad
             public Renderer[] Renderers;
             public float X;
             public int Id; // same on host and clients, also picks the colour
+            public bool IsOilTruck;
+            public CrossyRoadOilTruck Truck;
+            public int DropsLeft;
+            public float NextDropX;
         }
 
         private sealed class Lane
@@ -32,6 +39,9 @@ namespace UnCredibles.Minigames.CrossyRoad
         }
 
         private readonly Stack<Car> pool = new Stack<Car>();
+        private readonly Stack<Car> truckPool = new Stack<Car>();
+        private readonly Queue<Vector3> pendingDrops = new Queue<Vector3>();
+        private readonly List<bool> receivedTrucks = new List<bool>();
         private MaterialPropertyBlock block;
         private Lane[] lanes = new Lane[0];
         private float spawnX;
@@ -64,14 +74,15 @@ namespace UnCredibles.Minigames.CrossyRoad
             }
         }
 
-        public void Tick(float deltaTime)
+        // `leak`: trucks only drop oil while the game is being played.
+        public void Tick(float deltaTime, bool leak)
         {
             foreach (var lane in lanes)
             {
                 lane.Timer -= deltaTime;
                 if (lane.Timer <= 0f && EntryIsClear(lane))
                 {
-                    Spawn(lane, -Mathf.Sign(lane.Velocity) * spawnX, NextId());
+                    Spawn(lane, -Mathf.Sign(lane.Velocity) * spawnX, NextId(), RollOilTruck());
                     lane.Timer = Random.Range(lane.Config.minSpawnInterval, lane.Config.maxSpawnInterval);
                 }
 
@@ -85,8 +96,62 @@ namespace UnCredibles.Minigames.CrossyRoad
                         continue;
                     }
                     car.Transform.position = new Vector3(board.transform.position.x + car.X, board.transform.position.y, lane.Z);
+                    if (car.IsOilTruck) TickTruck(car, lane, deltaTime, leak);
                 }
             }
+        }
+
+        // Host: next oil slick leaked by a truck, if any (consumed by CrossyRoadOil).
+        public bool TryTakeDrop(out Vector3 position)
+        {
+            if (pendingDrops.Count == 0)
+            {
+                position = default;
+                return false;
+            }
+            position = pendingDrops.Dequeue();
+            return true;
+        }
+
+        // A truck leaks at a couple of random points while it crosses the board.
+        private void TickTruck(Car car, Lane lane, float deltaTime, bool leak)
+        {
+            car.Truck.Animate(deltaTime);
+            if (!leak || car.DropsLeft <= 0) return;
+            float direction = Mathf.Sign(lane.Velocity);
+            if ((car.X - car.NextDropX) * direction < 0f) return;
+
+            pendingDrops.Enqueue(new Vector3(board.transform.position.x + car.X, board.transform.position.y, lane.Z));
+            car.Truck.Leak();
+            car.DropsLeft--;
+            PickNextDrop(car, direction);
+        }
+
+        // Somewhere ahead of the truck, still over the board; none if there is no room left.
+        private void PickNextDrop(Car car, float direction)
+        {
+            float limit = board.HalfWidth - board.Settings.OilRadius;
+            float from = direction > 0f ? Mathf.Max(car.X, -limit) : Mathf.Min(car.X, limit);
+            float to = direction * limit;
+            if ((to - from) * direction < board.CellSize)
+            {
+                car.DropsLeft = 0;
+                return;
+            }
+            car.NextDropX = Random.Range(from, to);
+        }
+
+        private bool RollOilTruck()
+        {
+            if (oilTruckPrefab == null || Random.value >= board.Settings.OilTruckChance) return false;
+            int trucks = 0;
+            foreach (var lane in lanes)
+            {
+                if (lane == null) continue; // lanes still being filled at start
+                foreach (var car in lane.Cars)
+                    if (car.IsOilTruck) trucks++;
+            }
+            return trucks < board.Settings.MaxOilTrucks;
         }
 
         public bool IsHit(int roadIndex, float worldX, float halfWidth) =>
@@ -112,26 +177,6 @@ namespace UnCredibles.Minigames.CrossyRoad
         // Does a circle (player) on the ground overlap any car? Checks every lane it touches,
         // so a player standing between two lanes is tested against both.
         public bool Overlaps(Vector3 worldPosition, float radius) => OverlapsAt(worldPosition, radius, 0f);
-
-        // A random car currently driving over the playable area (used to drop oil slicks).
-        public bool TryGetRandomCarOnBoard(out Vector3 position)
-        {
-            position = default;
-            if (lanes.Length == 0) return false;
-            float limit = board.HalfWidth - board.Settings.OilRadius;
-            int startLane = Random.Range(0, lanes.Length);
-            for (int i = 0; i < lanes.Length; i++)
-            {
-                var lane = lanes[(startLane + i) % lanes.Length];
-                foreach (var car in lane.Cars)
-                {
-                    if (Mathf.Abs(car.X) > limit) continue;
-                    position = new Vector3(board.transform.position.x + car.X, board.transform.position.y, lane.Z);
-                    return true;
-                }
-            }
-            return false;
-        }
 
         // Same test with every car moved `seconds` into the future (used by the AI to plan).
         public bool OverlapsAt(Vector3 worldPosition, float radius, float seconds)
@@ -161,6 +206,7 @@ namespace UnCredibles.Minigames.CrossyRoad
                 {
                     writer.Write((ushort)car.Id);
                     writer.Write(car.X);
+                    writer.Write(car.IsOilTruck);
                 }
             }
         }
@@ -173,11 +219,13 @@ namespace UnCredibles.Minigames.CrossyRoad
             {
                 receivedIds.Clear();
                 receivedX.Clear();
+                receivedTrucks.Clear();
                 int count = reader.ReadByte();
                 for (int i = 0; i < count; i++)
                 {
                     receivedIds.Add(reader.ReadUInt16());
                     receivedX.Add(reader.ReadSingle());
+                    receivedTrucks.Add(reader.ReadBoolean());
                 }
                 if (l >= lanes.Length) continue;
 
@@ -187,7 +235,7 @@ namespace UnCredibles.Minigames.CrossyRoad
                 for (int i = 0; i < receivedIds.Count; i++)
                 {
                     var car = FindCar(lane, receivedIds[i]);
-                    if (car == null) Spawn(lane, receivedX[i], receivedIds[i]);
+                    if (car == null) Spawn(lane, receivedX[i], receivedIds[i], receivedTrucks[i]);
                     else car.X = Mathf.Lerp(car.X, receivedX[i], 0.5f);
                 }
             }
@@ -201,6 +249,7 @@ namespace UnCredibles.Minigames.CrossyRoad
                 {
                     car.X += lane.Velocity * deltaTime;
                     car.Transform.position = new Vector3(board.transform.position.x + car.X, board.transform.position.y, lane.Z);
+                    if (car.IsOilTruck) car.Truck.Animate(deltaTime);
                 }
         }
 
@@ -218,7 +267,7 @@ namespace UnCredibles.Minigames.CrossyRoad
             float x = -direction * spawnX;
             while (Mathf.Abs(x) <= spawnX || Mathf.Sign(x) != direction)
             {
-                Spawn(lane, x, NextId());
+                Spawn(lane, x, NextId(), RollOilTruck());
                 float interval = Random.Range(lane.Config.minSpawnInterval, lane.Config.maxSpawnInterval);
                 x += direction * Mathf.Max(Mathf.Abs(lane.Velocity) * interval, lane.HalfLength * 2f + board.CellSize);
             }
@@ -237,15 +286,27 @@ namespace UnCredibles.Minigames.CrossyRoad
 
         private int NextId() => nextId++ & 0xFFFF;
 
-        private void Spawn(Lane lane, float x, int id)
+        private void Spawn(Lane lane, float x, int id, bool oilTruck)
         {
-            var car = pool.Count > 0 ? pool.Pop() : CreateCar();
+            var source = oilTruck ? truckPool : pool;
+            var car = source.Count > 0 ? source.Pop() : CreateCar(oilTruck);
             car.X = x;
             car.Id = id;
             car.Transform.localScale = new Vector3(lane.HalfLength * 2f, 0.8f, board.CellSize * CarDepthRatio);
-            car.Transform.position = new Vector3(board.transform.position.x + x, board.transform.position.y, lane.Z);
-            block.SetColor(BaseColorId, board.Settings.GetCarColor(car.Id));
-            foreach (var carRenderer in car.Renderers) carRenderer.SetPropertyBlock(block);
+            // Facing the way it drives (the truck has a front; plain cars look the same both ways).
+            car.Transform.SetPositionAndRotation(
+                new Vector3(board.transform.position.x + x, board.transform.position.y, lane.Z),
+                Quaternion.Euler(0f, lane.Velocity >= 0f ? 0f : 180f, 0f));
+            if (oilTruck)
+            {
+                car.DropsLeft = board.Settings.OilDropsPerTruck;
+                PickNextDrop(car, Mathf.Sign(lane.Velocity));
+            }
+            else
+            {
+                block.SetColor(BaseColorId, board.Settings.GetCarColor(car.Id));
+                foreach (var carRenderer in car.Renderers) carRenderer.SetPropertyBlock(block);
+            }
             car.Transform.gameObject.SetActive(true);
             lane.Cars.Add(car);
         }
@@ -255,13 +316,19 @@ namespace UnCredibles.Minigames.CrossyRoad
             var car = lane.Cars[index];
             lane.Cars.RemoveAt(index);
             car.Transform.gameObject.SetActive(false);
-            pool.Push(car);
+            (car.IsOilTruck ? truckPool : pool).Push(car);
         }
 
-        private Car CreateCar()
+        private Car CreateCar(bool oilTruck)
         {
-            var instance = Instantiate(carPrefab, transform);
-            return new Car { Transform = instance, Renderers = instance.GetComponentsInChildren<Renderer>() };
+            var instance = Instantiate(oilTruck ? oilTruckPrefab : carPrefab, transform);
+            return new Car
+            {
+                Transform = instance,
+                Renderers = instance.GetComponentsInChildren<Renderer>(),
+                IsOilTruck = oilTruck,
+                Truck = oilTruck ? instance.GetComponent<CrossyRoadOilTruck>() : null,
+            };
         }
     }
 }

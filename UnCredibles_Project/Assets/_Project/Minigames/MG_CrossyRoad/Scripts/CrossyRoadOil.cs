@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace UnCredibles.Minigames.CrossyRoad
 {
-    // Every now and then a car leaks an oil slick under itself. Players on it lose grip and slide.
+    // Oil trucks (see CrossyRoadTraffic) leak oil slicks as they cross. Players on them lose grip and slide.
     // Slicks are pooled, grow in, stay a while and shrink out. Ticked by CrossyRoadController.
     public sealed class CrossyRoadOil : MonoBehaviour
     {
@@ -24,24 +24,17 @@ namespace UnCredibles.Minigames.CrossyRoad
         }
 
         private readonly List<Slick> slicks = new List<Slick>();
-        private float dropTimer;
 
         private CrossyRoadSettings Settings => board.Settings;
 
         public void Initialize()
         {
             for (int i = 0; i < Settings.MaxOilSlicks; i++) slicks.Add(CreateSlick());
-            ScheduleNextDrop();
         }
 
         public void Tick(float deltaTime)
         {
-            dropTimer -= deltaTime;
-            if (dropTimer <= 0f)
-            {
-                ScheduleNextDrop();
-                if (traffic.TryGetRandomCarOnBoard(out var carPosition)) Drop(carPosition);
-            }
+            while (traffic.TryTakeDrop(out var leakPosition)) Drop(leakPosition);
 
             foreach (var slick in slicks)
             {
@@ -83,7 +76,7 @@ namespace UnCredibles.Minigames.CrossyRoad
             Slick free = null;
             foreach (var slick in slicks)
                 if (!slick.Active) { free = slick; break; }
-            if (free == null) return; // already at the maximum; skip this drop
+            if (free == null) free = Oldest(); // at the maximum: the oldest slick dries up early
 
             free.Age = 0f;
             free.Active = true;
@@ -151,13 +144,19 @@ namespace UnCredibles.Minigames.CrossyRoad
             }
         }
 
+        private Slick Oldest()
+        {
+            Slick oldest = slicks[0];
+            foreach (var slick in slicks)
+                if (slick.Age > oldest.Age) oldest = slick;
+            return oldest;
+        }
+
         private Slick CreateSlick()
         {
             var instance = Instantiate(slickPrefab, transform);
             instance.gameObject.SetActive(false);
             return new Slick { Transform = instance };
         }
-
-        private void ScheduleNextDrop() => dropTimer = Random.Range(Settings.OilDropInterval.x, Settings.OilDropInterval.y);
     }
 }
