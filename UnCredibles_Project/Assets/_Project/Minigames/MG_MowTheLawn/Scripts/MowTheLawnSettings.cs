@@ -29,9 +29,9 @@ namespace UnCredibles.Minigames.MowTheLawn
         [SerializeField, Min(1f), Tooltip("Degrees per second at top speed (faster when slow).")] private float turnSpeed = 380f;
         [SerializeField, Min(0.5f), Tooltip("How fast the mower stops sliding sideways. Lower = more drift.")]
         private float grip = 9f;
-        [SerializeField, Min(1f), Tooltip("Speed multiplier while the turbo (Jump) lasts.")] private float boostMultiplier = 2.1f;
-        [SerializeField, Min(0.05f)] private float boostSeconds = 0.5f;
-        [SerializeField, Min(0f), Tooltip("Seconds before the turbo can be used again.")] private float boostCooldown = 1.6f;
+        [SerializeField, Min(1f), Tooltip("Speed multiplier while the turbo (Jump) lasts.")] private float boostMultiplier = 2.8f;
+        [SerializeField, Min(0.05f)] private float boostSeconds = 0.6f;
+        [SerializeField, Min(0f), Tooltip("Seconds before the turbo can be used again.")] private float boostCooldown = 5f;
         [SerializeField, Min(0f), Tooltip("Push given to two mowers that crash into each other.")] private float bumpForce = 8f;
         [SerializeField, Min(0.1f), Tooltip("Body radius for collisions with other mowers and bags.")]
         private float mowerRadius = 0.55f;

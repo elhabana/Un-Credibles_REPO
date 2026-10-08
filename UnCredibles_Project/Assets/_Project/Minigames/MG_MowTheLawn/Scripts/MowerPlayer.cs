@@ -16,6 +16,8 @@ namespace UnCredibles.Minigames.MowTheLawn
         private const float PathStep = 0.12f;         // distance between recorded path points
         private const float RemoteSnapDistance = 3f;
         private const float StickDeadZone = 0.15f;
+        private const float KnockDecay = 22f;     // how fast a crash push fades (m/s per second)
+        private const float CrashSpeedKept = 0.85f; // speed kept after crashing into a mower
 
         [SerializeField] private Transform visual;
         [SerializeField] private Renderer[] bodyRenderers = new Renderer[0];
@@ -35,7 +37,9 @@ namespace UnCredibles.Minigames.MowTheLawn
         private float clippings;
         private float bobTime;
         private Vector3 fillScale;
-        private Vector3 velocity;
+        private float forwardSpeed;
+        private Vector3 drift;
+        private Vector3 knock;
         private float boostTimer;
         private float boostCooldown;
         private float protectedTimer;
@@ -112,22 +116,26 @@ namespace UnCredibles.Minigames.MowTheLawn
             // Turn towards the stick; slow mowers turn faster, like a kart.
             if (throttle > 0f)
             {
-                float speedRatio = velocity.magnitude / Mathf.Max(0.01f, settings.Speed);
+                float speedRatio = forwardSpeed / Mathf.Max(0.01f, settings.Speed);
                 float turnSpeed = settings.TurnSpeed * Mathf.Lerp(1.5f, 1f, speedRatio);
                 var target = Quaternion.LookRotation(new Vector3(input.x, 0f, input.y));
                 transform.rotation = Quaternion.RotateTowards(transform.rotation, target, turnSpeed * deltaTime);
             }
             // A mower does not change speed instantly; turbo ignores the stick.
-            float maxSpeed = settings.Speed * settings.SpeedFactor(BagCount) * SpeedMultiplier;
+            float maxSpeed = MaxSpeed;
             float wanted = IsBoosting ? maxSpeed * settings.BoostMultiplier : maxSpeed * throttle;
-            float current = Vector3.Dot(velocity, transform.forward);
-            float rate = wanted > current ? settings.Acceleration : settings.Braking;
-            float speed = Mathf.MoveTowards(current, wanted, rate * deltaTime);
+            float rate = wanted > forwardSpeed ? settings.Acceleration : settings.Braking;
+            forwardSpeed = Mathf.MoveTowards(forwardSpeed, wanted, rate * deltaTime);
 
-            // Grip: velocity catches up with the heading, so tight turns slide a little.
-            velocity = Vector3.Lerp(velocity, transform.forward * speed, Mathf.Min(1f, settings.Grip * deltaTime));
-            var next = lawn.ClampInside(transform.position + velocity * deltaTime, settings.MowerRadius);
-            velocity = (next - transform.position) / Mathf.Max(deltaTime, 0.0001f); // walls stop it
+            // Grip: the drive catches up with the heading, so tight turns slide a little.
+            // Knocks from crashes are a separate push that fades fast and never eats the speed.
+            drift = Vector3.Lerp(drift, transform.forward * forwardSpeed, Mathf.Min(1f, settings.Grip * deltaTime));
+            knock = Vector3.MoveTowards(knock, Vector3.zero, KnockDecay * deltaTime);
+            var intended = transform.position + (drift + knock) * deltaTime;
+            var next = lawn.ClampInside(intended, settings.MowerRadius);
+            // Walls stop the movement along that axis only.
+            if (!Mathf.Approximately(next.x, intended.x)) drift.x = knock.x = 0f;
+            if (!Mathf.Approximately(next.z, intended.z)) drift.z = knock.z = 0f;
             transform.position = next;
 
             clippings += lawn.Cut(BladePosition, settings.BladeRadius);
@@ -137,13 +145,18 @@ namespace UnCredibles.Minigames.MowTheLawn
                 AddBags(1);
             }
 
-            AfterMove(deltaTime, IsBoosting, IsTailProtected, IsStunned, CanBoost && !IsStunned, velocity.magnitude);
+            AfterMove(deltaTime, IsBoosting, IsTailProtected, IsStunned, CanBoost && !IsStunned, drift.magnitude);
         }
 
+        private float MaxSpeed => settings.Speed * settings.SpeedFactor(BagCount) * SpeedMultiplier;
+
+        // The turbo kicks in at once: no waiting for the engine to speed up.
         public void Boost()
         {
             boostTimer = settings.BoostSeconds;
             boostCooldown = settings.BoostCooldown;
+            forwardSpeed = Mathf.Max(forwardSpeed, MaxSpeed * settings.BoostMultiplier);
+            drift = transform.forward * forwardSpeed;
         }
 
         // Rammed: spins out of control for a while and cannot be rammed again for a moment.
@@ -154,12 +167,16 @@ namespace UnCredibles.Minigames.MowTheLawn
             boostTimer = 0f;
         }
 
-        // Pushed by another mower: moves it and knocks it back a little.
-        public void Bump(Vector3 position, Vector3 knock)
+        // Crashed into another mower: pushed out and knocked away, keeping most of its speed.
+        public void Bump(Vector3 position, Vector3 push)
         {
             transform.position = position;
-            velocity += knock;
+            knock += push;
+            if (!IsBoosting) forwardSpeed *= CrashSpeedKept;
         }
+
+        // Pushed out of something solid (a bin) without any knock.
+        public void MoveTo(Vector3 position) => transform.position = position;
 
         public void AddBags(int count)
         {

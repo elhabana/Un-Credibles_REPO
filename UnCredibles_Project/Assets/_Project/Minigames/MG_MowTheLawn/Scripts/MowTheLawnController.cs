@@ -159,7 +159,7 @@ namespace UnCredibles.Minigames.MowTheLawn
                     float distance = offset.magnitude;
                     if (distance >= minDistance) continue;
                     var normal = distance > 0.001f ? offset / distance : Vector3.forward;
-                    mower.Bump(lawn.ClampInside(bin.Position + normal * minDistance, settings.MowerRadius), Vector3.zero);
+                    mower.MoveTo(lawn.ClampInside(bin.Position + normal * minDistance, settings.MowerRadius));
                 }
             }
         }
