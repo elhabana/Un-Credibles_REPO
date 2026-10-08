@@ -61,7 +61,7 @@ namespace UnCredibles.UI.Garage.Editor
             rig.output=camera;
             rig.viewpoints=new [] { Pose("Home",new Vector3(0,2,-1),new Vector3(0,2,6)),
                 Pose("Lobby",new Vector3(1,2.3f,0),new Vector3(-6,1.4f,0)),
-                Pose("Settings - TV",new Vector3(2,2,1.5f),new Vector3(3,1.9f,5)),
+                Pose("Settings - TV",new Vector3(3,1.9f,3.45f),new Vector3(3,1.9f,4.75f)),
                 Pose("Credits - door",new Vector3(2,2,-.4f),new Vector3(7,1.7f,0)),
                 Pose("Gallery - board",new Vector3(2.5f,2,-4),new Vector3(7,2,-4)) };
             foreach(var pose in rig.viewpoints) pose.SetParent(rig.transform);
@@ -132,22 +132,42 @@ namespace UnCredibles.UI.Garage.Editor
             serialized.ApplyModifiedPropertiesWithoutUndo();
             var players=lobbyRoot.AddComponent<GaragePlayers>(); players.lobby=controller; players.avatars=avatars;
             front.detailPanels=new GameObject[3];
+            var tvCanvas=new GameObject("Settings on TV",typeof(RectTransform),typeof(Canvas),typeof(GraphicRaycaster));
+            tvCanvas.transform.SetParent(environment,false);
+            tvCanvas.transform.SetPositionAndRotation(new Vector3(3,1.9f,4.72f),Quaternion.identity);
+            tvCanvas.transform.localScale=Vector3.one*.01f;
+            var tvRect=(RectTransform)tvCanvas.transform; tvRect.sizeDelta=new Vector2(170,100);
+            var tv=tvCanvas.GetComponent<Canvas>(); tv.renderMode=RenderMode.WorldSpace; tv.worldCamera=camera;
+            var tvBackground=tvCanvas.AddComponent<Image>(); tvBackground.color=new Color(.05f,.08f,.12f,1); tvBackground.raycastTarget=false;
             for(int i=0;i<3;i++)
             {
-                var detail=Root(new[]{"Settings","Credits","Gallery"}[i],canvas.transform); front.detailPanels[i]=detail;
-                Panel(detail.transform,new Vector2(-600,0),new Vector2(620,800));
-                Text(detail.transform,new[]{"AJUSTES","CREDITOS","GALERIA"}[i],new Vector2(-600,320),new Vector2(550,65),42);
-                Button(detail.transform,"VOLVER",new Vector2(-600,-320),front.ShowHome);
                 if(i==0)
                 {
-                    front.masterVolume=Volume(detail.transform,"GENERAL",180);
-                    front.musicVolume=Volume(detail.transform,"MUSICA",40);
-                    front.sfxVolume=Volume(detail.transform,"EFECTOS",-100);
+                    front.detailPanels[i]=tvCanvas;
+                    Text(tvCanvas.transform,"AJUSTES",new Vector2(-15,38),new Vector2(115,14),9);
+                    var tvBack=Panel(tvCanvas.transform,new Vector2(62,38),new Vector2(38,15));
+                    tvBack.name="VOLVER";
+                    var tvBackButton=tvBack.AddComponent<Button>(); tvBackButton.targetGraphic=tvBack.GetComponent<Image>();
+                    Text(tvBack.transform,"VOLVER",Vector2.zero,new Vector2(36,14),5);
+                    UnityEventTools.AddPersistentListener(tvBackButton.onClick,front.ShowHome);
+                    front.masterVolume=TvVolume(tvCanvas.transform,"GENERAL",21);
+                    front.musicVolume=TvVolume(tvCanvas.transform,"MUSICA",-2);
+                    front.sfxVolume=TvVolume(tvCanvas.transform,"EFECTOS",-25);
+                    var tvInstruction=Text(tvCanvas.transform,"CLIC O ARRASTRA PARA CAMBIAR EL VOLUMEN",new Vector2(0,-46),new Vector2(160,8),4);
+                    tvInstruction.gameObject.name="TV instruction";
                 }
-                else Text(detail.transform,i==1?"Espacio reservado para los creditos del equipo.":"Espacio reservado para concepts, modelos y proceso de arte.",
-                    new Vector2(-600,30),new Vector2(490,300),30);
-                detail.SetActive(false);
+                else
+                {
+                    var detail=Root(new[]{"Settings","Credits","Gallery"}[i],canvas.transform); front.detailPanels[i]=detail;
+                    Panel(detail.transform,new Vector2(-600,0),new Vector2(620,800));
+                    Text(detail.transform,new[]{"AJUSTES","CREDITOS","GALERIA"}[i],new Vector2(-600,320),new Vector2(550,65),42);
+                    Button(detail.transform,"VOLVER",new Vector2(-600,-320),front.ShowHome);
+                    Text(detail.transform,i==1?"Espacio reservado para los creditos del equipo.":"Espacio reservado para concepts, modelos y proceso de arte.",
+                        new Vector2(-600,30),new Vector2(490,300),30);
+                    detail.SetActive(false);
+                }
             }
+            tvCanvas.SetActive(false);
             lobbyRoot.SetActive(false); setup.SetActive(false);
             foreach(var avatar in avatars) avatar.SetActive(false);
             EditorSceneManager.SaveScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene(),"Assets/_Project/Core/Scenes/02_MainMenu.unity");
@@ -184,11 +204,12 @@ namespace UnCredibles.UI.Garage.Editor
             button.targetGraphic=go.GetComponent<Image>(); Text(go.transform,label,Vector2.zero,new Vector2(420,70),28);
             if(action!=null) UnityEventTools.AddPersistentListener(button.onClick,action); return button;
         }
-        private static Slider Volume(Transform parent,string label,float y)
+        private static Slider TvVolume(Transform parent,string label,float y)
         {
-            Text(parent,label,new Vector2(-600,y+40),new Vector2(480,40),25);
-            var track=Panel(parent,new Vector2(-600,y),new Vector2(430,28)); var slider=track.AddComponent<Slider>();
-            var handle=Panel(track.transform,Vector2.zero,new Vector2(32,42)); handle.GetComponent<Image>().color=new Color(.95f,.65f,.2f);
+            Text(parent,label,new Vector2(0,y),new Vector2(120,10),6);
+            var track=Panel(parent,new Vector2(0,y-10),new Vector2(125,5)); track.GetComponent<Image>().color=new Color(.28f,.37f,.45f);
+            var slider=track.AddComponent<Slider>();
+            var handle=Panel(track.transform,Vector2.zero,new Vector2(6,8)); handle.GetComponent<Image>().color=new Color(.95f,.65f,.2f);
             slider.handleRect=(RectTransform)handle.transform; slider.targetGraphic=handle.GetComponent<Image>(); slider.value=1; return slider;
         }
         private static Transform Pose(string name,Vector3 pos,Vector3 look)

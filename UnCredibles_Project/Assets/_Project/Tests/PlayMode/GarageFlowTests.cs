@@ -1,9 +1,11 @@
 using System.Collections;
+using System.Collections.Generic;
 using NUnit.Framework;
 using UnCredibles.Core;
 using UnCredibles.UI.Garage;
 using UnCredibles.UI.PartyLobby;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 
@@ -44,9 +46,24 @@ public sealed class GarageFlowTests
         yield return new WaitForSecondsRealtime(1f);
         Assert.IsTrue(frontend.cameras.View == GarageView.Settings);
         Assert.IsFalse(frontend.cameras.IsTransitioning);
+        var settingsCanvas = frontend.detailPanels[0].GetComponent<Canvas>();
+        Assert.NotNull(settingsCanvas);
+        Assert.AreEqual(RenderMode.WorldSpace, settingsCanvas.renderMode);
+        Assert.AreSame(frontend.cameras.output, settingsCanvas.worldCamera);
+        Assert.Greater(frontend.detailPanels[0].transform.localScale.x, 0f);
+        var pointer = new PointerEventData(EventSystem.current)
+        {
+            position = frontend.cameras.output.WorldToScreenPoint(frontend.masterVolume.transform.position)
+        };
+        var hits = new List<RaycastResult>();
+        EventSystem.current.RaycastAll(pointer, hits);
+        Assert.IsTrue(hits.Exists(hit => hit.gameObject.GetComponentInParent<UnityEngine.UI.Slider>() == frontend.masterVolume),
+            "The TV volume slider must receive pointer raycasts.");
         float originalVolume = core.Settings.MasterVolume;
         frontend.masterVolume.value = .37f;
         Assert.IsTrue(Mathf.Abs(core.Settings.MasterVolume - .37f) < .001f);
+        Assert.IsTrue(frontend.detailPanels[0].transform.Find("Text - GENERAL")
+            .GetComponent<TMPro.TextMeshProUGUI>().text.Contains("37%"));
         frontend.masterVolume.value = originalVolume;
         frontend.ShowHome();
         core.OpenPartyLobby(SessionMode.Local);
