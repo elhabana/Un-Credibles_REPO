@@ -4,8 +4,9 @@ using UnityEngine;
 
 namespace UnCredibles.Minigames.MowTheLawn
 {
-    // Bot: grabs loose bags nearby, sometimes attacks a rival's tail and otherwise drives
-    // to the tallest grass it can find. It only writes into an AIInput, like a person would.
+    // Bot: grabs loose bags nearby, sometimes attacks a rival's tail (with a turbo when lined up)
+    // and otherwise drives to the tallest grass it can find. It slows down for sharp turns.
+    // It only writes into an AIInput, like a person would.
     public sealed class MowerAIBrain
     {
         private const int GrassSamples = 14;
@@ -25,6 +26,7 @@ namespace UnCredibles.Minigames.MowTheLawn
         private Vector3 target;
         private Vector3 grassTarget;
         private bool hasGrassTarget;
+        private bool attacking;
 
         public MowerPlayer Player => player;
 
@@ -57,8 +59,13 @@ namespace UnCredibles.Minigames.MowTheLawn
         private Vector3 ChooseTarget()
         {
             var position = player.Position;
+            attacking = false;
             if (TryNearestLooseBag(position, out var looseBag)) return looseBag;
-            if (Random.value < aggression && TryRivalBag(position, out var rivalBag)) return rivalBag;
+            if (Random.value < aggression && TryRivalBag(position, out var rivalBag))
+            {
+                attacking = true;
+                return rivalBag;
+            }
 
             // Keep the current patch of grass until it is cut or reached.
             if (hasGrassTarget && lawn.GetHeight(grassTarget) > 0.8f && Flat(grassTarget - position).magnitude > ReachedDistance)
@@ -93,7 +100,7 @@ namespace UnCredibles.Minigames.MowTheLawn
             bool found = false;
             foreach (var rival in mowers)
             {
-                if (rival == player) continue;
+                if (rival == player || rival.IsTailProtected) continue;
                 var tail = rival.BagPositions;
                 for (int i = 0; i < tail.Count; i++)
                 {
@@ -139,7 +146,13 @@ namespace UnCredibles.Minigames.MowTheLawn
 
             float noise = (Mathf.PerlinNoise(Time.time * 0.7f, aggression * 50f) - 0.5f) * 2f * wobble;
             direction = Quaternion.Euler(0f, noise * 60f, 0f) * direction;
-            input.SetMove(new Vector2(direction.x, direction.z).normalized);
+            // Ease off for sharp turns, turbo into a rival tail once lined up and close.
+            float angle = Vector3.Angle(player.Forward, direction);
+            float throttle = angle > 100f ? 0.45f : angle > 50f ? 0.75f : 1f;
+            var flat = new Vector2(direction.x, direction.z).normalized;
+            input.SetMove(flat * throttle);
+            if (attacking && player.CanBoost && angle < 20f && Flat(target - position).magnitude < 3.5f)
+                input.Press(PlayerAction.Jump);
         }
 
         private static Vector3 Flat(Vector3 value) => new Vector3(value.x, 0f, value.z);

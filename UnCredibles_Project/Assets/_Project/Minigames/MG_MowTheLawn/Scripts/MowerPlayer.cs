@@ -1,34 +1,46 @@
 using System.Collections.Generic;
 using UnCredibles.Players;
+using UnCredibles.Players.Inputs;
 using UnityEngine;
 
 namespace UnCredibles.Minigames.MowTheLawn
 {
-    // A ride-on mower. It always drives forward and steers towards the stick, cuts the grass
-    // under its blade and drags its bags behind it like a tail, following the path it drove.
-    // Ticked by MowTheLawnController, it has no Update of its own.
+    // A ride-on mower driven like a little kart: the stick sets direction and speed, it speeds
+    // up and brakes progressively and slides a bit in tight turns. Jump gives a short turbo.
+    // It cuts the grass under its blade and drags its bags behind like a tail that follows
+    // exactly the path it drove. Ticked by MowTheLawnController, it has no Update of its own.
     public sealed class MowerPlayer : MonoBehaviour
     {
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
-        private const float PathStep = 0.1f;          // distance between recorded path points
+        private const float PathStep = 0.12f;         // distance between recorded path points
         private const float RemoteSnapDistance = 3f;
+        private const float StickDeadZone = 0.15f;
 
         [SerializeField] private Transform visual;
         [SerializeField] private Renderer[] bodyRenderers = new Renderer[0];
         [SerializeField, Tooltip("Spins while driving.")] private Transform blade;
         [SerializeField, Tooltip("Grows on Y as the next bag fills up.")] private Transform fillIndicator;
 
-        private readonly List<Vector3> path = new List<Vector3>(256); // [0] = newest
-        private readonly List<MowBagView> tail = new List<MowBagView>(32);
-        private readonly List<Vector3> tailPositions = new List<Vector3>(32);
+        // Recorded points of the drive, newest first. The mower itself is always the start of the
+        // tail; points are only added once it moved PathStep away from the newest one.
+        private readonly List<Vector3> path = new List<Vector3>(256);
+        private readonly List<MowBagView> tail = new List<MowBagView>(16);
+        private readonly List<Vector3> tailPositions = new List<Vector3>(16);
         private MowTheLawnSettings settings;
         private MowBags bags;
         private Color color;
         private float clippings;
         private float bobTime;
         private Vector3 fillScale;
+        private Vector3 velocity;
+        private float boostTimer;
+        private float boostCooldown;
+        private float protectedTimer;
+        private float lean;
         private Vector3 remotePosition;
         private float remoteYaw;
+        private bool remoteBoosting;
+        private bool remoteProtected;
         private bool hasRemote;
 
         public PlayerSlot Slot { get; private set; }
@@ -38,6 +50,10 @@ namespace UnCredibles.Minigames.MowTheLawn
         public Vector3 Forward => transform.forward;
         public Vector3 BladePosition => transform.position + transform.forward * settings.BladeOffset;
         public IReadOnlyList<Vector3> BagPositions => tailPositions;
+        public bool IsBoosting => boostTimer > 0f;
+        public bool CanBoost => boostCooldown <= 0f;
+        // Right after losing bags the rest of the tail cannot be cut, so it is not lost at once.
+        public bool IsTailProtected => protectedTimer > 0f;
 
         public void Setup(PlayerSlot slot, MowTheLawnSettings mowSettings, MowBags bagPool, Color playerColor)
         {
@@ -60,15 +76,33 @@ namespace UnCredibles.Minigames.MowTheLawn
         public void Tick(float deltaTime, MowLawn lawn)
         {
             var input = Slot.Input != null ? Slot.Input.Move : Vector2.zero;
-            bool steering = input.sqrMagnitude > 0.04f;
-            if (steering)
-            {
-                var target = Quaternion.LookRotation(new Vector3(input.x, 0f, input.y));
-                transform.rotation = Quaternion.RotateTowards(transform.rotation, target, settings.TurnSpeed * deltaTime);
-            }
+            float throttle = Mathf.Clamp01(input.magnitude);
+            if (throttle < StickDeadZone) throttle = 0f;
 
-            float speed = settings.Speed * settings.SpeedFactor(BagCount) * (steering ? 1f : settings.IdleSpeedFactor);
-            var next = lawn.ClampInside(transform.position + transform.forward * (speed * deltaTime), settings.MowerRadius);
+            if (boostCooldown > 0f) boostCooldown -= deltaTime;
+            if (boostTimer > 0f) boostTimer -= deltaTime;
+            if (protectedTimer > 0f) protectedTimer -= deltaTime;
+            if (CanBoost && Slot.Input != null && Slot.Input.WasPressed(PlayerAction.Jump)) Boost();
+
+            // Turn towards the stick; slow mowers turn faster, like a kart.
+            if (throttle > 0f)
+            {
+                float speedRatio = velocity.magnitude / Mathf.Max(0.01f, settings.Speed);
+                float turnSpeed = settings.TurnSpeed * Mathf.Lerp(1.5f, 1f, speedRatio);
+                var target = Quaternion.LookRotation(new Vector3(input.x, 0f, input.y));
+                transform.rotation = Quaternion.RotateTowards(transform.rotation, target, turnSpeed * deltaTime);
+            }
+            // A mower does not change speed instantly; turbo ignores the stick.
+            float maxSpeed = settings.Speed * settings.SpeedFactor(BagCount);
+            float wanted = IsBoosting ? maxSpeed * settings.BoostMultiplier : maxSpeed * throttle;
+            float current = Vector3.Dot(velocity, transform.forward);
+            float rate = wanted > current ? settings.Acceleration : settings.Braking;
+            float speed = Mathf.MoveTowards(current, wanted, rate * deltaTime);
+
+            // Grip: velocity catches up with the heading, so tight turns slide a little.
+            velocity = Vector3.Lerp(velocity, transform.forward * speed, Mathf.Min(1f, settings.Grip * deltaTime));
+            var next = lawn.ClampInside(transform.position + velocity * deltaTime, settings.MowerRadius);
+            velocity = (next - transform.position) / Mathf.Max(deltaTime, 0.0001f); // walls stop it
             transform.position = next;
 
             clippings += lawn.Cut(BladePosition, settings.BladeRadius);
@@ -78,11 +112,21 @@ namespace UnCredibles.Minigames.MowTheLawn
                 AddBags(1);
             }
 
-            AfterMove(deltaTime);
+            AfterMove(deltaTime, IsBoosting, IsTailProtected, velocity.magnitude);
         }
 
-        // Pushed by another mower.
-        public void MoveTo(Vector3 position) => transform.position = position;
+        public void Boost()
+        {
+            boostTimer = settings.BoostSeconds;
+            boostCooldown = settings.BoostCooldown;
+        }
+
+        // Pushed by another mower: moves it and knocks it back a little.
+        public void Bump(Vector3 position, Vector3 knock)
+        {
+            transform.position = position;
+            velocity += knock;
+        }
 
         public void AddBags(int count)
         {
@@ -95,7 +139,7 @@ namespace UnCredibles.Minigames.MowTheLawn
                 view.transform.position = end;
                 tail.Add(view);
             }
-            PlaceTail();
+            PlaceTail(1f);
         }
 
         // A rival cut the tail at `index`: that bag and all behind it fall off. Returns how many.
@@ -109,13 +153,14 @@ namespace UnCredibles.Minigames.MowTheLawn
                 tail.RemoveAt(i);
                 count++;
             }
-            PlaceTail();
+            if (count > 0 && droppedPositions != null) protectedTimer = settings.TailProtectSeconds;
+            PlaceTail(1f);
             return count;
         }
 
         // ---------- Online client ----------
 
-        public void ApplyRemote(Vector3 position, float yaw, int bagCount, float fill)
+        public void ApplyRemote(Vector3 position, float yaw, int bagCount, float fill, bool boosting, bool tailProtected)
         {
             if (!hasRemote || (position - transform.position).sqrMagnitude > RemoteSnapDistance * RemoteSnapDistance)
             {
@@ -125,6 +170,8 @@ namespace UnCredibles.Minigames.MowTheLawn
             }
             remotePosition = position;
             remoteYaw = yaw;
+            remoteBoosting = boosting;
+            remoteProtected = tailProtected;
             hasRemote = true;
             clippings = fill * settings.CellsPerBag;
 
@@ -136,79 +183,104 @@ namespace UnCredibles.Minigames.MowTheLawn
         // Follows the host smoothly and mows the grass it drives over (only visual here).
         public void TickRemote(float deltaTime, MowLawn lawn)
         {
+            float speed = 0f;
             if (hasRemote)
             {
+                var previous = transform.position;
                 float blend = Mathf.Min(1f, 12f * deltaTime);
                 transform.SetPositionAndRotation(
-                    Vector3.Lerp(transform.position, remotePosition, blend),
+                    Vector3.Lerp(previous, remotePosition, blend),
                     Quaternion.Slerp(transform.rotation, Quaternion.Euler(0f, remoteYaw, 0f), blend));
+                speed = (transform.position - previous).magnitude / Mathf.Max(deltaTime, 0.0001f);
                 lawn.Cut(BladePosition, settings.BladeRadius);
             }
-            AfterMove(deltaTime);
+            AfterMove(deltaTime, remoteBoosting, remoteProtected, speed);
         }
 
         // ---------- Shared ----------
 
-        private void AfterMove(float deltaTime)
+        private void AfterMove(float deltaTime, bool boosting, bool tailProtected, float speed)
         {
             RecordPath();
-            PlaceTail();
+            PlaceTail(Mathf.Min(1f, 20f * deltaTime));
             UpdateFillIndicator();
-
-            // A little engine rumble and a spinning blade.
-            bobTime += deltaTime * 18f;
-            if (visual != null) visual.localPosition = new Vector3(0f, Mathf.Abs(Mathf.Sin(bobTime)) * 0.04f, 0f);
-            if (blade != null) blade.Rotate(0f, 900f * deltaTime, 0f, Space.Self);
+            AnimateVisual(deltaTime, boosting, speed);
+            AnimateTail(tailProtected);
         }
 
         private void RecordPath()
         {
             var position = transform.position;
-            if (path.Count == 0 || (position - path[0]).sqrMagnitude >= PathStep * PathStep) path.Insert(0, position);
-            else path[0] = position;
+            if ((position - path[0]).sqrMagnitude >= PathStep * PathStep) path.Insert(0, position);
 
             // Only keep the path the tail needs.
             int needed = Mathf.CeilToInt((tail.Count + 2) * settings.BagSpacing / PathStep) + 4;
             if (path.Count > needed) path.RemoveRange(needed, path.Count - needed);
         }
 
-        // Bag i sits (i + 1) * spacing behind the mower, measured along the path it drove.
-        private void PlaceTail()
+        // Bag i sits (i + 1) * spacing behind the mower, measured along the driven path.
+        private void PlaceTail(float follow)
         {
             tailPositions.Clear();
             if (tail.Count == 0) return;
 
-            int segment = 0;
-            float walked = 0f;
-            var current = transform.position;
+            var previous = transform.position;
             var direction = -transform.forward;
+            float walked = 0f;
+            int next = 0;
             for (int i = 0; i < tail.Count; i++)
             {
                 float target = (i + 1) * settings.BagSpacing;
-                while (segment < path.Count && walked + Vector3.Distance(current, path[segment]) < target)
-                {
-                    walked += Vector3.Distance(current, path[segment]);
-                    if (path[segment] != current) direction = (path[segment] - current).normalized;
-                    current = path[segment];
-                    segment++;
-                }
-
                 Vector3 position;
-                if (segment < path.Count)
+                while (true)
                 {
-                    var toNext = path[segment] - current;
-                    float remaining = target - walked;
-                    if (toNext.sqrMagnitude > 0.0001f) direction = toNext.normalized;
-                    position = current + direction * remaining;
+                    if (next >= path.Count)
+                    {
+                        // Path too short yet (start of the game): pile up straight behind.
+                        position = previous + direction * (target - walked);
+                        break;
+                    }
+                    var segment = path[next] - previous;
+                    float length = segment.magnitude;
+                    if (length > 0.0001f) direction = segment / length;
+                    if (walked + length >= target)
+                    {
+                        position = previous + direction * (target - walked);
+                        break;
+                    }
+                    walked += length;
+                    previous = path[next];
+                    next++;
                 }
-                else position = current + direction * (target - walked); // path too short yet (start)
 
                 position.y = transform.position.y;
                 tailPositions.Add(position);
                 var bag = tail[i].transform;
-                bag.position = Vector3.Lerp(bag.position, position, 0.5f);
-                if (direction.sqrMagnitude > 0.0001f) bag.rotation = Quaternion.LookRotation(-direction);
+                bag.position = Vector3.Lerp(bag.position, position, follow);
+                if (direction.sqrMagnitude > 0.0001f)
+                    bag.rotation = Quaternion.Slerp(bag.rotation, Quaternion.LookRotation(-direction), follow);
             }
+        }
+
+        // Engine rumble, a lean into turns and the turbo, and a spinning blade.
+        private void AnimateVisual(float deltaTime, bool boosting, float speed)
+        {
+            bobTime += deltaTime * (boosting ? 30f : 18f);
+            float targetLean = boosting ? -8f : -speed * 0.6f;
+            lean = Mathf.Lerp(lean, targetLean, Mathf.Min(1f, 8f * deltaTime));
+            if (visual != null)
+            {
+                visual.localPosition = new Vector3(0f, Mathf.Abs(Mathf.Sin(bobTime)) * (boosting ? 0.08f : 0.04f), 0f);
+                visual.localRotation = Quaternion.Euler(lean, 0f, 0f);
+            }
+            if (blade != null) blade.Rotate(0f, 900f * deltaTime, 0f, Space.Self);
+        }
+
+        // Protected tails pulse so everybody sees they cannot be cut right now.
+        private void AnimateTail(bool tailProtected)
+        {
+            float scale = tailProtected ? 1f + Mathf.Abs(Mathf.Sin(Time.time * 12f)) * 0.2f : 1f;
+            foreach (var bag in tail) bag.transform.localScale = new Vector3(scale, scale, scale);
         }
 
         private void UpdateFillIndicator()

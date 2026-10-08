@@ -21,4 +21,4 @@ MonoBehaviour:
   maxPlayers: 4
   thumbnail: {fileID: 0}
   music: {fileID: 0}
-  rules: Mow the grass to fill bags that follow you like a tail. Drive into a rival's tail to knock their bags loose and steal them. Most bags after 2 minutes wins.
+  rules: Mow the grass to fill bags that follow you like a tail. Drive into a rival's tail to knock their bags loose and steal them. Jump = turbo. Most bags after 2 minutes wins.

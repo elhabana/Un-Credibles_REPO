@@ -11,22 +11,28 @@ namespace UnCredibles.Minigames.MowTheLawn
         [SerializeField, Min(0.1f), Tooltip("Size of one grass cell. Smaller = finer trail, more work.")]
         private float cellSize = 0.4f;
         [SerializeField, Min(0.5f), Tooltip("Seconds for a cut cell to grow back completely.")]
-        private float regrowSeconds = 18f;
+        private float regrowSeconds = 25f;
         [SerializeField, Range(0f, 1f), Tooltip("Grass below this height is too short to be cut again.")]
-        private float minCutHeight = 0.35f;
+        private float minCutHeight = 0.5f;
         [SerializeField] private Color tallGrassColor = new Color(0.27f, 0.62f, 0.22f);
         [SerializeField] private Color stripeGrassColor = new Color(0.33f, 0.7f, 0.27f);
         [SerializeField] private Color cutColor = new Color(0.45f, 0.3f, 0.16f);
 
         [Header("Mowers")]
-        [SerializeField, Min(0.1f)] private float speed = 4.5f;
-        [SerializeField, Range(0f, 1f), Tooltip("Speed while the stick is released: mowers never stop.")]
-        private float idleSpeedFactor = 0.55f;
-        [SerializeField, Min(1f), Tooltip("Degrees per second.")] private float turnSpeed = 220f;
+        [SerializeField, Min(0.1f), Tooltip("Top speed with the stick fully pushed.")] private float speed = 5.5f;
+        [SerializeField, Min(0.1f), Tooltip("Speed gained per second.")] private float acceleration = 9f;
+        [SerializeField, Min(0.1f), Tooltip("Speed lost per second when releasing or slowing down.")] private float braking = 14f;
+        [SerializeField, Min(1f), Tooltip("Degrees per second at top speed (faster when slow).")] private float turnSpeed = 280f;
+        [SerializeField, Min(0.5f), Tooltip("How fast the mower stops sliding sideways. Lower = more drift.")]
+        private float grip = 7f;
+        [SerializeField, Min(1f), Tooltip("Speed multiplier while the turbo (Jump) lasts.")] private float boostMultiplier = 1.9f;
+        [SerializeField, Min(0.05f)] private float boostSeconds = 0.45f;
+        [SerializeField, Min(0f), Tooltip("Seconds before the turbo can be used again.")] private float boostCooldown = 2.5f;
+        [SerializeField, Min(0f), Tooltip("Push given to two mowers that crash into each other.")] private float bumpForce = 5f;
         [SerializeField, Min(0.1f), Tooltip("Body radius for collisions with other mowers and bags.")]
         private float mowerRadius = 0.55f;
         [SerializeField, Min(0.1f), Tooltip("Radius of grass cut around the blade.")]
-        private float bladeRadius = 0.7f;
+        private float bladeRadius = 0.6f;
         [SerializeField, Min(0.1f), Tooltip("Distance of the blade in front of the mower centre.")]
         private float bladeOffset = 0.25f;
         [SerializeField] private Color[] playerColors =
@@ -37,17 +43,23 @@ namespace UnCredibles.Minigames.MowTheLawn
 
         [Header("Bags")]
         [SerializeField, Min(1f), Tooltip("Grass cells (fully grown) needed to fill one bag.")]
-        private float cellsPerBag = 70f;
+        private float cellsPerBag = 300f;
         [SerializeField, Min(0.2f), Tooltip("Distance between bags in the tail.")] private float bagSpacing = 0.75f;
         [SerializeField, Min(0.1f)] private float bagRadius = 0.32f;
-        [SerializeField, Range(0f, 0.05f), Tooltip("Speed lost per bag carried.")] private float slowdownPerBag = 0.012f;
+        [SerializeField, Range(0f, 0.05f), Tooltip("Speed lost per bag carried.")] private float slowdownPerBag = 0.03f;
         [SerializeField, Range(0.1f, 1f), Tooltip("Never slower than this fraction of the speed.")]
         private float minSpeedFactor = 0.6f;
         [SerializeField, Min(0f), Tooltip("Seconds a dropped bag cannot be picked up.")]
-        private float pickupDelay = 0.6f;
-        [SerializeField, Min(0f), Tooltip("How far cut-off bags are scattered.")] private float scatterDistance = 1.6f;
+        private float pickupDelay = 0.35f;
+        [SerializeField, Min(0f), Tooltip("How far cut-off bags are scattered.")] private float scatterDistance = 1f;
         [SerializeField, Min(1), Tooltip("Loose bags on the lawn at the same time; older ones vanish.")]
         private int maxLooseBags = 48;
+        [SerializeField, Min(1f), Tooltip("Seconds a loose bag stays on the lawn before vanishing.")]
+        private float looseBagLifetime = 10f;
+        [SerializeField, Min(0f), Tooltip("After losing bags, seconds the rest of the tail cannot be cut.")]
+        private float tailProtectSeconds = 2f;
+        [SerializeField, Min(0f), Tooltip("Seconds a mower must wait before cutting another tail.")]
+        private float cutCooldown = 1f;
 
         [Header("AI")]
         [SerializeField, Min(0.05f), Tooltip("Seconds between AI decisions.")] private float aiThinkInterval = 0.35f;
@@ -64,7 +76,13 @@ namespace UnCredibles.Minigames.MowTheLawn
         public Color CutColor => cutColor;
 
         public float Speed => speed;
-        public float IdleSpeedFactor => idleSpeedFactor;
+        public float Acceleration => acceleration;
+        public float Braking => braking;
+        public float Grip => grip;
+        public float BoostMultiplier => boostMultiplier;
+        public float BoostSeconds => boostSeconds;
+        public float BoostCooldown => boostCooldown;
+        public float BumpForce => bumpForce;
         public float TurnSpeed => turnSpeed;
         public float MowerRadius => mowerRadius;
         public float BladeRadius => bladeRadius;
@@ -76,6 +94,9 @@ namespace UnCredibles.Minigames.MowTheLawn
         public float PickupDelay => pickupDelay;
         public float ScatterDistance => scatterDistance;
         public int MaxLooseBags => maxLooseBags;
+        public float LooseBagLifetime => looseBagLifetime;
+        public float TailProtectSeconds => tailProtectSeconds;
+        public float CutCooldown => cutCooldown;
 
         public float AIThinkInterval => aiThinkInterval;
         public float AILooseBagRange => aiLooseBagRange;

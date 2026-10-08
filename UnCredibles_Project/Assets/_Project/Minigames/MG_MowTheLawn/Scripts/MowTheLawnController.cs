@@ -21,6 +21,7 @@ namespace UnCredibles.Minigames.MowTheLawn
         private readonly List<MowerPlayer> mowers = new List<MowerPlayer>(PlayerRegistry.MaxPlayers);
         private readonly List<MowerAIBrain> brains = new List<MowerAIBrain>(PlayerRegistry.MaxPlayers);
         private readonly List<Vector3> dropped = new List<Vector3>(32);
+        private readonly float[] cutCooldowns = new float[PlayerRegistry.MaxPlayers];
 
         protected override void OnInitialize(MinigameContext context)
         {
@@ -47,7 +48,7 @@ namespace UnCredibles.Minigames.MowTheLawn
         {
             float deltaTime = Time.deltaTime;
             lawn.Tick(deltaTime);
-            bags.Tick(deltaTime);
+            bags.Tick(deltaTime, !IsReplica);
 
             if (IsReplica)
             {
@@ -62,12 +63,12 @@ namespace UnCredibles.Minigames.MowTheLawn
             foreach (var mower in mowers) mower.Tick(deltaTime, lawn);
 
             SeparateMowers();
-            CutTails();
+            CutTails(deltaTime);
             PickUpLooseBags();
             UpdateScores();
         }
 
-        // Soft push so mowers never drive through each other.
+        // Mowers never drive through each other: they bounce off a little.
         private void SeparateMowers()
         {
             float minDistance = settings.MowerRadius * 2f;
@@ -81,21 +82,29 @@ namespace UnCredibles.Minigames.MowTheLawn
                     if (distance >= minDistance) continue;
 
                     var push = (distance > 0.001f ? offset / distance : Vector3.right) * ((minDistance - distance) * 0.5f);
-                    mowers[a].MoveTo(lawn.ClampInside(mowers[a].Position - push, settings.MowerRadius));
-                    mowers[b].MoveTo(lawn.ClampInside(mowers[b].Position + push, settings.MowerRadius));
+                    var knock = (distance > 0.001f ? offset / distance : Vector3.right) * settings.BumpForce;
+                    mowers[a].Bump(lawn.ClampInside(mowers[a].Position - push, settings.MowerRadius), -knock);
+                    mowers[b].Bump(lawn.ClampInside(mowers[b].Position + push, settings.MowerRadius), knock);
                 }
             }
         }
 
         // A mower touching a bag of another tail cuts it there: the rest of that tail falls loose.
-        private void CutTails()
+        // Short cooldowns keep it from turning into a chain reaction.
+        private void CutTails(float deltaTime)
         {
             float reach = settings.MowerRadius + settings.BagRadius;
-            foreach (var attacker in mowers)
+            for (int a = 0; a < mowers.Count; a++)
             {
+                if (cutCooldowns[a] > 0f)
+                {
+                    cutCooldowns[a] -= deltaTime;
+                    continue;
+                }
+                var attacker = mowers[a];
                 foreach (var victim in mowers)
                 {
-                    if (victim == attacker) continue;
+                    if (victim == attacker || victim.IsTailProtected) continue;
                     var tail = victim.BagPositions;
                     for (int i = 0; i < tail.Count; i++)
                     {
@@ -106,6 +115,7 @@ namespace UnCredibles.Minigames.MowTheLawn
                         dropped.Clear();
                         victim.CutTailAt(i, dropped);
                         foreach (var position in dropped) bags.Drop(position);
+                        cutCooldowns[a] = settings.CutCooldown;
                         break;
                     }
                 }
@@ -147,7 +157,7 @@ namespace UnCredibles.Minigames.MowTheLawn
 
         // ---------- Online ----------
 
-        // Mowers (position, heading, bags, how full the next bag is) and the loose bags.
+        // Mowers (position, heading, bags, how full the next bag is, turbo, protected tail) and loose bags.
         protected override void WriteSnapshot(BinaryWriter writer)
         {
             writer.Write((byte)mowers.Count);
@@ -160,6 +170,7 @@ namespace UnCredibles.Minigames.MowTheLawn
                 writer.Write(mower.transform.eulerAngles.y);
                 writer.Write((ushort)mower.BagCount);
                 writer.Write((byte)Mathf.RoundToInt(Mathf.Clamp01(mower.Fill) * 255f));
+                writer.Write((byte)((mower.IsBoosting ? 1 : 0) | (mower.IsTailProtected ? 2 : 0)));
             }
             bags.WriteState(writer);
         }
@@ -173,7 +184,8 @@ namespace UnCredibles.Minigames.MowTheLawn
                 float yaw = reader.ReadSingle();
                 int bagCount = reader.ReadUInt16();
                 float fill = reader.ReadByte() / 255f;
-                if (i < mowers.Count) mowers[i].ApplyRemote(position, yaw, bagCount, fill);
+                int flags = reader.ReadByte();
+                if (i < mowers.Count) mowers[i].ApplyRemote(position, yaw, bagCount, fill, (flags & 1) != 0, (flags & 2) != 0);
             }
             bags.ReadState(reader);
         }

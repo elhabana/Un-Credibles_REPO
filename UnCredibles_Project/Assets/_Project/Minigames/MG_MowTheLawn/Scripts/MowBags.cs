@@ -10,6 +10,7 @@ namespace UnCredibles.Minigames.MowTheLawn
     {
         private const float HopSeconds = 0.45f;
         private const float HopHeight = 1.3f;
+        private const float BlinkSeconds = 2f;
 
         [SerializeField] private MowBagView bagPrefab;
 
@@ -24,6 +25,7 @@ namespace UnCredibles.Minigames.MowTheLawn
         private readonly Stack<MowBagView> pool = new Stack<MowBagView>();
         private readonly List<LooseBag> loose = new List<LooseBag>();
         private readonly List<Vector3> received = new List<Vector3>();
+        private readonly List<float> receivedAges = new List<float>();
         private MowTheLawnSettings settings;
         private MowLawn lawn;
 
@@ -40,6 +42,7 @@ namespace UnCredibles.Minigames.MowTheLawn
         public MowBagView Rent()
         {
             var view = pool.Count > 0 ? pool.Pop() : Instantiate(bagPrefab, transform);
+            view.transform.localScale = Vector3.one;
             view.gameObject.SetActive(true);
             return view;
         }
@@ -77,11 +80,20 @@ namespace UnCredibles.Minigames.MowTheLawn
             return count;
         }
 
-        public void Tick(float deltaTime)
+        // Only the host removes old bags; clients follow its snapshots.
+        public void Tick(float deltaTime, bool removeExpired)
         {
-            foreach (var bag in loose)
+            for (int i = loose.Count - 1; i >= 0; i--)
             {
+                var bag = loose[i];
                 bag.Age += deltaTime;
+                float left = settings.LooseBagLifetime - bag.Age;
+                if (removeExpired && left <= 0f)
+                {
+                    RemoveLoose(i);
+                    continue;
+                }
+                bag.View.gameObject.SetActive(left > BlinkSeconds || Mathf.FloorToInt(left * 8f) % 2 == 0);
                 float t = Mathf.Clamp01(bag.Age / HopSeconds);
                 var position = Vector3.Lerp(bag.From, bag.To, t);
                 position.y += Mathf.Sin(t * Mathf.PI) * HopHeight;
@@ -98,6 +110,7 @@ namespace UnCredibles.Minigames.MowTheLawn
             {
                 writer.Write(bag.To.x);
                 writer.Write(bag.To.z);
+                writer.Write((byte)Mathf.Clamp(Mathf.RoundToInt(bag.Age * 10f), 0, 255));
             }
         }
 
@@ -106,18 +119,23 @@ namespace UnCredibles.Minigames.MowTheLawn
         {
             received.Clear();
             int count = reader.ReadByte();
+            receivedAges.Clear();
             for (int i = 0; i < count; i++)
+            {
                 received.Add(new Vector3(reader.ReadSingle(), lawn.Center.y, reader.ReadSingle()));
+                receivedAges.Add(reader.ReadByte() / 10f);
+            }
 
             while (loose.Count > received.Count) RemoveLoose(loose.Count - 1);
             for (int i = 0; i < received.Count; i++)
             {
-                if (i >= loose.Count) AddLoose(received[i], received[i], HopSeconds);
+                if (i >= loose.Count) AddLoose(received[i], received[i], Mathf.Max(HopSeconds, receivedAges[i]));
                 else if ((loose[i].To - received[i]).sqrMagnitude > 0.01f)
                 {
                     loose[i].From = loose[i].To = received[i];
-                    loose[i].Age = HopSeconds;
+                    loose[i].Age = Mathf.Max(HopSeconds, receivedAges[i]);
                 }
+                else loose[i].Age = Mathf.Max(loose[i].Age, receivedAges[i]);
             }
         }
 
