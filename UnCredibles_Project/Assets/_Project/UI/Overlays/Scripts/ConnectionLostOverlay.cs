@@ -16,7 +16,6 @@ namespace UnCredibles.UI.Overlays
         private CoreRoot core;
         private GameObject panel;
         private TMP_Text titleText;
-        private TMP_Text detailText;
         private TMP_Text footerText;
         private float timeLeft;
         private bool showing;
@@ -48,14 +47,14 @@ namespace UnCredibles.UI.Overlays
             if (!showing) return;
 
             timeLeft -= Time.unscaledDeltaTime;
-            footerText.text = $"Volviendo al menu en {Mathf.CeilToInt(Mathf.Max(0f, timeLeft))}...     SPACE / A: salir ya";
+            footerText.text = $"Volviendo al menu en {Mathf.CeilToInt(Mathf.Max(0f, timeLeft))}...";
             if (timeLeft <= 0f || ContinuePressed()) Close();
         }
 
+        // Only a short message; the technical reason stays out of the screen.
         private void Show(string title, string detail)
         {
             titleText.text = title;
-            detailText.text = detail;
             timeLeft = ReturnSeconds;
             showing = true;
             panel.SetActive(true);
@@ -94,9 +93,8 @@ namespace UnCredibles.UI.Overlays
             Stretch((RectTransform)panel.transform);
             panel.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0.8f);
 
-            titleText = CreateText("Title", 72f, FontStyles.Bold, new Vector2(0f, 80f));
-            detailText = CreateText("Detail", 30f, FontStyles.Normal, new Vector2(0f, -20f));
-            footerText = CreateText("Footer", 26f, FontStyles.Normal, new Vector2(0f, -140f));
+            titleText = CreateText("Title", 72f, FontStyles.Bold, new Vector2(0f, 50f));
+            footerText = CreateText("Footer", 32f, FontStyles.Normal, new Vector2(0f, -50f));
             footerText.color = new Color(1f, 1f, 1f, 0.7f);
             panel.SetActive(false);
         }
