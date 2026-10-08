@@ -41,16 +41,43 @@ namespace UnCredibles.Networking
             manager.OnServerStopped += HandleServerStopped;
             manager.OnClientConnectedCallback += HandleClientConnected;
             manager.OnClientDisconnectCallback += HandleClientDisconnected;
+            manager.OnClientStarted += HandleSessionStarted;
+            manager.OnClientStopped += HandleSessionStopped;
         }
+
+        // Game rules (lobby full, match already running) decide on top of the connection limit.
+        // Returns null to accept, or the reason shown to the rejected player.
+        public Func<string> RejectJoin { get; set; }
+
+        public NetworkManager Manager => manager;
+
+        // Raised on host and clients when this machine's session starts or ends.
+        public event Action SessionStarted;
+        public event Action SessionStopped;
+        // Host only: another machine joined or left.
+        public event Action<ulong> RemoteClientConnected;
+        public event Action<ulong> RemoteClientDisconnected;
 
         private void ApproveConnection(NetworkManager.ConnectionApprovalRequest request,
             NetworkManager.ConnectionApprovalResponse response)
         {
-            response.Approved = manager.ConnectedClientsIds.Count < MaxConnections;
+            string reason = null;
+            if (request.ClientNetworkId != NetworkManager.ServerClientId)
+                reason = manager.ConnectedClientsIds.Count >= MaxConnections ? "Sala llena (4 conexiones)." : RejectJoin?.Invoke();
+            response.Approved = reason == null;
             response.CreatePlayerObject = false;
             response.Pending = false;
-            response.Reason = response.Approved ? "" : "Sala llena (4 conexiones).";
+            response.Reason = reason ?? "";
         }
+
+        // Host only: removes a player from the room, showing them the reason.
+        public void Kick(ulong clientId, string reason)
+        {
+            if (manager.IsServer && clientId != manager.LocalClientId) manager.DisconnectClient(clientId, reason);
+        }
+
+        private void HandleSessionStarted() => SessionStarted?.Invoke();
+        private void HandleSessionStopped(bool wasHost) => SessionStopped?.Invoke();
 
         private void Update()
         {
@@ -169,7 +196,10 @@ namespace UnCredibles.Networking
         private void HandleClientConnected(ulong clientId)
         {
             if (manager.IsHost)
+            {
                 status = $"Host activo. Conexiones: {manager.ConnectedClientsIds.Count} (incluido Host).";
+                if (clientId != manager.LocalClientId) RemoteClientConnected?.Invoke(clientId);
+            }
             else if (clientId == manager.LocalClientId)
             {
                 connecting = false;
@@ -181,7 +211,10 @@ namespace UnCredibles.Networking
         {
             if (closing || destroyed) return;
             if (manager.IsHost)
+            {
                 status = "Un cliente se ha desconectado.";
+                if (clientId != manager.LocalClientId) RemoteClientDisconnected?.Invoke(clientId);
+            }
             else if (clientId == manager.LocalClientId)
             {
                 string reason = manager.DisconnectReason;
@@ -223,6 +256,8 @@ namespace UnCredibles.Networking
             manager.OnServerStopped -= HandleServerStopped;
             manager.OnClientConnectedCallback -= HandleClientConnected;
             manager.OnClientDisconnectCallback -= HandleClientDisconnected;
+            manager.OnClientStarted -= HandleSessionStarted;
+            manager.OnClientStopped -= HandleSessionStopped;
             manager.ConnectionApprovalCallback = null;
             if (manager.IsListening) manager.Shutdown();
         }

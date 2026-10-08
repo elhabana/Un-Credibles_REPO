@@ -36,6 +36,7 @@ namespace UnCredibles.Core
         public InputManager Input => input;
         public AudioManager Audio => audioManager;
         public RelayConnection Online { get; private set; }
+        public OnlineSession Room { get; private set; }
         public BatPadService BatPad => batPad;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -56,6 +57,7 @@ namespace UnCredibles.Core
             Players = new PlayerRegistry();
             Match = new MatchManager(pointsByPlacement);
             Settings = new SettingsManager();
+            Room = new OnlineSession(Online, Players);
 
             audioManager.Bind(Settings);
             Settings.Load();
@@ -134,6 +136,7 @@ namespace UnCredibles.Core
         private void OnDestroy()
         {
             if (Instance != this) return;
+            Room?.Dispose();
             if (Online != null) Destroy(Online.gameObject);
             minigames.MinigameStarted -= HandleMinigameStarted;
             minigames.MinigameFinished -= HandleMinigameFinished;

@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnCredibles.BatPad;
 using UnCredibles.Core;
+using UnCredibles.Networking;
 using UnCredibles.Players;
 using UnCredibles.Players.Inputs;
 using UnityEngine;
@@ -12,7 +13,8 @@ using UnityEngine.InputSystem.Utilities;
 namespace UnCredibles.UI.PartyLobby
 {
     // Lobby rules shared by Singleplayer and Multiplayer: joining, AI, ready and the start countdown.
-    // Views only render the PlayerRegistry and forward clicks here.
+    // The authority (offline, or the host online) edits the PlayerRegistry; an online client only
+    // shows the host's snapshot and asks to be ready. Views render Slots and forward clicks here.
     public sealed class PartyLobbyController : MonoBehaviour
     {
         [SerializeField, Min(1)] private int roundsPerMatch = 3;
@@ -26,8 +28,10 @@ namespace UnCredibles.UI.PartyLobby
         private readonly int[] joinFrame = new int[PlayerRegistry.MaxPlayers];
         private readonly Dictionary<BatPadInput, float> phoneTimeouts = new Dictionary<BatPadInput, float>();
         private readonly List<BatPadInput> expiredPhones = new List<BatPadInput>();
+        private readonly LobbySlotInfo[] slotInfos = new LobbySlotInfo[PlayerRegistry.MaxPlayers];
         private CoreRoot core;
         private BatPadService batPad;
+        private OnlineSession room;
         private IDisposable joinListener;
         private Coroutine countdown;
         private bool starting;
@@ -38,16 +42,28 @@ namespace UnCredibles.UI.PartyLobby
         public bool InvitesEnabled => false; // Invitations are shared through the room code.
         public bool IsCountingDown => countdown != null;
 
+        // Offline, or the host online: owns the PlayerRegistry and the countdown.
+        public bool IsAuthority => Mode == SessionMode.Local || core.Online.IsHost;
+        public bool CanEditSlots => Players != null && IsAuthority && !starting;
+        public bool IsOnline => Mode == SessionMode.Online;
+        public string RoomCode => IsOnline ? core.Online.JoinCode : string.Empty;
+        public ulong LocalClientId => IsOnline ? core.Online.LocalClientId : LobbySlotInfo.NoOwner;
+
+        // What the 4 cards show, on every machine.
+        public IReadOnlyList<LobbySlotInfo> Slots => IsAuthority ? slotInfos : room.Slots;
+
         // Phones are local players of this machine: always offline, and only on the host online
         // (remote players cannot scan the host's screen).
         public bool UsesPhones => Mode == SessionMode.Local || core.Online.IsHost;
 
         // Online, the BatPad room reuses the Relay join code so players only share one code.
-        private string PhoneRoomCode => Mode == SessionMode.Online ? core.Online.JoinCode : null;
+        private string PhoneRoomCode => IsOnline ? core.Online.JoinCode : null;
 
         public event Action Initialized;
+        public event Action SlotsChanged;
         public event Action<int> CountdownTick; // 3, 2, 1 ... 0 = START
         public event Action CountdownCancelled;
+        public event Action<string> Notice;     // short message for the hint line
 
         private IEnumerator Start()
         {
@@ -56,16 +72,25 @@ namespace UnCredibles.UI.PartyLobby
 
             core = CoreRoot.Instance;
             batPad = core.BatPad;
+            room = core.Room;
             Players = core.Players;
             Mode = core.GameFlow.Session;
             core.GameFlow.ChangeState(GameState.PartyLobby);
 
-            if (Mode == SessionMode.Local)
+            if (IsAuthority)
             {
+                if (IsOnline) room.AcceptingPlayers = true;
                 RebuildDeviceMap();
                 Players.SlotChanged += HandleSlotChanged;
-                joinListener = InputSystem.onAnyButtonPress.Call(HandleAnyButton);
+                RefreshSlotInfos();
             }
+            else
+            {
+                room.SlotsChanged += HandleRemoteSlots;
+                room.CountdownReceived += HandleRemoteCountdown;
+                room.RequestSnapshot();
+            }
+            joinListener = InputSystem.onAnyButtonPress.Call(HandleAnyButton);
 
             WaitForDisconnectedPhones();
             if (UsesPhones)
@@ -83,6 +108,11 @@ namespace UnCredibles.UI.PartyLobby
         {
             joinListener?.Dispose();
             if (Players != null) Players.SlotChanged -= HandleSlotChanged;
+            if (room != null)
+            {
+                room.SlotsChanged -= HandleRemoteSlots;
+                room.CountdownReceived -= HandleRemoteCountdown;
+            }
             if (batPad != null)
             {
                 batPad.PhoneDisconnected -= HandlePhoneDisconnected;
@@ -90,16 +120,16 @@ namespace UnCredibles.UI.PartyLobby
             }
         }
 
-        // Lobby input of players already joined: Jump toggles Ready, Pause un-readies or leaves.
+        // Lobby input of the players of this machine: Jump toggles Ready, Pause un-readies or leaves.
+        // Remote players' ready arrives through the online session instead.
         private void Update()
         {
-            if (Players == null || starting) return;
+            if (Players == null || starting || !IsAuthority) return;
             RemoveExpiredPhones();
             if (UsesPhones) JoinPressingPhones();
-            if (Mode == SessionMode.Online) return;
             foreach (var slot in Players.Slots)
             {
-                if (!slot.IsOccupied || slot.IsAI || slot.Input == null) continue;
+                if (!slot.IsOccupied || slot.IsAI || slot.Input == null || slot.Input is NetworkInput) continue;
                 if (joinFrame[slot.SlotIndex] == Time.frameCount) continue; // the join press is not a ready press
 
                 if (slot.Input.WasPressed(PlayerAction.Jump)) Players.SetReady(slot.SlotIndex, !slot.IsReady);
@@ -113,13 +143,20 @@ namespace UnCredibles.UI.PartyLobby
 
         public bool AddAI(int slotIndex)
         {
-            if (!CanEdit()) return false;
+            if (!CanEditSlots) return false;
             return Players.TryAddPlayerAt(slotIndex, PlayerType.AIPlayer, core.Input.CreateAIInput(), null, out _);
         }
 
         public bool RemovePlayer(int slotIndex)
         {
-            if (!CanEdit()) return false;
+            if (!CanEditSlots) return false;
+            // A remote player is kicked; the online session frees the slot when they disconnect.
+            if (IsOnline && room.IsRemoteSlot(slotIndex))
+            {
+                room.Kick(slotIndex, "El Host te ha sacado de la sala.");
+                return true;
+            }
+
             var slot = Players.Slots[slotIndex];
             bool wasHost = slot.IsHost;
             if (slot.Input is DeviceInput device) deviceSlots.Remove(device.Device);
@@ -132,7 +169,7 @@ namespace UnCredibles.UI.PartyLobby
 
         public void InviteFriend(int slotIndex)
         {
-            // Steam invites arrive in the Multiplayer phases (see architecture guide, steps 13-15).
+            // Steam invites arrive in the Steam phase (see architecture guide, step 15).
             Debug.Log($"Invite for slot {slotIndex} is not available yet.", this);
         }
 
@@ -146,7 +183,12 @@ namespace UnCredibles.UI.PartyLobby
 
         private void HandleAnyButton(InputControl control)
         {
-            if (!CanEdit() || deviceSlots.ContainsKey(control.device) || !IsJoinButton(control)) return;
+            if (!IsAuthority)
+            {
+                HandleClientButton(control);
+                return;
+            }
+            if (!CanEditSlots || deviceSlots.ContainsKey(control.device) || !IsJoinButton(control)) return;
 
             IPlayerInput input = control.device switch
             {
@@ -166,20 +208,32 @@ namespace UnCredibles.UI.PartyLobby
             if (!HasHost()) Players.SetHost(slot.SlotIndex);
         }
 
+        // Online client: its slot exists as soon as it connects; SPACE / A toggles ready, ESC / B cancels.
+        private void HandleClientButton(InputControl control)
+        {
+            if (starting) return;
+            if (IsJoinButton(control)) room.SendReady(!IsMyPlayerReady());
+            else if (IsCancelButton(control)) room.SendReady(false);
+        }
+
+        private bool IsMyPlayerReady()
+        {
+            foreach (var info in room.Slots)
+                if (info.Occupied && info.Owner == LocalClientId) return info.Ready;
+            return false;
+        }
+
         // Phones join like gamepads: pressing A on a connected phone takes the first free slot.
         private void JoinPressingPhones()
         {
             foreach (var phone in batPad.Phones)
             {
                 if (!phone.WasPressed(PlayerAction.Jump) || FindSlot(phone) != null) continue;
-                // Online the 4 places are shared between network connections and the host's phones.
-                if (Mode == SessionMode.Online &&
-                    core.Online.Connections.Count + Players.OccupiedCount >= PlayerRegistry.MaxPlayers) return;
                 if (!Players.TryAddPlayer(PlayerType.PrestoPadPlayer, phone, null, out var slot)) return; // lobby full
 
                 joinFrame[slot.SlotIndex] = Time.frameCount;
                 batPad.AssignSlot(phone, slot.SlotIndex);
-                if (Mode == SessionMode.Local && !HasHost()) Players.SetHost(slot.SlotIndex);
+                if (!HasHost()) Players.SetHost(slot.SlotIndex);
             }
         }
 
@@ -188,7 +242,7 @@ namespace UnCredibles.UI.PartyLobby
         {
             var slot = FindSlot(phone);
             if (slot == null) return;
-            if (Mode == SessionMode.Local) Players.SetReady(slot.SlotIndex, false); // no countdown without it
+            Players.SetReady(slot.SlotIndex, false); // no countdown without it
             phoneTimeouts[phone] = Time.unscaledTime + PhoneReconnectSeconds;
         }
 
@@ -213,21 +267,8 @@ namespace UnCredibles.UI.PartyLobby
             {
                 phoneTimeouts.Remove(phone);
                 var slot = FindSlot(phone);
-                if (slot != null && !phone.IsConnected) RemovePhone(slot);
+                if (slot != null && !phone.IsConnected) RemovePlayer(slot.SlotIndex);
             }
-        }
-
-        // Online the lobby is not editable (CanEdit), but phones still come and go.
-        private void RemovePhone(PlayerSlot slot)
-        {
-            if (Mode == SessionMode.Local)
-            {
-                RemovePlayer(slot.SlotIndex);
-                return;
-            }
-            var phone = slot.Input as BatPadInput;
-            if (starting || !Players.RemovePlayer(slot.SlotIndex)) return;
-            if (phone != null) batPad.AssignSlot(phone, BatPadInput.NoSlot);
         }
 
         private PlayerSlot FindSlot(IPlayerInput input)
@@ -244,11 +285,38 @@ namespace UnCredibles.UI.PartyLobby
             _ => false,
         };
 
-        private void HandleSlotChanged(PlayerSlot slot) => EvaluateCountdown();
+        private static bool IsCancelButton(InputControl control) => control.device switch
+        {
+            Keyboard => control.name == "escape",
+            Gamepad => control.name == "buttonEast" || control.name == "select",
+            _ => false,
+        };
+
+        private void HandleSlotChanged(PlayerSlot slot)
+        {
+            RefreshSlotInfos();
+            EvaluateCountdown();
+        }
+
+        private void RefreshSlotInfos()
+        {
+            for (int i = 0; i < slotInfos.Length; i++)
+                slotInfos[i] = LobbySlotInfo.From(Players.Slots[i], IsOnline ? room.OwnerOf(i) : LobbySlotInfo.NoOwner);
+            SlotsChanged?.Invoke();
+        }
+
+        private void HandleRemoteSlots() => SlotsChanged?.Invoke();
+
+        private void HandleRemoteCountdown(int secondsLeft)
+        {
+            if (secondsLeft < 0) CountdownCancelled?.Invoke();
+            else CountdownTick?.Invoke(secondsLeft);
+            starting = secondsLeft == 0;
+        }
 
         private void EvaluateCountdown()
         {
-            if (starting || Mode == SessionMode.Online) return;
+            if (starting || !IsAuthority) return;
             bool canStart = Players.OccupiedCount >= minPlayers && Players.AllPlayersReady && HasHuman();
             if (canStart && countdown == null) countdown = StartCoroutine(CountdownRoutine());
             else if (!canStart) StopCountdown(true);
@@ -259,13 +327,30 @@ namespace UnCredibles.UI.PartyLobby
             var wait = new WaitForSeconds(1f);
             for (int i = countdownSeconds; i > 0; i--)
             {
-                CountdownTick?.Invoke(i);
+                Tick(i);
                 yield return wait;
             }
             countdown = null;
             starting = true;
-            CountdownTick?.Invoke(0);
-            if (!core.StartMatch(roundsPerMatch)) starting = false;
+            if (IsOnline) room.AcceptingPlayers = false; // nobody joins once the match starts
+            Tick(0);
+            if (core.StartMatch(roundsPerMatch)) yield break;
+
+            // The match could not start (online minigames are the next step): back to the lobby.
+            starting = false;
+            if (IsOnline) room.AcceptingPlayers = true;
+            Tick(-1);
+            CountdownCancelled?.Invoke();
+            UnreadyHumans();
+            Notice?.Invoke(IsOnline
+                ? "Los minijuegos online llegan en el siguiente paso."
+                : "No se pudo empezar la partida.");
+        }
+
+        private void Tick(int secondsLeft)
+        {
+            if (secondsLeft >= 0) CountdownTick?.Invoke(secondsLeft);
+            if (IsOnline) room.SendCountdown(secondsLeft);
         }
 
         private void StopCountdown(bool notify)
@@ -273,25 +358,31 @@ namespace UnCredibles.UI.PartyLobby
             if (countdown == null) return;
             StopCoroutine(countdown);
             countdown = null;
-            if (notify) CountdownCancelled?.Invoke();
+            if (!notify) return;
+            CountdownCancelled?.Invoke();
+            if (IsOnline) room.SendCountdown(-1);
         }
 
         private void RebuildDeviceMap()
         {
             deviceSlots.Clear();
             foreach (var slot in Players.Slots)
-            {
                 if (slot.Input is DeviceInput device) deviceSlots[device.Device] = slot.SlotIndex;
-                // Coming back from a match: humans confirm Ready again.
-                if (slot.IsOccupied && !slot.IsAI) Players.SetReady(slot.SlotIndex, false);
-            }
+            UnreadyHumans(); // coming back from a match: humans confirm Ready again
             if (!HasHost()) AssignHost();
         }
 
+        private void UnreadyHumans()
+        {
+            foreach (var slot in Players.Slots)
+                if (slot.IsOccupied && !slot.IsAI) Players.SetReady(slot.SlotIndex, false);
+        }
+
+        // The crown goes to a player of this machine, never to a remote one.
         private void AssignHost()
         {
             foreach (var slot in Players.Slots)
-                if (slot.IsOccupied && !slot.IsAI && Players.SetHost(slot.SlotIndex)) return;
+                if (slot.IsOccupied && !slot.IsAI && !(slot.Input is NetworkInput) && Players.SetHost(slot.SlotIndex)) return;
         }
 
         private bool HasHost()
@@ -307,7 +398,5 @@ namespace UnCredibles.UI.PartyLobby
                 if (slot.IsOccupied && !slot.IsAI) return true;
             return false;
         }
-
-        private bool CanEdit() => Players != null && !starting && Mode == SessionMode.Local;
     }
 }

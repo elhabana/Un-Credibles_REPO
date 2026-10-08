@@ -1,14 +1,13 @@
-using System.Collections;
 using TMPro;
 using UnCredibles.BatPad;
-using UnCredibles.Core;
 using UnCredibles.Players;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace UnCredibles.UI.PartyLobby
 {
-    // Renders the lobby. Refreshes only when a slot changes, never every frame.
+    // Renders the lobby. Refreshes only when the slots change, never every frame.
+    // Draws controller.Slots, which is the same data offline, on the host and on online clients.
     public sealed class PartyLobbyView : MonoBehaviour
     {
         [SerializeField] private PartyLobbyController controller;
@@ -22,8 +21,6 @@ namespace UnCredibles.UI.PartyLobby
         [SerializeField] private TMP_Text batPadText;
 
         private bool locked;
-        private string onlineSignature;
-        private readonly System.Collections.Generic.List<PlayerSlot> phoneSlots = new System.Collections.Generic.List<PlayerSlot>();
         private Texture2D batPadQrTexture;
 
         private void Awake()
@@ -41,8 +38,10 @@ namespace UnCredibles.UI.PartyLobby
         private void OnEnable()
         {
             controller.Initialized += HandleInitialized;
+            controller.SlotsChanged += RenderAll;
             controller.CountdownTick += HandleCountdownTick;
             controller.CountdownCancelled += HandleCountdownCancelled;
+            controller.Notice += ShowNotice;
             backButton.onClick.AddListener(controller.BackToMainMenu);
             foreach (var view in slotViews)
             {
@@ -55,10 +54,11 @@ namespace UnCredibles.UI.PartyLobby
         private void OnDisable()
         {
             controller.Initialized -= HandleInitialized;
+            controller.SlotsChanged -= RenderAll;
             controller.CountdownTick -= HandleCountdownTick;
             controller.CountdownCancelled -= HandleCountdownCancelled;
+            controller.Notice -= ShowNotice;
             backButton.onClick.RemoveListener(controller.BackToMainMenu);
-            if (controller.Players != null) controller.Players.SlotChanged -= RenderSlot;
             if (controller.BatPad != null) controller.BatPad.RoomChanged -= RenderBatPad;
             foreach (var view in slotViews)
             {
@@ -70,18 +70,13 @@ namespace UnCredibles.UI.PartyLobby
 
         private void HandleInitialized()
         {
-            modeText.text = controller.Mode == SessionMode.Online ? "MULTIPLAYER" : "SINGLEPLAYER";
             if (controller.UsesPhones) controller.BatPad.RoomChanged += RenderBatPad;
             RenderBatPad();
-
-            if (controller.Mode == SessionMode.Online)
-            {
-                hintText.text = "Comparte el codigo para invitar. Las partidas online estaran disponibles proximamente.";
-                RenderOnline();
-                return;
-            }
-            hintText.text = "SPACE / A: join & ready     ESC / START: cancel & leave";
-            controller.Players.SlotChanged += RenderSlot;
+            hintText.text = !controller.IsOnline
+                ? "SPACE / A: join & ready     ESC / START: cancel & leave"
+                : controller.IsAuthority
+                    ? "Comparte el codigo para invitar.   SPACE / A: unirte y listo"
+                    : "SPACE / A: listo     ESC / B: cancelar";
             RenderAll();
         }
 
@@ -102,43 +97,23 @@ namespace UnCredibles.UI.PartyLobby
             batPadText.text = url != null ? "Scan to play with your phone" : "Connecting phone controller...";
         }
 
-        private void Update()
+        private void RenderAll()
         {
-            if (controller.Players != null && controller.Mode == SessionMode.Online) RenderOnline();
-        }
-
-        private void RenderOnline()
-        {
-            var connection = CoreRoot.Instance.Online;
-            if (!connection.IsConnected) return;
-            var ids = new System.Collections.Generic.List<ulong>(connection.Connections);
-            ids.Sort();
-
-            // The host's phones fill the cards after the network connections.
-            phoneSlots.Clear();
-            foreach (var slot in controller.Players.Slots)
-                if (slot.Input is BatPadInput) phoneSlots.Add(slot);
-
-            string signature = connection.JoinCode + ":" + string.Join(",", ids) + ":" + PhoneSignature();
-            if (signature == onlineSignature) return;
-            onlineSignature = signature;
-            // Same code for friends online and for the BatPad room of the phones.
-            modeText.text = $"MULTIPLAYER {ids.Count + phoneSlots.Count}/4  |  CODIGO: {connection.JoinCode}";
-            countdownText.gameObject.SetActive(false);
+            if (controller.Players == null) return;
+            var slots = controller.Slots;
+            int occupied = 0;
             for (int i = 0; i < slotViews.Length; i++)
             {
-                int phoneIndex = i - ids.Count;
-                if (i < ids.Count) slotViews[i].RenderConnection(ids[i], connection.LocalClientId);
-                else if (phoneIndex < phoneSlots.Count) slotViews[i].RenderPhone(phoneSlots[phoneIndex].SlotIndex + 1);
-                else slotViews[i].RenderConnection(null, connection.LocalClientId);
+                var info = slots[i];
+                if (info.Occupied) occupied++;
+                bool mine = controller.IsOnline && !controller.IsAuthority && info.Owner == controller.LocalClientId;
+                slotViews[i].Render(info, controller.CanEditSlots, locked, mine, controller.IsOnline);
             }
-        }
 
-        private string PhoneSignature()
-        {
-            var text = new System.Text.StringBuilder();
-            foreach (var slot in phoneSlots) text.Append(slot.SlotIndex).Append(',');
-            return text.ToString();
+            // Same code for friends online and for the BatPad room of the phones.
+            modeText.text = controller.IsOnline
+                ? $"MULTIPLAYER {occupied}/4  |  CODIGO: {controller.RoomCode}"
+                : "SINGLEPLAYER";
         }
 
         private void HandleCountdownTick(int secondsLeft)
@@ -153,15 +128,15 @@ namespace UnCredibles.UI.PartyLobby
             }
         }
 
-        private void HandleCountdownCancelled() => countdownText.gameObject.SetActive(false);
-
-        private void RenderSlot(PlayerSlot slot) =>
-            slotViews[slot.SlotIndex].Render(slot, controller.InvitesEnabled, locked);
-
-        private void RenderAll()
+        private void HandleCountdownCancelled()
         {
-            foreach (var slot in controller.Players.Slots) RenderSlot(slot);
+            countdownText.gameObject.SetActive(false);
+            if (!locked) return;
+            locked = false;
+            RenderAll();
         }
+
+        private void ShowNotice(string message) => hintText.text = message;
 
         private void HandleAddAI(int slotIndex) => controller.AddAI(slotIndex);
         private void HandleInvite(int slotIndex) => controller.InviteFriend(slotIndex);

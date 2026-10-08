@@ -1,5 +1,6 @@
 using System;
 using TMPro;
+using UnCredibles.Networking;
 using UnCredibles.Players;
 using UnityEngine;
 using UnityEngine.UI;
@@ -46,22 +47,23 @@ namespace UnCredibles.UI.PartyLobby
             removeButton.onClick.RemoveListener(OnRemove);
         }
 
-        public void Render(PlayerSlot slot, bool invitesEnabled, bool locked)
+        // canEdit: this machine owns the lobby (offline or online host). mine: the online client's own slot.
+        public void Render(LobbySlotInfo info, bool canEdit, bool locked, bool mine, bool online)
         {
-            bool occupied = slot.IsOccupied;
-            crown.SetActive(slot.IsHost);
-            nameText.text = occupied ? slot.PlayerName : "EMPTY";
-            inputText.text = occupied ? InputLabel(slot) : string.Empty;
-            statusText.text = StatusLabel(slot, invitesEnabled);
-            background.color = !occupied ? emptyColor : slot.IsAI ? aiColor : slot.IsReady ? readyColor : occupiedColor;
+            bool occupied = info.Occupied;
+            crown.SetActive(info.Host);
+            nameText.text = occupied ? info.Name : online ? "LIBRE" : "EMPTY";
+            inputText.text = !occupied ? string.Empty : mine ? "Tu" : InputLabel(info.Source);
+            statusText.text = StatusLabel(info, canEdit, mine, online);
+            background.color = !occupied ? emptyColor : info.IsAI ? aiColor : info.Ready ? readyColor : occupiedColor;
 
-            bool free = slot.State == SlotState.Empty;
-            addAIButton.gameObject.SetActive(free && !locked);
-            inviteButton.gameObject.SetActive(free && invitesEnabled && !locked);
-            removeButton.gameObject.SetActive(occupied && !locked);
+            bool free = info.State == SlotState.Empty;
+            addAIButton.gameObject.SetActive(free && canEdit && !locked);
+            inviteButton.gameObject.SetActive(false); // invitations go through the room code for now
+            removeButton.gameObject.SetActive(occupied && canEdit && !locked);
         }
 
-        private static string InputLabel(PlayerSlot slot) => slot.InputSource switch
+        private static string InputLabel(InputSourceType source) => source switch
         {
             InputSourceType.Keyboard => "Keyboard",
             InputSourceType.Gamepad => "Gamepad",
@@ -71,41 +73,16 @@ namespace UnCredibles.UI.PartyLobby
             _ => string.Empty,
         };
 
-        // Connection cards only: these are not gameplay slots or ready states yet.
-        public void RenderConnection(ulong? clientId, ulong localId)
+        private static string StatusLabel(LobbySlotInfo info, bool canEdit, bool mine, bool online) => info.State switch
         {
-            bool occupied = clientId.HasValue;
-            crown.SetActive(occupied && clientId.Value == 0);
-            nameText.text = !occupied ? "LIBRE" : clientId.Value == 0 ? "HOST" : $"JUGADOR {clientId.Value}";
-            inputText.text = occupied ? (clientId.Value == localId ? "Tu" : "Online") : "";
-            statusText.text = occupied ? "CONECTADO" : "Esperando jugador";
-            background.color = occupied ? occupiedColor : emptyColor;
-            addAIButton.gameObject.SetActive(false);
-            inviteButton.gameObject.SetActive(false);
-            removeButton.gameObject.SetActive(false);
-        }
-
-        // Online card of a phone that joined the host through BatPad.
-        public void RenderPhone(int number)
-        {
-            crown.SetActive(false);
-            nameText.text = $"MOVIL {number}";
-            inputText.text = "BatPad (Host)";
-            statusText.text = "CONECTADO";
-            background.color = occupiedColor;
-            addAIButton.gameObject.SetActive(false);
-            inviteButton.gameObject.SetActive(false);
-            removeButton.gameObject.SetActive(false);
-        }
-
-        private static string StatusLabel(PlayerSlot slot, bool invitesEnabled) => slot.State switch
-        {
-            SlotState.Empty => invitesEnabled ? string.Empty : "Press SPACE / A to join",
+            SlotState.Empty => !online ? "Press SPACE / A to join" : canEdit ? "Esperando jugador" : "Libre",
             SlotState.Inviting => "Inviting...",
             SlotState.Connecting => "Connecting...",
             SlotState.Disconnected => "Disconnected",
             SlotState.AI => "READY",
-            _ => slot.IsReady ? "READY" : "Press SPACE / A when ready",
+            _ => info.Ready ? "READY"
+                : !online || canEdit && info.Source != InputSourceType.Network || mine ? "Press SPACE / A when ready"
+                : "Not ready",
         };
 
         private void OnAddAI() => AddAIClicked?.Invoke(SlotIndex);
