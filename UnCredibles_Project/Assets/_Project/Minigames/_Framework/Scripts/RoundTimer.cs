@@ -27,6 +27,13 @@ namespace UnCredibles.Minigames
 
         public void Stop() => enabled = false;
 
+        // Online client: shows the host's timer without running its own.
+        public void ShowRemote(int seconds)
+        {
+            Remaining = seconds;
+            SecondChanged?.Invoke(seconds);
+        }
+
         private void Update()
         {
             Remaining -= Time.deltaTime;

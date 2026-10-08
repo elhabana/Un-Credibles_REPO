@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.IO;
 using UnCredibles.Players;
 using UnCredibles.Players.Inputs;
 using UnityEngine;
@@ -10,6 +11,8 @@ namespace UnCredibles.Minigames.CrossyRoad
     // The only Update of the minigame: traffic, AI and avatars are ticked from here in a fixed order.
     public sealed class CrossyRoadController : MinigameController
     {
+        private const byte GrandmaLaunchedEvent = 1;
+
         [SerializeField] private CrossyRoadBoard board;
         [SerializeField] private CrossyRoadTraffic traffic;
         [SerializeField] private CrossyRoadGrandmas grandmas;
@@ -29,7 +32,7 @@ namespace UnCredibles.Minigames.CrossyRoad
         {
             isMoveBlocked = IsMoveBlocked;
             board.Build();
-            traffic.Initialize();
+            traffic.Initialize(!IsReplica); // an online client gets its cars from the host
             grandmas.Initialize();
             oil.Initialize();
 
@@ -40,20 +43,31 @@ namespace UnCredibles.Minigames.CrossyRoad
                 var preferred = new Vector3(spawnPoint.x, board.transform.position.y, board.LaneToZ(CrossyRoadBoard.SpawnLane));
                 avatar.Setup(player, board, FindFreeSpawn(preferred, null), Settings.GetPlayerColor(player.SlotIndex), Settings.GrandmaColor);
                 avatars.Add(avatar);
-
-                if (player.Input is AIInput aiInput)
-                    brains.Add(new CrossyRoadAIBrain(avatar, aiInput, board, traffic, grandmas, oil));
             }
+
+            if (!IsReplica) EnsureBrains();
         }
 
         protected override void OnGameStarted() { }
 
         private void Update()
         {
+            if (IsReplica)
+            {
+                // Online client: everything comes from the host, we only keep it moving smoothly.
+                float remoteDelta = Time.deltaTime;
+                traffic.TickRemote(remoteDelta);
+                grandmas.Tick(remoteDelta); // only flying grandmas move here
+                oil.TickRemote(remoteDelta);
+                foreach (var avatar in avatars) avatar.TickRemote(remoteDelta);
+                return;
+            }
+
             // Cars already drive during the countdown so the scene feels alive.
             if (State == MinigameState.Waiting || State == MinigameState.Countdown || IsPlaying)
                 traffic.Tick(Time.deltaTime);
             if (!IsPlaying) return;
+            EnsureBrains(); // an online player who left is now a bot
 
             float deltaTime = Time.deltaTime;
             grandmas.Tick(deltaTime);
@@ -135,6 +149,10 @@ namespace UnCredibles.Minigames.CrossyRoad
             {
                 // She flies off with a lot of force, then goes back to her spot as usual.
                 grandmas.Launch(avatar.CarryPosition);
+                var message = BeginEvent(GrandmaLaunchedEvent);
+                var from = avatar.CarryPosition;
+                message.Write(from.x); message.Write(from.y); message.Write(from.z);
+                SendEvent();
                 grandmas.Return(avatar.CarriedGrandma);
                 avatar.SetCarrying(-1);
             }
@@ -168,6 +186,51 @@ namespace UnCredibles.Minigames.CrossyRoad
                 }
             }
             return board.ClampInside(preferred, Radius);
+        }
+
+        // Every bot gets a brain, including an online player replaced by AI mid-match.
+        private void EnsureBrains()
+        {
+            foreach (var avatar in avatars)
+            {
+                if (!(avatar.Slot.Input is AIInput aiInput) || HasBrain(avatar)) continue;
+                brains.Add(new CrossyRoadAIBrain(avatar, aiInput, board, traffic, grandmas, oil));
+            }
+        }
+
+        private bool HasBrain(CrossyRoadPlayer avatar)
+        {
+            foreach (var brain in brains)
+                if (brain.Player == avatar) return true;
+            return false;
+        }
+
+        // ---------- Online ----------
+
+        // Cars, grandmas, oil and every avatar, in the order of Players on all machines.
+        protected override void WriteSnapshot(BinaryWriter writer)
+        {
+            traffic.WriteState(writer);
+            writer.Write(grandmas.AvailableMask);
+            oil.WriteState(writer);
+            writer.Write((byte)avatars.Count);
+            foreach (var avatar in avatars) avatar.WriteState(writer);
+        }
+
+        protected override void ReadSnapshot(BinaryReader reader)
+        {
+            traffic.ReadState(reader);
+            grandmas.ApplyAvailableMask(reader.ReadInt32());
+            oil.ReadState(reader);
+            int count = reader.ReadByte();
+            // Avatars always come in the same order and count on host and clients.
+            for (int i = 0; i < count && i < avatars.Count; i++) avatars[i].ReadState(reader);
+        }
+
+        protected override void OnNetworkEvent(byte eventId, BinaryReader reader)
+        {
+            if (eventId == GrandmaLaunchedEvent)
+                grandmas.Launch(new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle()));
         }
 
         private bool IsMoveBlocked(Vector3 position, CrossyRoadPlayer self) => traffic.Overlaps(position, Radius);

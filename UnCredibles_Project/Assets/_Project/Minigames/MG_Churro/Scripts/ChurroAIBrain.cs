@@ -15,6 +15,8 @@ namespace UnCredibles.Minigames.Churro
         private float lead;
         private float lastTimeToArrival = float.MaxValue;
 
+        public ChurroPlayer Player => player;
+
         public ChurroAIBrain(ChurroPlayer player, AIInput input, ChurroSpinner spinner, ChurroSettings settings, float halfWidth)
         {
             this.player = player;

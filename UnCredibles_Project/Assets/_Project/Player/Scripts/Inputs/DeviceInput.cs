@@ -24,11 +24,14 @@ namespace UnCredibles.Players.Inputs
         protected DeviceInput(InputActionAsset template, string controlScheme, InputDevice device)
         {
             if (template == null) throw new ArgumentNullException(nameof(template));
-            Device = device ?? throw new ArgumentNullException(nameof(device));
+            Device = device;
 
             actions = Object.Instantiate(template);
-            actions.devices = new[] { device };
-            actions.bindingMask = InputBinding.MaskByGroup(controlScheme);
+            if (device != null)
+            {
+                actions.devices = new[] { device };
+                actions.bindingMask = InputBinding.MaskByGroup(controlScheme);
+            }
             map = actions.FindActionMap(PlayerMap, true);
             move = map.FindAction(MoveAction, true);
             foreach (var action in Actions)
@@ -71,5 +74,12 @@ namespace UnCredibles.Players.Inputs
         public const string Scheme = "Gamepad";
         public override InputSourceType Source => InputSourceType.Gamepad;
         public GamepadInput(InputActionAsset template, Gamepad gamepad) : base(template, Scheme, gamepad) { }
+    }
+
+    // The one player of an online client: whatever keyboard or gamepad they use.
+    public sealed class AnyDeviceInput : DeviceInput
+    {
+        public override InputSourceType Source => InputSourceType.Keyboard;
+        public AnyDeviceInput(InputActionAsset template) : base(template, null, null) { }
     }
 }

@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using UnCredibles.Players;
 using UnityEngine;
 
@@ -24,6 +25,11 @@ namespace UnCredibles.Minigames.CrossyRoad
         private float slipTimer;
         private bool wasOnOil;
         private float wobbleTime;
+        private Vector3 remotePosition;
+        private Quaternion remoteRotation;
+        private float remoteHeight;
+        private bool remoteSlipping;
+        private bool hasRemote;
 
         public PlayerSlot Slot { get; private set; }
         public Vector3 SpawnPosition { get; private set; }
@@ -185,6 +191,63 @@ namespace UnCredibles.Minigames.CrossyRoad
             wasOnOil = false;
             invulnerableTimer = invulnerableSeconds;
             visual.gameObject.SetActive(true);
+        }
+
+        // ---------- Online ----------
+
+        private const byte AliveFlag = 1, CarryingFlag = 2, VisibleFlag = 4, SlippingFlag = 8;
+
+        public void WriteState(BinaryWriter writer)
+        {
+            int flags = (IsAlive ? AliveFlag : 0) | (IsCarrying ? CarryingFlag : 0)
+                | (visual.gameObject.activeSelf ? VisibleFlag : 0) | (IsSlipping ? SlippingFlag : 0);
+            var position = transform.position;
+            var scale = visual.localScale;
+            writer.Write((byte)flags);
+            writer.Write(position.x); writer.Write(position.y); writer.Write(position.z);
+            writer.Write(transform.eulerAngles.y);
+            writer.Write(visual.localPosition.y);
+            writer.Write(scale.x); writer.Write(scale.y); writer.Write(scale.z);
+        }
+
+        // Client: the host decides; we follow its position smoothly and copy the look.
+        public void ReadState(BinaryReader reader)
+        {
+            int flags = reader.ReadByte();
+            var position = new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
+            float yaw = reader.ReadSingle();
+            remoteHeight = reader.ReadSingle();
+            var scale = new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
+
+            IsAlive = (flags & AliveFlag) != 0;
+            bool carrying = (flags & CarryingFlag) != 0;
+            if (carrying != IsCarrying) SetCarrying(carrying ? 0 : -1);
+            bool visible = (flags & VisibleFlag) != 0;
+            if (visual.gameObject.activeSelf != visible) visual.gameObject.SetActive(visible);
+            remoteSlipping = IsAlive && (flags & SlippingFlag) != 0;
+            visual.localScale = scale;
+
+            remotePosition = position;
+            remoteRotation = Quaternion.Euler(0f, yaw, 0f);
+            // First snapshot or a respawn: jump there instead of sliding across the road.
+            if (!hasRemote || (transform.position - position).sqrMagnitude > 4f)
+                transform.SetPositionAndRotation(position, remoteRotation);
+            hasRemote = true;
+        }
+
+        public void TickRemote(float deltaTime)
+        {
+            if (!hasRemote) return;
+            float blend = Mathf.Min(1f, 15f * deltaTime);
+            transform.SetPositionAndRotation(
+                Vector3.Lerp(transform.position, remotePosition, blend),
+                Quaternion.Slerp(transform.rotation, remoteRotation, blend));
+
+            wobbleTime = remoteSlipping ? wobbleTime + deltaTime : 0f;
+            visual.localPosition = new Vector3(0f, Mathf.Lerp(visual.localPosition.y, remoteHeight, blend), 0f);
+            visual.localRotation = remoteSlipping
+                ? Quaternion.Euler(Mathf.Sin(wobbleTime * 17f) * 12f, 0f, Mathf.Sin(wobbleTime * 23f) * 20f)
+                : Quaternion.identity;
         }
 
         private void TickInvulnerability(float deltaTime)

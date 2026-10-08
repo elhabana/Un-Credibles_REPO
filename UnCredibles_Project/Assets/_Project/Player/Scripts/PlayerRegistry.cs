@@ -101,6 +101,34 @@ namespace UnCredibles.Players
             return true;
         }
 
+        // Online clients only: copies one slot of the host so names, ids and slot order match on
+        // every machine. The input is a placeholder; the host is the one that simulates.
+        public void MirrorSlot(int index, int playerId, PlayerType type, SlotState state, string playerName,
+            bool ready, bool isHost, Func<IPlayerInput> createInput)
+        {
+            if (!IsValidIndex(index)) return;
+            var slot = slots[index];
+            if (type == PlayerType.Empty)
+            {
+                if (slot.State != SlotState.Empty || slot.IsOccupied) RemovePlayer(index);
+                return;
+            }
+
+            if (!slot.IsOccupied || slot.PlayerId != playerId)
+            {
+                slot.Clear();
+                slot.Input = createInput();
+            }
+            slot.PlayerId = playerId;
+            slot.PlayerType = type;
+            slot.State = state;
+            slot.PlayerName = playerName ?? string.Empty;
+            slot.IsReady = ready;
+            slot.IsHost = isHost;
+            slot.IsConnected = state != SlotState.Disconnected;
+            SlotChanged?.Invoke(slot);
+        }
+
         public bool SetSlotState(int index, SlotState state)
         {
             // Only empty slots can move between Empty/Inviting/Connecting; the rest is driven by joins.

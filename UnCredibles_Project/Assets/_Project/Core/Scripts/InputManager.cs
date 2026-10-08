@@ -19,5 +19,8 @@ namespace UnCredibles.Core
             gamepad != null ? new GamepadInput(playerControls, gamepad) : null;
 
         public AIInput CreateAIInput() => new AIInput();
+
+        // Online client: its one player, on any keyboard or gamepad of this machine.
+        public IPlayerInput CreateAnyDeviceInput() => new AnyDeviceInput(playerControls);
     }
 }

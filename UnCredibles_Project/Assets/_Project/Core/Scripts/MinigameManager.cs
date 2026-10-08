@@ -15,6 +15,11 @@ namespace UnCredibles.Core
         private readonly List<PlayerSlot> participants = new List<PlayerSlot>(PlayerRegistry.MaxPlayers);
         private PlayerRegistry players;
         private SceneFlowManager sceneFlow;
+        private IMinigame pendingStart;
+        private float pendingDeadline;
+
+        // A client that never loads does not block the others forever.
+        private const float ClientWaitSeconds = 10f;
 
         public IReadOnlyList<MinigameData> Minigames => minigames;
         public MinigameData ActiveData { get; private set; }
@@ -84,6 +89,9 @@ namespace UnCredibles.Core
             ActiveData = null;
         }
 
+        // Online host: are all the remote players in this scene? The minigame waits for them.
+        public Func<string, bool> ClientsReady { get; set; }
+
         // Called by the minigame scene itself once it is loaded (see MinigameHost).
         private void HandleMinigameLoaded(IMinigame minigame)
         {
@@ -96,10 +104,45 @@ namespace UnCredibles.Core
             ActiveMinigame = minigame;
             if (ActiveData == null) ActiveData = minigame.Data;
             minigame.Finished += HandleFinished;
+
+            // Online client: a replica that the host drives; it never starts by itself.
+            if (MinigameNetwork.IsReplica)
+            {
+                Initialize(minigame);
+                return;
+            }
+
+            if (MinigameNetwork.IsOnline && ClientsReady != null && !ClientsReady(ActiveData.SceneName))
+            {
+                pendingStart = minigame;
+                pendingDeadline = Time.unscaledTime + ClientWaitSeconds;
+                return;
+            }
+            Begin(minigame);
+        }
+
+        // Only does something while the host waits for the clients to load the minigame.
+        // (Not disabling the component: OnDisable would unregister it from MinigameHost.)
+        private void Update()
+        {
+            if (pendingStart == null) return;
+            if (!ClientsReady(ActiveData.SceneName) && Time.unscaledTime < pendingDeadline) return;
+            var minigame = pendingStart;
+            pendingStart = null;
+            Begin(minigame);
+        }
+
+        private void Begin(IMinigame minigame)
+        {
+            Initialize(minigame);
+            minigame.StartCountdown();
+        }
+
+        private void Initialize(IMinigame minigame)
+        {
             players.GetActivePlayers(participants);
             minigame.Initialize(new MinigameContext(ActiveData, participants, false));
             MinigameStarted?.Invoke(minigame);
-            minigame.StartCountdown();
         }
 
         private void HandleFinished(IReadOnlyList<MinigameResult> results) =>
@@ -115,6 +158,7 @@ namespace UnCredibles.Core
 
         private void Detach()
         {
+            pendingStart = null;
             if (ActiveMinigame == null) return;
             ActiveMinigame.Finished -= HandleFinished;
             ActiveMinigame = null;

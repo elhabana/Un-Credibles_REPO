@@ -20,6 +20,10 @@ namespace UnCredibles.Minigames.Churro
         private Vector3 knockVelocity;
         private float height;
         private float verticalSpeed;
+        private Vector3 remotePosition;
+        private Quaternion remoteRotation;
+        private float remoteHeight;
+        private bool hasRemote;
 
         public PlayerSlot Slot { get; private set; }
         public float Angle { get; private set; }
@@ -79,6 +83,34 @@ namespace UnCredibles.Minigames.Churro
             verticalSpeed -= settings.Gravity * deltaTime;
             height = Mathf.Max(0f, height + verticalSpeed * deltaTime);
             if (height <= 0f) verticalSpeed = 0f;
+            visual.localPosition = new Vector3(0f, height, 0f);
+        }
+
+        // Online client: the host decides; we only follow its position smoothly.
+        public void ApplyRemote(bool isIn, bool visible, float feetHeight, Vector3 position, Quaternion rotation)
+        {
+            bool appeared = visible && !gameObject.activeSelf;
+            if (gameObject.activeSelf != visible) gameObject.SetActive(visible);
+            IsIn = isIn;
+            remoteHeight = isIn ? feetHeight : 0f;
+            remotePosition = position;
+            remoteRotation = rotation;
+            hasRemote = true;
+            if (appeared || (transform.position - position).sqrMagnitude > 9f)
+            {
+                transform.SetPositionAndRotation(position, rotation);
+                height = remoteHeight;
+            }
+        }
+
+        public void TickRemote(float deltaTime)
+        {
+            if (!gameObject.activeSelf || !hasRemote) return;
+            float blend = Mathf.Min(1f, 15f * deltaTime);
+            transform.SetPositionAndRotation(
+                Vector3.Lerp(transform.position, remotePosition, blend),
+                Quaternion.Slerp(transform.rotation, remoteRotation, blend));
+            height = Mathf.Lerp(height, remoteHeight, blend);
             visual.localPosition = new Vector3(0f, height, 0f);
         }
 

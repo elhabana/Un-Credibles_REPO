@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnCredibles.BatPad;
 using UnCredibles.Minigames;
 using UnCredibles.Players;
+using UnCredibles.Players.Inputs;
 using UnCredibles.Networking;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -24,6 +25,11 @@ namespace UnCredibles.Core
         [SerializeField, Min(0f)] private float minigameResultsSeconds = 3f;
 
         private readonly List<PlayerSlot> playersBuffer = new List<PlayerSlot>(PlayerRegistry.MaxPlayers);
+        private static readonly PlayerAction[] Actions = (PlayerAction[])System.Enum.GetValues(typeof(PlayerAction));
+        private const float InputSendInterval = 1f / 30f;
+        private string pendingScene;   // online client: scene the host asked for, loaded when possible
+        private IPlayerInput onlineInput; // online client: the controller sent to the host
+        private float nextInputSend;
 
         public static CoreRoot Instance { get; private set; }
 
@@ -38,6 +44,9 @@ namespace UnCredibles.Core
         public RelayConnection Online { get; private set; }
         public OnlineSession Room { get; private set; }
         public BatPadService BatPad => batPad;
+
+        private bool IsOnlineHost => GameFlow.Session == SessionMode.Online && Online.IsHost;
+        private bool IsOnlineClient => GameFlow.Session == SessionMode.Online && !Online.IsHost;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics() => Instance = null;
@@ -62,6 +71,8 @@ namespace UnCredibles.Core
             audioManager.Bind(Settings);
             Settings.Load();
             minigames.Bind(Players, sceneFlow);
+            minigames.ClientsReady = Room.AllClientsIn;
+            Room.SceneRequested += HandleSceneRequested;
             minigames.MinigameStarted += HandleMinigameStarted;
             minigames.MinigameFinished += HandleMinigameFinished;
             batPad.PhoneDisconnected += HandlePhoneDisconnected;
@@ -93,6 +104,9 @@ namespace UnCredibles.Core
         public void ReturnToMainMenu()
         {
             if (GameFlow.Session == SessionMode.Online) Online.Disconnect();
+            pendingScene = null;
+            onlineInput?.Dispose();
+            onlineInput = null;
             GameFlow.SetSession(SessionMode.Local);
             minigames.ExitActiveMinigame();
             Match.CancelMatch();
@@ -104,7 +118,6 @@ namespace UnCredibles.Core
         // Called by the PartyLobby when every player is ready.
         public bool StartMatch(int rounds)
         {
-            if (GameFlow.Session == SessionMode.Online) return false;
             Players.GetActivePlayers(playersBuffer);
             Match.StartMatch(playersBuffer, rounds);
             return StartNextRound();
@@ -122,12 +135,14 @@ namespace UnCredibles.Core
             }
 
             GameFlow.ChangeState(GameState.Loading);
+            if (IsOnlineHost) Room.SendScene(next.SceneName, (byte)GameState.Minigame);
             return minigames.LoadMinigame(next);
         }
 
         // Same players go back to the lobby for another match.
         public void ReturnToLobby()
         {
+            if (IsOnlineHost) Room.SendScene(GameScenes.PartyLobby, (byte)GameState.PartyLobby);
             minigames.ExitActiveMinigame();
             Match.CancelMatch();
             OpenPartyLobby(GameFlow.Session);
@@ -136,7 +151,9 @@ namespace UnCredibles.Core
         private void OnDestroy()
         {
             if (Instance != this) return;
+            Room.SceneRequested -= HandleSceneRequested;
             Room?.Dispose();
+            onlineInput?.Dispose();
             if (Online != null) Destroy(Online.gameObject);
             minigames.MinigameStarted -= HandleMinigameStarted;
             minigames.MinigameFinished -= HandleMinigameFinished;
@@ -161,12 +178,22 @@ namespace UnCredibles.Core
 
         private void Update()
         {
-            if (GameFlow.Session == SessionMode.Online && !Online.IsConnected && !sceneFlow.IsLoading)
+            if (GameFlow.Session != SessionMode.Online) return;
+            if (!Online.IsConnected && !sceneFlow.IsLoading)
+            {
                 ReturnToMainMenu();
+                return;
+            }
+            if (IsOnlineClient)
+            {
+                LoadPendingScene();
+                SendOnlineInput();
+            }
         }
 
         private void HandleMinigameFinished(MinigameData data, IReadOnlyList<MinigameResult> results)
         {
+            if (IsOnlineClient) return; // the host decides what comes next
             Match.RegisterResults(data, results);
             StartCoroutine(ShowResultsRoutine());
         }
@@ -177,7 +204,76 @@ namespace UnCredibles.Core
             yield return new WaitForSeconds(minigameResultsSeconds);
             minigames.ExitActiveMinigame();
             GameFlow.ChangeState(Match.IsRunning ? GameState.Results : GameState.FinalResults);
+            if (IsOnlineHost)
+            {
+                Room.SendStandings(BuildStandings());
+                Room.SendScene(GameScenes.Results, (byte)GameFlow.State);
+            }
             sceneFlow.LoadContent(GameScenes.Results);
+        }
+
+        // ---------- Online client: the host decides which scene everybody is in ----------
+
+        private void HandleSceneRequested(string sceneName, byte gameState)
+        {
+            if (!IsOnlineClient) return;
+            minigames.ExitActiveMinigame();
+            GameFlow.ChangeState((GameState)gameState);
+            pendingScene = sceneName;
+            LoadPendingScene();
+        }
+
+        private void LoadPendingScene()
+        {
+            if (pendingScene == null || sceneFlow.IsLoading) return;
+            string sceneName = pendingScene;
+            pendingScene = null;
+            sceneFlow.LoadContent(sceneName, () => Room.SendLoaded(sceneName));
+        }
+
+        // The client's player is simulated by the host: send it what this machine's controller does.
+        // Presses go out at once (reliable); the stick at most 30 times per second.
+        private void SendOnlineInput()
+        {
+            if (GameFlow.State != GameState.Minigame && GameFlow.State != GameState.Results) return;
+            onlineInput ??= input.CreateAnyDeviceInput();
+
+            int pressed = 0, held = 0;
+            foreach (var action in Actions)
+            {
+                if (onlineInput.WasPressed(action)) pressed |= 1 << (int)action;
+                if (onlineInput.IsHeld(action)) held |= 1 << (int)action;
+            }
+            if (pressed == 0 && Time.unscaledTime < nextInputSend) return;
+            nextInputSend = Time.unscaledTime + InputSendInterval;
+            Room.SendInput(onlineInput.Move, pressed, held);
+        }
+
+        // ---------- Online host: what the clients' Results screen shows ----------
+
+        private OnlineStandings BuildStandings()
+        {
+            var standings = new OnlineStandings
+            {
+                Round = Match.CurrentRound,
+                TotalRounds = Match.TotalRounds,
+                IsFinal = !Match.IsRunning,
+            };
+            var lastRound = Match.LastRoundResults;
+            foreach (var standing in Match.GetStandings())
+            {
+                int gained = 0;
+                foreach (var result in lastRound)
+                    if (result.PlayerId == standing.PlayerId) gained = Match.PointsFor(result.Placement);
+                standings.Rows.Add(new OnlineStandings.Row
+                {
+                    Name = Players.TryGetByPlayerId(standing.PlayerId, out var slot) ? slot.PlayerName : $"Player {standing.PlayerId + 1}",
+                    Placement = standing.Placement,
+                    Gained = gained,
+                    Total = standing.Score,
+                });
+            }
+            return standings;
         }
     }
 }

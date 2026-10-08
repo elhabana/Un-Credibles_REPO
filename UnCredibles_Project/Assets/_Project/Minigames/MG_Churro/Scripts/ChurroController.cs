@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using UnCredibles.Players;
 using UnCredibles.Players.Inputs;
 using UnityEngine;
@@ -13,6 +14,9 @@ namespace UnCredibles.Minigames.Churro
     public sealed class ChurroController : MinigameController
     {
         private enum RoundPhase { None, Intro, Spinning, Outro }
+
+        private const byte RoundStartedEvent = 1;
+        private const byte RoundEndedEvent = 2;
 
         [SerializeField] private ChurroSettings settings;
         [SerializeField] private ChurroSpinner spinner;
@@ -48,9 +52,7 @@ namespace UnCredibles.Minigames.Churro
             // Angular half width of a player seen from the centre.
             hitHalfAngle = floatDistance > 0.01f ? Mathf.Atan2(settings.PlayerRadius, floatDistance) * Mathf.Rad2Deg : 10f;
 
-            foreach (var avatar in avatars)
-                if (avatar.Slot.Input is AIInput aiInput)
-                    brains.Add(new ChurroAIBrain(avatar, aiInput, spinner, settings, hitHalfAngle));
+            if (!IsReplica) EnsureBrains();
 
             spinner.ResetForRound(settings.GetRound(0), 45f);
         }
@@ -59,8 +61,16 @@ namespace UnCredibles.Minigames.Churro
 
         private void Update()
         {
-            if (!IsPlaying) return;
             float deltaTime = Time.deltaTime;
+            if (IsReplica)
+            {
+                // Online client: only smooth what the host sends (spinner and avatars).
+                spinner.TickRemote(deltaTime);
+                foreach (var avatar in avatars) avatar.TickRemote(deltaTime);
+                return;
+            }
+            if (!IsPlaying) return;
+            EnsureBrains(); // an online player who left is now a bot
 
             switch (phase)
             {
@@ -94,6 +104,10 @@ namespace UnCredibles.Minigames.Churro
             phase = RoundPhase.Intro;
             phaseTimer = settings.RoundIntroSeconds;
             RoundStarted?.Invoke(CurrentRound, TotalRounds);
+            var message = BeginEvent(RoundStartedEvent);
+            message.Write((byte)CurrentRound);
+            message.Write((byte)TotalRounds);
+            SendEvent();
         }
 
         private void TickAvatars(float deltaTime, bool canJump)
@@ -134,6 +148,11 @@ namespace UnCredibles.Minigames.Churro
             phase = RoundPhase.Outro;
             phaseTimer = settings.RoundOutroSeconds;
             RoundEnded?.Invoke(CurrentRound, survivors);
+            var message = BeginEvent(RoundEndedEvent);
+            message.Write((byte)CurrentRound);
+            message.Write((byte)survivors.Count);
+            foreach (var survivor in survivors) message.Write((byte)avatars.IndexOf(survivor));
+            SendEvent();
         }
 
         private void NextRoundOrFinish()
@@ -152,6 +171,80 @@ namespace UnCredibles.Minigames.Churro
             foreach (var avatar in avatars)
                 if (avatar.IsIn) count++;
             return count;
+        }
+
+        // Every bot gets a brain, including an online player replaced by AI mid-match.
+        private void EnsureBrains()
+        {
+            foreach (var avatar in avatars)
+            {
+                if (!(avatar.Slot.Input is AIInput aiInput) || HasBrain(avatar)) continue;
+                brains.Add(new ChurroAIBrain(avatar, aiInput, spinner, settings, hitHalfAngle));
+            }
+        }
+
+        private bool HasBrain(ChurroPlayer avatar)
+        {
+            foreach (var brain in brains)
+                if (brain.Player == avatar) return true;
+            return false;
+        }
+
+        // ---------- Online ----------
+
+        // Spinner (angle + speed for prediction) and every avatar, in the order of Players on all machines.
+        protected override void WriteSnapshot(BinaryWriter writer)
+        {
+            writer.Write(spinner.Angle);
+            writer.Write(spinner.Speed);
+            writer.Write((byte)spinner.ArmCount);
+            writer.Write((byte)avatars.Count);
+            foreach (var avatar in avatars)
+            {
+                var position = avatar.transform.position;
+                var rotation = avatar.transform.rotation;
+                writer.Write(avatar.IsIn);
+                writer.Write(avatar.gameObject.activeSelf);
+                writer.Write(avatar.FeetHeight);
+                writer.Write(position.x); writer.Write(position.y); writer.Write(position.z);
+                writer.Write(rotation.x); writer.Write(rotation.y); writer.Write(rotation.z); writer.Write(rotation.w);
+            }
+        }
+
+        protected override void ReadSnapshot(BinaryReader reader)
+        {
+            spinner.ApplyRemote(reader.ReadSingle(), reader.ReadSingle(), reader.ReadByte());
+            int count = reader.ReadByte();
+            for (int i = 0; i < count; i++)
+            {
+                bool isIn = reader.ReadBoolean();
+                bool visible = reader.ReadBoolean();
+                float height = reader.ReadSingle();
+                var position = new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
+                var rotation = new Quaternion(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
+                if (i < avatars.Count) avatars[i].ApplyRemote(isIn, visible, height, position, rotation);
+            }
+        }
+
+        protected override void OnNetworkEvent(byte eventId, BinaryReader reader)
+        {
+            if (eventId == RoundStartedEvent)
+            {
+                roundIndex = reader.ReadByte() - 1;
+                RoundStarted?.Invoke(CurrentRound, reader.ReadByte());
+            }
+            else if (eventId == RoundEndedEvent)
+            {
+                int round = reader.ReadByte();
+                int count = reader.ReadByte();
+                var survivors = new List<ChurroPlayer>(count);
+                for (int i = 0; i < count; i++)
+                {
+                    int index = reader.ReadByte();
+                    if (index < avatars.Count) survivors.Add(avatars[index]);
+                }
+                RoundEnded?.Invoke(round, survivors);
+            }
         }
 
         private static Vector3 Flat(Vector3 value) => new Vector3(value.x, 0f, value.z);

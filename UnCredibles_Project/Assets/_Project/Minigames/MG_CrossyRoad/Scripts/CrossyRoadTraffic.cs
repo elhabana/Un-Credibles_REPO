@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 
 namespace UnCredibles.Minigames.CrossyRoad
@@ -17,6 +18,7 @@ namespace UnCredibles.Minigames.CrossyRoad
             public Transform Transform;
             public Renderer[] Renderers;
             public float X;
+            public int Id; // same on host and clients, also picks the colour
         }
 
         private sealed class Lane
@@ -34,9 +36,12 @@ namespace UnCredibles.Minigames.CrossyRoad
         private Lane[] lanes = new Lane[0];
         private float spawnX;
         private float despawnX;
-        private int colorIndex;
+        private readonly List<int> receivedIds = new List<int>();
+        private readonly List<float> receivedX = new List<float>();
+        private int nextId;
 
-        public void Initialize()
+        // An online client starts empty: its cars come from the host.
+        public void Initialize(bool prefill = true)
         {
             var settings = board.Settings;
             block = new MaterialPropertyBlock();
@@ -55,7 +60,7 @@ namespace UnCredibles.Minigames.CrossyRoad
                     Velocity = config.direction * config.speed * settings.CellSize,
                 };
                 lanes[i] = lane;
-                Prefill(lane);
+                if (prefill) Prefill(lane);
             }
         }
 
@@ -66,7 +71,7 @@ namespace UnCredibles.Minigames.CrossyRoad
                 lane.Timer -= deltaTime;
                 if (lane.Timer <= 0f && EntryIsClear(lane))
                 {
-                    Spawn(lane, -Mathf.Sign(lane.Velocity) * spawnX);
+                    Spawn(lane, -Mathf.Sign(lane.Velocity) * spawnX, NextId());
                     lane.Timer = Random.Range(lane.Config.minSpawnInterval, lane.Config.maxSpawnInterval);
                 }
 
@@ -144,6 +149,68 @@ namespace UnCredibles.Minigames.CrossyRoad
             return false;
         }
 
+        // ---------- Online ----------
+
+        public void WriteState(BinaryWriter writer)
+        {
+            writer.Write((byte)lanes.Length);
+            foreach (var lane in lanes)
+            {
+                writer.Write((byte)lane.Cars.Count);
+                foreach (var car in lane.Cars)
+                {
+                    writer.Write((ushort)car.Id);
+                    writer.Write(car.X);
+                }
+            }
+        }
+
+        // Client: same cars as the host (matched by id), gently pulled to the host position.
+        public void ReadState(BinaryReader reader)
+        {
+            int laneCount = reader.ReadByte();
+            for (int l = 0; l < laneCount; l++)
+            {
+                receivedIds.Clear();
+                receivedX.Clear();
+                int count = reader.ReadByte();
+                for (int i = 0; i < count; i++)
+                {
+                    receivedIds.Add(reader.ReadUInt16());
+                    receivedX.Add(reader.ReadSingle());
+                }
+                if (l >= lanes.Length) continue;
+
+                var lane = lanes[l];
+                for (int i = lane.Cars.Count - 1; i >= 0; i--)
+                    if (!receivedIds.Contains(lane.Cars[i].Id)) Release(lane, i);
+                for (int i = 0; i < receivedIds.Count; i++)
+                {
+                    var car = FindCar(lane, receivedIds[i]);
+                    if (car == null) Spawn(lane, receivedX[i], receivedIds[i]);
+                    else car.X = Mathf.Lerp(car.X, receivedX[i], 0.5f);
+                }
+            }
+        }
+
+        // Client: cars keep driving between snapshots; the host spawns and removes them.
+        public void TickRemote(float deltaTime)
+        {
+            foreach (var lane in lanes)
+                foreach (var car in lane.Cars)
+                {
+                    car.X += lane.Velocity * deltaTime;
+                    car.Transform.position = new Vector3(board.transform.position.x + car.X, board.transform.position.y, lane.Z);
+                }
+        }
+
+        private static Car FindCar(Lane lane, int id)
+        {
+            foreach (var car in lane.Cars)
+                if (car.Id == id) return car;
+            return null;
+        }
+
         // Start with cars already on the road instead of empty lanes.
         private void Prefill(Lane lane)
         {
@@ -151,7 +218,7 @@ namespace UnCredibles.Minigames.CrossyRoad
             float x = -direction * spawnX;
             while (Mathf.Abs(x) <= spawnX || Mathf.Sign(x) != direction)
             {
-                Spawn(lane, x);
+                Spawn(lane, x, NextId());
                 float interval = Random.Range(lane.Config.minSpawnInterval, lane.Config.maxSpawnInterval);
                 x += direction * Mathf.Max(Mathf.Abs(lane.Velocity) * interval, lane.HalfLength * 2f + board.CellSize);
             }
@@ -168,13 +235,16 @@ namespace UnCredibles.Minigames.CrossyRoad
             return travelled > lane.HalfLength * 2f + board.CellSize;
         }
 
-        private void Spawn(Lane lane, float x)
+        private int NextId() => nextId++ & 0xFFFF;
+
+        private void Spawn(Lane lane, float x, int id)
         {
             var car = pool.Count > 0 ? pool.Pop() : CreateCar();
             car.X = x;
+            car.Id = id;
             car.Transform.localScale = new Vector3(lane.HalfLength * 2f, 0.8f, board.CellSize * CarDepthRatio);
             car.Transform.position = new Vector3(board.transform.position.x + x, board.transform.position.y, lane.Z);
-            block.SetColor(BaseColorId, board.Settings.GetCarColor(colorIndex++));
+            block.SetColor(BaseColorId, board.Settings.GetCarColor(car.Id));
             foreach (var carRenderer in car.Renderers) carRenderer.SetPropertyBlock(block);
             car.Transform.gameObject.SetActive(true);
             lane.Cars.Add(car);

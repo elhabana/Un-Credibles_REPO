@@ -38,6 +38,8 @@ namespace UnCredibles.Minigames.CrossyRoad
         private float goalX;
         private bool wasCarrying;
 
+        public CrossyRoadPlayer Player => player;
+
         public CrossyRoadAIBrain(CrossyRoadPlayer player, AIInput input, CrossyRoadBoard board,
             CrossyRoadTraffic traffic, CrossyRoadGrandmas grandmas, CrossyRoadOil oil)
         {

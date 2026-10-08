@@ -12,6 +12,7 @@ namespace UnCredibles.Minigames.Churro
         private GameObject[] arms = new GameObject[0];
 
         private ChurroSettings.Round round;
+        private float remoteAngle;
 
         public float Angle { get; private set; }
         public float PreviousAngle { get; private set; }
@@ -69,6 +70,29 @@ namespace UnCredibles.Minigames.Churro
                 best = Mathf.Min(best, distance / Mathf.Max(Speed, 1f));
             }
             return best;
+        }
+
+        // Online client: the host sends angle + speed; between packets we predict and blend in.
+        public void ApplyRemote(float angle, float speed, int armCount)
+        {
+            if (armCount != ArmCount)
+            {
+                ArmCount = Mathf.Clamp(armCount, 1, Mathf.Max(1, arms.Length));
+                for (int i = 0; i < arms.Length; i++) arms[i].SetActive(i < ArmCount);
+                Angle = angle; // new round: no blending from the old one
+            }
+            remoteAngle = angle;
+            Speed = speed;
+        }
+
+        public void TickRemote(float deltaTime)
+        {
+            remoteAngle += Speed * deltaTime;
+            float predicted = Angle + Speed * deltaTime;
+            float error = Mathf.DeltaAngle(predicted, remoteAngle);
+            Angle = Mathf.Repeat(Mathf.Abs(error) > 45f ? remoteAngle : predicted + error * Mathf.Min(1f, 10f * deltaTime), 360f);
+            PreviousAngle = Angle;
+            ApplyRotation();
         }
 
         public static float AngleOf(Vector3 center, Vector3 position)

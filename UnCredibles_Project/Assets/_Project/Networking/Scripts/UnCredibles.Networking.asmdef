@@ -2,6 +2,7 @@
     "name": "UnCredibles.Networking",
     "references": [
         "UnCredibles.Player",
+        "UnCredibles.Minigames",
         "Unity.Netcode.Runtime",
         "Unity.Networking.Transport",
         "Unity.Collections",

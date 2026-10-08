@@ -44,6 +44,27 @@ namespace UnCredibles.Minigames.CrossyRoad
             }
         }
 
+        // Bit i set = grandma i waiting in her spot (sent by the host to the clients).
+        public int AvailableMask
+        {
+            get
+            {
+                int mask = 0;
+                for (int i = 0; i < grandmas.Length && i < 32; i++)
+                    if (grandmas[i].activeSelf) mask |= 1 << i;
+                return mask;
+            }
+        }
+
+        public void ApplyAvailableMask(int mask)
+        {
+            for (int i = 0; i < grandmas.Length && i < 32; i++)
+            {
+                bool available = (mask & (1 << i)) != 0;
+                if (grandmas[i].activeSelf != available) grandmas[i].SetActive(available);
+            }
+        }
+
         public bool IsAvailable(int index) =>
             index >= 0 && index < grandmas.Length && grandmas[index].activeSelf;
 

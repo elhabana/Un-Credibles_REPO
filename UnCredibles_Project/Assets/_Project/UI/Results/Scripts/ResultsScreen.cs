@@ -22,6 +22,7 @@ namespace UnCredibles.UI.Results
         [SerializeField, Min(1f)] private float autoContinueSeconds = 6f;
 
         private CoreRoot core;
+        private bool isOnlineClient; // shows the host's standings and waits for the host
         private bool isFinal;
         private bool leaving;
         private float remaining;
@@ -32,14 +33,52 @@ namespace UnCredibles.UI.Results
             // CoreSceneLoader brings Core in when this scene is played directly.
             while (CoreRoot.Instance == null) yield return null;
             core = CoreRoot.Instance;
+            isOnlineClient = core.GameFlow.Session == SessionMode.Online && !core.Online.IsHost;
+
+            if (isOnlineClient)
+            {
+                core.Room.StandingsReceived += RenderOnlineStandings;
+                RenderOnlineStandings();
+                yield break;
+            }
 
             isFinal = !core.Match.IsRunning;
-            titleText.text = isFinal ? "FINAL RESULTS" : "RESULTS";
-            roundText.text = $"Round {core.Match.CurrentRound} / {core.Match.TotalRounds}";
-            finalButtons.SetActive(isFinal);
-            hintText.gameObject.SetActive(!isFinal);
+            ShowHeader(core.Match.CurrentRound, core.Match.TotalRounds);
             remaining = autoContinueSeconds;
             RenderStandings();
+        }
+
+        private void OnDestroy()
+        {
+            if (core != null) core.Room.StandingsReceived -= RenderOnlineStandings;
+        }
+
+        private void ShowHeader(int round, int totalRounds)
+        {
+            titleText.text = isFinal ? "FINAL RESULTS" : "RESULTS";
+            roundText.text = $"Round {round} / {totalRounds}";
+            finalButtons.SetActive(isFinal);
+            hintText.gameObject.SetActive(!isFinal);
+        }
+
+        // Online client: the host already decided the standings; it also decides when to continue.
+        private void RenderOnlineStandings()
+        {
+            var standings = core.Room.Standings;
+            isFinal = standings.IsFinal;
+            ShowHeader(standings.Round, standings.TotalRounds);
+            lobbyButton.gameObject.SetActive(false); // only the host takes everybody back to the lobby
+            hintText.text = "Waiting for the host...   SPACE / A to continue";
+            for (int i = 0; i < rows.Length; i++)
+            {
+                if (i >= standings.Rows.Count)
+                {
+                    rows[i].Hide();
+                    continue;
+                }
+                var row = standings.Rows[i];
+                rows[i].Render(row.Placement, row.Name, row.Gained, row.Total, isFinal && row.Placement == 1);
+            }
         }
 
         private void OnEnable()
@@ -57,7 +96,7 @@ namespace UnCredibles.UI.Results
         // Between rounds: continue automatically or as soon as any human presses Jump.
         private void Update()
         {
-            if (core == null || isFinal || leaving) return;
+            if (core == null || isFinal || leaving || isOnlineClient) return;
 
             remaining -= Time.deltaTime;
             if (remaining <= 0f || AnyHumanPressed(PlayerAction.Jump))

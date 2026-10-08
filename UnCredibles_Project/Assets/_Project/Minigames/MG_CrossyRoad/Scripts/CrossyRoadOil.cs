@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 
 namespace UnCredibles.Minigames.CrossyRoad
@@ -53,10 +54,15 @@ namespace UnCredibles.Minigames.CrossyRoad
                     slick.Transform.gameObject.SetActive(false);
                     continue;
                 }
-                float grow = Mathf.Clamp01(slick.Age / GrowSeconds);
-                float shrink = Mathf.Clamp01(remaining / ShrinkSeconds);
-                slick.Transform.localScale = slick.FullScale * Mathf.Min(grow, shrink);
+                ApplyScale(slick);
             }
+        }
+
+        private void ApplyScale(Slick slick)
+        {
+            float grow = Mathf.Clamp01(slick.Age / GrowSeconds);
+            float shrink = Mathf.Clamp01((Settings.OilLifetime - slick.Age) / ShrinkSeconds);
+            slick.Transform.localScale = slick.FullScale * Mathf.Min(grow, shrink);
         }
 
         public bool IsOnOil(Vector3 position)
@@ -88,6 +94,61 @@ namespace UnCredibles.Minigames.CrossyRoad
                 Quaternion.Euler(0f, Random.Range(0f, 360f), 0f));
             free.Transform.localScale = Vector3.zero;
             free.Transform.gameObject.SetActive(true);
+        }
+
+        // ---------- Online ----------
+
+        public void WriteState(BinaryWriter writer)
+        {
+            writer.Write((byte)slicks.Count);
+            foreach (var slick in slicks)
+            {
+                writer.Write(slick.Active);
+                if (!slick.Active) continue;
+                var position = slick.Transform.position;
+                writer.Write(position.x);
+                writer.Write(position.z);
+                writer.Write(slick.Transform.eulerAngles.y);
+                writer.Write(slick.FullScale.x);
+                writer.Write(slick.FullScale.z);
+                writer.Write(slick.Age);
+            }
+        }
+
+        public void ReadState(BinaryReader reader)
+        {
+            int count = reader.ReadByte();
+            for (int i = 0; i < count; i++)
+            {
+                bool active = reader.ReadBoolean();
+                if (i >= slicks.Count) slicks.Add(CreateSlick());
+                var slick = slicks[i];
+                slick.Active = active;
+                if (!active)
+                {
+                    if (slick.Transform.gameObject.activeSelf) slick.Transform.gameObject.SetActive(false);
+                    continue;
+                }
+                float x = reader.ReadSingle();
+                float z = reader.ReadSingle();
+                float yaw = reader.ReadSingle();
+                slick.FullScale = new Vector3(reader.ReadSingle(), 1f, reader.ReadSingle());
+                slick.Age = reader.ReadSingle();
+                slick.Transform.SetPositionAndRotation(new Vector3(x, board.transform.position.y, z), Quaternion.Euler(0f, yaw, 0f));
+                ApplyScale(slick);
+                if (!slick.Transform.gameObject.activeSelf) slick.Transform.gameObject.SetActive(true);
+            }
+        }
+
+        // Client: only grow and shrink the slicks; the host drops and removes them.
+        public void TickRemote(float deltaTime)
+        {
+            foreach (var slick in slicks)
+            {
+                if (!slick.Active) continue;
+                slick.Age = Mathf.Min(slick.Age + deltaTime, Settings.OilLifetime);
+                ApplyScale(slick);
+            }
         }
 
         private Slick CreateSlick()

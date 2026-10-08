@@ -10,6 +10,7 @@ namespace UnCredibles.Networking
         public const ulong NoOwner = ulong.MaxValue;
 
         public bool Occupied;
+        public int PlayerId;
         public string Name;
         public PlayerType Type;
         public SlotState State;
@@ -23,6 +24,7 @@ namespace UnCredibles.Networking
         public static LobbySlotInfo From(PlayerSlot slot, ulong owner) => new LobbySlotInfo
         {
             Occupied = slot.IsOccupied,
+            PlayerId = slot.PlayerId,
             Name = slot.PlayerName ?? string.Empty,
             Type = slot.PlayerType,
             State = slot.State,
@@ -35,6 +37,7 @@ namespace UnCredibles.Networking
         internal void Write(FastBufferWriter writer)
         {
             writer.WriteValueSafe(Occupied);
+            writer.WriteValueSafe(PlayerId);
             writer.WriteValueSafe(Name ?? string.Empty);
             writer.WriteValueSafe((byte)Type);
             writer.WriteValueSafe((byte)State);
@@ -48,6 +51,7 @@ namespace UnCredibles.Networking
         {
             var info = new LobbySlotInfo();
             reader.ReadValueSafe(out info.Occupied);
+            reader.ReadValueSafe(out info.PlayerId);
             reader.ReadValueSafe(out info.Name);
             reader.ReadValueSafe(out byte type);
             reader.ReadValueSafe(out byte state);
