@@ -87,7 +87,9 @@ MonoBehaviour:
   finalRushMultiplier: 2
   grandmaCount: 6
   pickupRadius: 0.9
-  pointsPerDelivery: 1
+  pointsPerDelivery: 50
+  hitPenalty: 15
+  hitWithGrandmaPenalty: 25
   grandmaRespawnDelay: 2
   returnToSpawnAfterDelivery: 0
   grandmaColor: {r: 0.75, g: 0.55, b: 0.85, a: 1}

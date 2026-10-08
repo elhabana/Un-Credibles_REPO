@@ -15,11 +15,13 @@ namespace UnCredibles.Minigames.CrossyRoad
     {
         private const byte GrandmaLaunchedEvent = 1;
         private const byte FinalRushEvent = 2;
+        private const byte ScoreEvent = 3;
 
         [SerializeField] private CrossyRoadBoard board;
         [SerializeField] private CrossyRoadTraffic traffic;
         [SerializeField] private CrossyRoadGrandmas grandmas;
         [SerializeField] private CrossyRoadOil oil;
+        [SerializeField] private CrossyRoadScorePopups popups;
         [SerializeField] private CrossyRoadPlayer playerPrefab;
         [SerializeField] private Transform playersParent;
 
@@ -63,6 +65,7 @@ namespace UnCredibles.Minigames.CrossyRoad
                 // Online client: everything comes from the host, we only keep it moving smoothly.
                 float remoteDelta = Time.deltaTime;
                 traffic.TickRemote(remoteDelta);
+                if (popups != null) popups.Tick(remoteDelta);
                 grandmas.Tick(remoteDelta); // only flying grandmas move here
                 oil.TickRemote(remoteDelta);
                 foreach (var avatar in avatars) avatar.TickRemote(remoteDelta);
@@ -70,6 +73,7 @@ namespace UnCredibles.Minigames.CrossyRoad
             }
 
             traffic.SetDifficulty(Settings.Difficulty(GameProgress()));
+            if (popups != null) popups.Tick(Time.deltaTime);
             if (IsPlaying && !IsFinalRush && Timer != null && Timer.IsRunning && Timer.Remaining <= Settings.FinalRushSeconds)
                 StartFinalRush();
 
@@ -119,7 +123,7 @@ namespace UnCredibles.Minigames.CrossyRoad
             if (avatar.Lane < board.GoalLane) return;
             grandmas.Return(avatar.CarriedGrandma);
             avatar.SetCarrying(-1);
-            Score.AddScore(avatar.Slot.PlayerId, Settings.PointsPerDelivery * (IsFinalRush ? Settings.FinalRushMultiplier : 1));
+            AwardPoints(avatar, Settings.PointsPerDelivery * (IsFinalRush ? Settings.FinalRushMultiplier : 1), IsFinalRush);
             if (Settings.ReturnToSpawnAfterDelivery) avatar.Respawn(FindFreeSpawn(avatar.SpawnPosition, avatar), 0f);
         }
 
@@ -155,6 +159,7 @@ namespace UnCredibles.Minigames.CrossyRoad
         private void KillPlayer(int index)
         {
             var avatar = avatars[index];
+            AwardPoints(avatar, -(avatar.IsCarrying ? Settings.HitWithGrandmaPenalty : Settings.HitPenalty), false);
             if (avatar.IsCarrying)
             {
                 // She flies off with a lot of force, then goes back to her spot as usual.
@@ -241,6 +246,13 @@ namespace UnCredibles.Minigames.CrossyRoad
         {
             if (eventId == GrandmaLaunchedEvent)
                 grandmas.Launch(new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle()));
+            else if (eventId == ScoreEvent)
+            {
+                int index = reader.ReadByte();
+                int points = reader.ReadInt16();
+                bool bonus = reader.ReadBoolean();
+                if (popups != null && index < avatars.Count) popups.Show(avatars[index].Position, points, bonus);
+            }
             else if (eventId == FinalRushEvent && !IsFinalRush)
             {
                 IsFinalRush = true;
@@ -253,6 +265,20 @@ namespace UnCredibles.Minigames.CrossyRoad
         {
             if (!IsPlaying || Timer == null || !Timer.IsRunning || Data == null || Data.Duration <= 0f) return State > MinigameState.Playing ? 1f : 0f;
             return 1f - Timer.Remaining / Data.Duration;
+        }
+
+        // Changes the score and shows it over the player, here and on the clients.
+        private void AwardPoints(CrossyRoadPlayer avatar, int points, bool bonus)
+        {
+            if (points == 0) return;
+            Score.AddScore(avatar.Slot.PlayerId, points);
+            if (popups != null) popups.Show(avatar.Position, points, bonus);
+
+            var message = BeginEvent(ScoreEvent);
+            message.Write((byte)avatars.IndexOf(avatar));
+            message.Write((short)points);
+            message.Write(bonus);
+            SendEvent();
         }
 
         private void StartFinalRush()

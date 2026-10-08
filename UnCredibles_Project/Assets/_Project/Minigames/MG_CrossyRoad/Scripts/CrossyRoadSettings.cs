@@ -97,7 +97,9 @@ namespace UnCredibles.Minigames.CrossyRoad
         [Header("Grandmas")]
         [SerializeField, Min(1), Tooltip("Grandmas spread evenly across the pickup lane.")] private int grandmaCount = 6;
         [SerializeField, Min(0.1f), Tooltip("Distance at which a player grabs a grandma.")] private float pickupRadius = 0.9f;
-        [SerializeField, Min(1)] private int pointsPerDelivery = 1;
+        [SerializeField, Min(1), Tooltip("Points for every grandma taken to the other side.")] private int pointsPerDelivery = 50;
+        [SerializeField, Min(0), Tooltip("Points lost when a car runs you over.")] private int hitPenalty = 15;
+        [SerializeField, Min(0), Tooltip("Points lost when a car runs you over while carrying a grandma.")] private int hitWithGrandmaPenalty = 25;
         [SerializeField, Min(0f)] private float grandmaRespawnDelay = 2f;
         [SerializeField, Tooltip("Teleport back to the spawn lane after a delivery instead of walking back.")]
         private bool returnToSpawnAfterDelivery;
@@ -160,6 +162,8 @@ namespace UnCredibles.Minigames.CrossyRoad
         public int GrandmaCount => grandmaCount;
         public float PickupRadius => pickupRadius;
         public int PointsPerDelivery => pointsPerDelivery;
+        public int HitPenalty => hitPenalty;
+        public int HitWithGrandmaPenalty => hitWithGrandmaPenalty;
         public float FinalRushSeconds => finalRushSeconds;
         public int FinalRushMultiplier => finalRushMultiplier;
 
