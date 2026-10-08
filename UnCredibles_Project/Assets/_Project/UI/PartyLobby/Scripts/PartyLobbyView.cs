@@ -75,7 +75,7 @@ namespace UnCredibles.UI.PartyLobby
             hintText.text = !controller.IsOnline
                 ? "SPACE / A: join & ready     ESC / START: cancel & leave"
                 : controller.IsAuthority
-                    ? "Comparte el codigo para invitar.   SPACE / A: unirte y listo"
+                    ? "Comparte el codigo para invitar.   SPACE / A: listo"
                     : "SPACE / A: listo     ESC / B: cancelar";
             RenderAll();
         }

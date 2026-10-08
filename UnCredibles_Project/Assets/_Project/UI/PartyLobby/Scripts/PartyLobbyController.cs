@@ -19,8 +19,9 @@ namespace UnCredibles.UI.PartyLobby
     {
         [SerializeField, Min(1)] private int roundsPerMatch = 3;
         [SerializeField, Min(0)] private int countdownSeconds = 3;
-        [SerializeField, Range(1, PlayerRegistry.MaxPlayers)] private int minPlayers = 1;
 
+        // A match needs at least two players in the room; bots count.
+        private const int MinPlayers = 2;
         // A phone that drops in the lobby keeps its slot this long (screen lock, app switch, Wi-Fi blip).
         private const float PhoneReconnectSeconds = 10f;
 
@@ -81,6 +82,7 @@ namespace UnCredibles.UI.PartyLobby
             {
                 if (IsOnline) room.AcceptingPlayers = true;
                 RebuildDeviceMap();
+                if (IsOnline) JoinOnlineHost();
                 Players.SlotChanged += HandleSlotChanged;
                 RefreshSlotInfos();
             }
@@ -189,6 +191,7 @@ namespace UnCredibles.UI.PartyLobby
                 return;
             }
             if (!CanEditSlots || deviceSlots.ContainsKey(control.device) || !IsJoinButton(control)) return;
+            if (TryClaimHostSlot(control.device)) return;
 
             IPlayerInput input = control.device switch
             {
@@ -206,6 +209,39 @@ namespace UnCredibles.UI.PartyLobby
             deviceSlots[control.device] = slot.SlotIndex;
             joinFrame[slot.SlotIndex] = Time.frameCount;
             if (!HasHost()) Players.SetHost(slot.SlotIndex);
+        }
+
+        // Online host: they are in their room from the start, with whatever device they use.
+        // The slot listens to every device until the first join press picks the real one.
+        private void JoinOnlineHost()
+        {
+            foreach (var slot in Players.Slots)
+                if (slot.IsOccupied && !slot.IsAI && !(slot.Input is NetworkInput)) return; // back from a match
+
+            if (!Players.TryAddPlayer(PlayerType.LocalPlayer, core.Input.CreateAnyDeviceInput(), null, out var hostSlot)) return;
+            Players.SetHost(hostSlot.SlotIndex);
+        }
+
+        private bool TryClaimHostSlot(InputDevice device)
+        {
+            foreach (var slot in Players.Slots)
+            {
+                if (!(slot.Input is AnyDeviceInput)) continue;
+                IPlayerInput input = device switch
+                {
+                    Keyboard => core.Input.CreateKeyboardInput(),
+                    Gamepad gamepad => core.Input.CreateGamepadInput(gamepad),
+                    _ => null,
+                };
+                if (input == null) return false;
+
+                Players.ReplaceInput(slot.SlotIndex, input);
+                deviceSlots[device] = slot.SlotIndex;
+                joinFrame[slot.SlotIndex] = Time.frameCount;
+                Players.SetReady(slot.SlotIndex, !slot.IsReady); // the press also counts as Ready
+                return true;
+            }
+            return false;
         }
 
         // Online client: its slot exists as soon as it connects; SPACE / A toggles ready, ESC / B cancels.
@@ -317,7 +353,9 @@ namespace UnCredibles.UI.PartyLobby
         private void EvaluateCountdown()
         {
             if (starting || !IsAuthority) return;
-            bool canStart = Players.OccupiedCount >= minPlayers && Players.AllPlayersReady && HasHuman();
+            bool everyoneReady = Players.AllPlayersReady && HasHuman();
+            bool canStart = everyoneReady && Players.OccupiedCount >= MinPlayers;
+            if (everyoneReady && !canStart) Notice?.Invoke("Hacen falta al menos 2 jugadores. Puedes anadir una IA.");
             if (canStart && countdown == null) countdown = StartCoroutine(CountdownRoutine());
             else if (!canStart) StopCountdown(true);
         }
@@ -336,15 +374,13 @@ namespace UnCredibles.UI.PartyLobby
             Tick(0);
             if (core.StartMatch(roundsPerMatch)) yield break;
 
-            // The match could not start (online minigames are the next step): back to the lobby.
+            // The match could not start: back to the lobby.
             starting = false;
             if (IsOnline) room.AcceptingPlayers = true;
             Tick(-1);
             CountdownCancelled?.Invoke();
             UnreadyHumans();
-            Notice?.Invoke(IsOnline
-                ? "Los minijuegos online llegan en el siguiente paso."
-                : "No se pudo empezar la partida.");
+            Notice?.Invoke("No se pudo empezar la partida.");
         }
 
         private void Tick(int secondsLeft)

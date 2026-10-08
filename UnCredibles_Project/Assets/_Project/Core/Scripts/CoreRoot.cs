@@ -30,6 +30,7 @@ namespace UnCredibles.Core
         private string pendingScene;   // online client: scene the host asked for, loaded when possible
         private IPlayerInput onlineInput; // online client: the controller sent to the host
         private float nextInputSend;
+        private bool wasOnlineHost;
 
         public static CoreRoot Instance { get; private set; }
 
@@ -44,6 +45,10 @@ namespace UnCredibles.Core
         public RelayConnection Online { get; private set; }
         public OnlineSession Room { get; private set; }
         public BatPadService BatPad => batPad;
+
+        // Online: the connection dropped. The game is frozen until the overlay sends us to the menu.
+        public bool IsConnectionLost { get; private set; }
+        public event System.Action<string, string> ConnectionLost; // title, detail
 
         private bool IsOnlineHost => GameFlow.Session == SessionMode.Online && Online.IsHost;
         private bool IsOnlineClient => GameFlow.Session == SessionMode.Online && !Online.IsHost;
@@ -103,6 +108,9 @@ namespace UnCredibles.Core
 
         public void ReturnToMainMenu()
         {
+            IsConnectionLost = false;
+            Time.timeScale = 1f;
+            AudioListener.pause = false;
             if (GameFlow.Session == SessionMode.Online) Online.Disconnect();
             pendingScene = null;
             onlineInput?.Dispose();
@@ -179,9 +187,10 @@ namespace UnCredibles.Core
         private void Update()
         {
             if (GameFlow.Session != SessionMode.Online) return;
-            if (!Online.IsConnected && !sceneFlow.IsLoading)
+            if (Online.IsConnected) wasOnlineHost = Online.IsHost;
+            else
             {
-                ReturnToMainMenu();
+                if (!sceneFlow.IsLoading) LoseConnection();
                 return;
             }
             if (IsOnlineClient)
@@ -189,6 +198,21 @@ namespace UnCredibles.Core
                 LoadPendingScene();
                 SendOnlineInput();
             }
+        }
+
+        // Freeze everything and let the overlay explain what happened before going back to the menu.
+        private void LoseConnection()
+        {
+            if (IsConnectionLost) return;
+            if (ConnectionLost == null)
+            {
+                ReturnToMainMenu();
+                return;
+            }
+            IsConnectionLost = true;
+            Time.timeScale = 0f;
+            AudioListener.pause = true;
+            ConnectionLost.Invoke(wasOnlineHost ? "Conexion perdida" : "El host se ha desconectado", Online.Status);
         }
 
         private void HandleMinigameFinished(MinigameData data, IReadOnlyList<MinigameResult> results)

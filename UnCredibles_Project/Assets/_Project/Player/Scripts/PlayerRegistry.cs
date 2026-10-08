@@ -86,6 +86,17 @@ namespace UnCredibles.Players
             return true;
         }
 
+        // Same player, other controller (e.g. the online host claiming the device they pressed with).
+        public bool ReplaceInput(int index, IPlayerInput input)
+        {
+            if (!IsOccupied(index) || input == null) return false;
+            var slot = slots[index];
+            if (slot.Input != input) slot.Input?.Dispose();
+            slot.Input = input;
+            SlotChanged?.Invoke(slot);
+            return true;
+        }
+
         // Online flow: OnlinePlayer -> Disconnected -> AIPlayer, keeping the same PlayerId and score.
         public bool ReplaceWithAI(int index, IPlayerInput aiInput)
         {
