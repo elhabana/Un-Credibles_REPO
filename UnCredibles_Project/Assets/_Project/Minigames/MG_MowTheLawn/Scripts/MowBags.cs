@@ -11,6 +11,8 @@ namespace UnCredibles.Minigames.MowTheLawn
         private const float HopSeconds = 0.45f;
         private const float HopHeight = 1.3f;
         private const float BlinkSeconds = 2f;
+        private const float ThrowSeconds = 0.35f;
+        private const float ThrowHeight = 1.6f;
 
         [SerializeField] private MowBagView bagPrefab;
 
@@ -24,6 +26,7 @@ namespace UnCredibles.Minigames.MowTheLawn
 
         private readonly Stack<MowBagView> pool = new Stack<MowBagView>();
         private readonly List<LooseBag> loose = new List<LooseBag>();
+        private readonly List<LooseBag> thrown = new List<LooseBag>(); // flying into a bin, only visual
         private readonly List<Vector3> received = new List<Vector3>();
         private readonly List<float> receivedAges = new List<float>();
         private MowTheLawnSettings settings;
@@ -63,6 +66,15 @@ namespace UnCredibles.Minigames.MowTheLawn
             if (loose.Count > settings.MaxLooseBags) RemoveLoose(0);
         }
 
+        // A bag thrown from a tail into a bin: flies in an arc and disappears inside.
+        public void Throw(Vector3 from, Vector3 to, Color tint)
+        {
+            var view = Rent();
+            view.SetTint(tint);
+            view.transform.position = from;
+            thrown.Add(new LooseBag { View = view, From = from, To = to, Age = 0f });
+        }
+
         // Picks up every ready loose bag touching the circle; returns how many.
         public int PickUp(Vector3 position, float radius)
         {
@@ -83,6 +95,20 @@ namespace UnCredibles.Minigames.MowTheLawn
         // Only the host removes old bags; clients follow its snapshots.
         public void Tick(float deltaTime, bool removeExpired)
         {
+            for (int i = thrown.Count - 1; i >= 0; i--)
+            {
+                var bag = thrown[i];
+                bag.Age += deltaTime;
+                float t = Mathf.Clamp01(bag.Age / ThrowSeconds);
+                var position = Vector3.Lerp(bag.From, bag.To, t);
+                position.y += Mathf.Sin(t * Mathf.PI) * ThrowHeight;
+                bag.View.transform.position = position;
+                bag.View.transform.localScale = Vector3.one * Mathf.Lerp(1f, 0.6f, t);
+                if (t < 1f) continue;
+                Release(bag.View);
+                thrown.RemoveAt(i);
+            }
+
             for (int i = loose.Count - 1; i >= 0; i--)
             {
                 var bag = loose[i];

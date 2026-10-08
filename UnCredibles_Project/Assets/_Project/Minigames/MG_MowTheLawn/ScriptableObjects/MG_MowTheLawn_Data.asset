@@ -21,4 +21,4 @@ MonoBehaviour:
   maxPlayers: 4
   thumbnail: {fileID: 0}
   music: {fileID: 0}
-  rules: Mow the grass to fill bags that follow you like a tail. Drive into a rival's tail to knock their bags loose and steal them. Jump = turbo. Most bags after 2 minutes wins.
+  rules: Mow the grass to fill bags that follow you like a tail and unload them in your bin (your corner) to score. Cut rival tails or ram rivals with the turbo (Jump) to make them drop bags. Last 30 seconds: frenzy, the grass grows back and bags are worth double.

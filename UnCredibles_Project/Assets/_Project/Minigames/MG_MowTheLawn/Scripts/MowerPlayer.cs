@@ -6,7 +6,8 @@ using UnityEngine;
 namespace UnCredibles.Minigames.MowTheLawn
 {
     // A ride-on mower driven like a little kart: the stick sets direction and speed, it speeds
-    // up and brakes progressively and slides a bit in tight turns. Jump gives a short turbo.
+    // up and brakes progressively and slides a bit in tight turns. Jump gives a short turbo;
+    // ramming another mower with it knocks bags off and leaves it spinning for a moment.
     // It cuts the grass under its blade and drags its bags behind like a tail that follows
     // exactly the path it drove. Ticked by MowTheLawnController, it has no Update of its own.
     public sealed class MowerPlayer : MonoBehaviour
@@ -36,14 +37,19 @@ namespace UnCredibles.Minigames.MowTheLawn
         private float boostTimer;
         private float boostCooldown;
         private float protectedTimer;
+        private float stunTimer;
+        private float ramImmunityTimer;
+        private float spin;
         private float lean;
         private Vector3 remotePosition;
         private float remoteYaw;
         private bool remoteBoosting;
         private bool remoteProtected;
+        private bool remoteStunned;
         private bool hasRemote;
 
         public PlayerSlot Slot { get; private set; }
+        public Color Color => color;
         public int BagCount => tail.Count;
         public float Fill => clippings / settings.CellsPerBag;
         public Vector3 Position => transform.position;
@@ -54,6 +60,10 @@ namespace UnCredibles.Minigames.MowTheLawn
         public bool CanBoost => boostCooldown <= 0f;
         // Right after losing bags the rest of the tail cannot be cut, so it is not lost at once.
         public bool IsTailProtected => protectedTimer > 0f;
+        public bool IsStunned => stunTimer > 0f;
+        public bool CanBeRammed => ramImmunityTimer <= 0f;
+        // Global speed change (the final frenzy makes everybody faster).
+        public float SpeedMultiplier { get; set; } = 1f;
 
         public void Setup(PlayerSlot slot, MowTheLawnSettings mowSettings, MowBags bagPool, Color playerColor)
         {
@@ -82,7 +92,13 @@ namespace UnCredibles.Minigames.MowTheLawn
             if (boostCooldown > 0f) boostCooldown -= deltaTime;
             if (boostTimer > 0f) boostTimer -= deltaTime;
             if (protectedTimer > 0f) protectedTimer -= deltaTime;
-            if (CanBoost && Slot.Input != null && Slot.Input.WasPressed(PlayerAction.Jump)) Boost();
+            if (ramImmunityTimer > 0f) ramImmunityTimer -= deltaTime;
+            if (stunTimer > 0f)
+            {
+                stunTimer -= deltaTime;
+                throttle = 0f; // spinning: no control until it recovers
+            }
+            else if (CanBoost && Slot.Input != null && Slot.Input.WasPressed(PlayerAction.Jump)) Boost();
 
             // Turn towards the stick; slow mowers turn faster, like a kart.
             if (throttle > 0f)
@@ -93,7 +109,7 @@ namespace UnCredibles.Minigames.MowTheLawn
                 transform.rotation = Quaternion.RotateTowards(transform.rotation, target, turnSpeed * deltaTime);
             }
             // A mower does not change speed instantly; turbo ignores the stick.
-            float maxSpeed = settings.Speed * settings.SpeedFactor(BagCount);
+            float maxSpeed = settings.Speed * settings.SpeedFactor(BagCount) * SpeedMultiplier;
             float wanted = IsBoosting ? maxSpeed * settings.BoostMultiplier : maxSpeed * throttle;
             float current = Vector3.Dot(velocity, transform.forward);
             float rate = wanted > current ? settings.Acceleration : settings.Braking;
@@ -112,13 +128,21 @@ namespace UnCredibles.Minigames.MowTheLawn
                 AddBags(1);
             }
 
-            AfterMove(deltaTime, IsBoosting, IsTailProtected, velocity.magnitude);
+            AfterMove(deltaTime, IsBoosting, IsTailProtected, IsStunned, velocity.magnitude);
         }
 
         public void Boost()
         {
             boostTimer = settings.BoostSeconds;
             boostCooldown = settings.BoostCooldown;
+        }
+
+        // Rammed: spins out of control for a while and cannot be rammed again for a moment.
+        public void Stun(float seconds, float immunitySeconds)
+        {
+            stunTimer = seconds;
+            ramImmunityTimer = immunitySeconds;
+            boostTimer = 0f;
         }
 
         // Pushed by another mower: moves it and knocks it back a little.
@@ -158,9 +182,23 @@ namespace UnCredibles.Minigames.MowTheLawn
             return count;
         }
 
+        // Unloading into the bin: the last bag of the tail leaves it. Returns where it was.
+        public Vector3 TakeLastBag()
+        {
+            int last = tail.Count - 1;
+            var position = tail[last].transform.position;
+            bags.Release(tail[last]);
+            tail.RemoveAt(last);
+            PlaceTail(1f);
+            return position;
+        }
+
+        // Where a bag thrown from this tail starts flying (clients use it for the animation).
+        public Vector3 TailEnd => tail.Count > 0 ? tail[tail.Count - 1].transform.position : transform.position;
+
         // ---------- Online client ----------
 
-        public void ApplyRemote(Vector3 position, float yaw, int bagCount, float fill, bool boosting, bool tailProtected)
+        public void ApplyRemote(Vector3 position, float yaw, int bagCount, float fill, bool boosting, bool tailProtected, bool stunned)
         {
             if (!hasRemote || (position - transform.position).sqrMagnitude > RemoteSnapDistance * RemoteSnapDistance)
             {
@@ -172,6 +210,7 @@ namespace UnCredibles.Minigames.MowTheLawn
             remoteYaw = yaw;
             remoteBoosting = boosting;
             remoteProtected = tailProtected;
+            remoteStunned = stunned;
             hasRemote = true;
             clippings = fill * settings.CellsPerBag;
 
@@ -194,17 +233,17 @@ namespace UnCredibles.Minigames.MowTheLawn
                 speed = (transform.position - previous).magnitude / Mathf.Max(deltaTime, 0.0001f);
                 lawn.Cut(BladePosition, settings.BladeRadius);
             }
-            AfterMove(deltaTime, remoteBoosting, remoteProtected, speed);
+            AfterMove(deltaTime, remoteBoosting, remoteProtected, remoteStunned, speed);
         }
 
         // ---------- Shared ----------
 
-        private void AfterMove(float deltaTime, bool boosting, bool tailProtected, float speed)
+        private void AfterMove(float deltaTime, bool boosting, bool tailProtected, bool stunned, float speed)
         {
             RecordPath();
             PlaceTail(Mathf.Min(1f, 20f * deltaTime));
             UpdateFillIndicator();
-            AnimateVisual(deltaTime, boosting, speed);
+            AnimateVisual(deltaTime, boosting, stunned, speed);
             AnimateTail(tailProtected);
         }
 
@@ -262,8 +301,8 @@ namespace UnCredibles.Minigames.MowTheLawn
             }
         }
 
-        // Engine rumble, a lean into turns and the turbo, and a spinning blade.
-        private void AnimateVisual(float deltaTime, bool boosting, float speed)
+        // Engine rumble, a lean into the turbo, a spin when rammed and a spinning blade.
+        private void AnimateVisual(float deltaTime, bool boosting, bool stunned, float speed)
         {
             bobTime += deltaTime * (boosting ? 30f : 18f);
             float targetLean = boosting ? -8f : -speed * 0.6f;
@@ -271,7 +310,8 @@ namespace UnCredibles.Minigames.MowTheLawn
             if (visual != null)
             {
                 visual.localPosition = new Vector3(0f, Mathf.Abs(Mathf.Sin(bobTime)) * (boosting ? 0.08f : 0.04f), 0f);
-                visual.localRotation = Quaternion.Euler(lean, 0f, 0f);
+                spin = stunned ? spin + 900f * deltaTime : Mathf.LerpAngle(spin, 0f, Mathf.Min(1f, 10f * deltaTime));
+                visual.localRotation = Quaternion.Euler(lean, spin, stunned ? Mathf.Sin(bobTime) * 10f : 0f);
             }
             if (blade != null) blade.Rotate(0f, 900f * deltaTime, 0f, Space.Self);
         }

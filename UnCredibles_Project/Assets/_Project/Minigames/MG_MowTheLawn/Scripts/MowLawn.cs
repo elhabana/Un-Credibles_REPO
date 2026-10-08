@@ -4,7 +4,7 @@ namespace UnCredibles.Minigames.MowTheLawn
 {
     // The grass: a grid of cells with a height from 0 (just cut) to 1 (fully grown).
     // Each cell is drawn twice: a colour on the ground texture (brown soil when cut) and a tuft of
-    // real 3D blades, GPU instanced, as tall as the cell. Cut grass disappears and grows back.
+    // real 3D blades (GPU instanced, MW_GrassBlade shader with wind) as tall as the cell. Cut grass disappears and grows back.
     // The grid also covers a margin around the playable area so grass reaches the screen edges.
     [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
     public sealed class MowLawn : MonoBehaviour
@@ -91,6 +91,13 @@ namespace UnCredibles.Minigames.MowTheLawn
             redrawTimer -= deltaTime;
             if (dirty || redrawTimer <= 0f) Redraw();
             DrawBlades();
+        }
+
+        // Final frenzy: the whole lawn is tall again at once.
+        public void RegrowAll()
+        {
+            for (int i = 0; i < heights.Length; i++) heights[i] = 1f;
+            dirty = true;
         }
 
         // Cuts every cell inside the circle and returns how much grass was collected
@@ -225,30 +232,46 @@ namespace UnCredibles.Minigames.MowTheLawn
             GetComponent<MeshFilter>().sharedMesh = groundMesh;
         }
 
-        // A tuft of thin triangular blades inside a 1x1 cell, 1 unit tall (scaled per instance).
+        // A tuft of curved, tapering blades inside a 1x1 cell, 1 unit tall (scaled per instance).
+        // Each blade has a few segments so the wind in the shader bends it smoothly.
         private static Mesh BuildTuftMesh(int blades)
         {
-            var vertices = new Vector3[blades * 3];
-            var normals = new Vector3[blades * 3];
-            var triangles = new int[blades * 3];
+            const int Segments = 3;
+            int vertsPerBlade = Segments * 2 + 1;
+            var vertices = new Vector3[blades * vertsPerBlade];
+            var triangles = new int[blades * (Segments * 2 - 1) * 3];
+            int t = 0;
             for (int b = 0; b < blades; b++)
             {
-                var root = new Vector3(Random.Range(-0.45f, 0.45f), 0f, Random.Range(-0.45f, 0.45f));
+                var root = new Vector3(Random.Range(-0.48f, 0.48f), 0f, Random.Range(-0.48f, 0.48f));
                 float angle = Random.Range(0f, Mathf.PI);
-                var side = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * 0.06f;
-                var lean = new Vector3(Random.Range(-0.25f, 0.25f), 0f, Random.Range(-0.25f, 0.25f));
-                float tall = Random.Range(0.7f, 1f);
+                var side = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle));
+                var lean = new Vector3(-side.z, 0f, side.x) * Random.Range(-0.35f, 0.35f) + side * Random.Range(-0.1f, 0.1f);
+                float tall = Random.Range(0.55f, 1f);
+                float width = Random.Range(0.035f, 0.055f);
 
-                int v = b * 3;
-                vertices[v] = root - side;
-                vertices[v + 1] = root + lean + Vector3.up * tall;
-                vertices[v + 2] = root + side;
-                normals[v] = normals[v + 1] = normals[v + 2] = Vector3.up; // lit like the ground below
-                triangles[v] = v;
-                triangles[v + 1] = v + 1;
-                triangles[v + 2] = v + 2;
+                int v = b * vertsPerBlade;
+                for (int s = 0; s < Segments; s++)
+                {
+                    float k = (float)s / Segments;
+                    var center = root + lean * (k * k) + Vector3.up * (tall * k);
+                    float half = width * (1f - k * 0.85f);
+                    vertices[v + s * 2] = center - side * half;
+                    vertices[v + s * 2 + 1] = center + side * half;
+                }
+                vertices[v + Segments * 2] = root + lean + Vector3.up * tall; // tip
+
+                for (int s = 0; s < Segments - 1; s++)
+                {
+                    int a = v + s * 2;
+                    triangles[t++] = a; triangles[t++] = a + 2; triangles[t++] = a + 1;
+                    triangles[t++] = a + 1; triangles[t++] = a + 2; triangles[t++] = a + 3;
+                }
+                int last = v + (Segments - 1) * 2;
+                triangles[t++] = last; triangles[t++] = v + Segments * 2; triangles[t++] = last + 1;
             }
-            var mesh = new Mesh { name = "GrassTuft", vertices = vertices, normals = normals, triangles = triangles };
+            var mesh = new Mesh { name = "GrassTuft", vertices = vertices, triangles = triangles };
+            mesh.RecalculateNormals();
             mesh.RecalculateBounds();
             return mesh;
         }

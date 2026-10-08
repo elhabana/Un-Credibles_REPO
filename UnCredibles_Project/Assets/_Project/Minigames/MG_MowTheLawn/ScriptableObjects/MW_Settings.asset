@@ -18,11 +18,11 @@ MonoBehaviour:
   cellSize: 0.4
   regrowSeconds: 20
   minCutHeight: 0.4
-  tallGrassColor: {r: 0.27, g: 0.62, b: 0.22, a: 1}
-  stripeGrassColor: {r: 0.33, g: 0.7, b: 0.27, a: 1}
+  tallGrassColor: {r: 0.13, g: 0.33, b: 0.09, a: 1}
+  stripeGrassColor: {r: 0.17, g: 0.4, b: 0.12, a: 1}
   cutColor: {r: 0.45, g: 0.3, b: 0.16, a: 1}
-  bladeHeight: 0.32
-  bladesPerCell: 6
+  bladeHeight: 0.4
+  bladesPerCell: 12
   speed: 8.5
   acceleration: 24
   braking: 28
@@ -51,6 +51,18 @@ MonoBehaviour:
   looseBagLifetime: 10
   tailProtectSeconds: 2
   cutCooldown: 1
+  ramBagsLost: 3
+  stunSeconds: 1.1
+  ramImmunitySeconds: 2
+  ramAngle: 60
+  ramKnockForce: 12
+  binRadius: 0.95
+  deliverRadius: 2.1
+  unloadInterval: 0.12
+  binInset: 1.1
+  frenzySeconds: 30
+  frenzyPointsPerBag: 2
+  frenzySpeed: 1.15
   aiThinkInterval: 0.35
   aiLooseBagRange: 6
   aiAttackRange: 5
