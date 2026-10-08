@@ -23,10 +23,10 @@ namespace UnCredibles.Minigames.MowTheLawn
         [SerializeField, Range(1, 12), Tooltip("Blades drawn per grass cell.")] private int bladesPerCell = 12;
 
         [Header("Mowers")]
-        [SerializeField, Min(0.1f), Tooltip("Top speed with the stick fully pushed.")] private float speed = 8.5f;
-        [SerializeField, Min(0.1f), Tooltip("Speed gained per second.")] private float acceleration = 24f;
-        [SerializeField, Min(0.1f), Tooltip("Speed lost per second when releasing or slowing down.")] private float braking = 28f;
-        [SerializeField, Min(1f), Tooltip("Degrees per second at top speed (faster when slow).")] private float turnSpeed = 380f;
+        [SerializeField, Min(0.1f), Tooltip("Top speed with the stick fully pushed.")] private float speed = 7f;
+        [SerializeField, Min(0.1f), Tooltip("Speed gained per second.")] private float acceleration = 10f;
+        [SerializeField, Min(0.1f), Tooltip("Speed lost per second when releasing or slowing down.")] private float braking = 18f;
+        [SerializeField, Min(1f), Tooltip("Degrees per second at top speed (faster when slow).")] private float turnSpeed = 340f;
         [SerializeField, Min(0.5f), Tooltip("How fast the mower stops sliding sideways. Lower = more drift.")]
         private float grip = 9f;
         [SerializeField, Min(1f), Tooltip("Speed multiplier while the turbo (Jump) lasts.")] private float boostMultiplier = 2.8f;
@@ -47,7 +47,7 @@ namespace UnCredibles.Minigames.MowTheLawn
 
         [Header("Bags")]
         [SerializeField, Min(1f), Tooltip("Grass cells (fully grown) needed to fill one bag.")]
-        private float cellsPerBag = 200f;
+        private float cellsPerBag = 180f;
         [SerializeField, Min(0.2f), Tooltip("Distance between bags in the tail.")] private float bagSpacing = 0.8f;
         [SerializeField, Min(0.1f)] private float bagRadius = 0.32f;
         [SerializeField, Range(0f, 0.05f), Tooltip("Speed lost per bag carried.")] private float slowdownPerBag = 0.02f;

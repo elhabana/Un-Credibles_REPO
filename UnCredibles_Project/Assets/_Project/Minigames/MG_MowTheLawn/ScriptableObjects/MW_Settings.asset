@@ -23,10 +23,10 @@ MonoBehaviour:
   cutColor: {r: 0.45, g: 0.3, b: 0.16, a: 1}
   bladeHeight: 0.4
   bladesPerCell: 12
-  speed: 8.5
-  acceleration: 24
-  braking: 28
-  turnSpeed: 380
+  speed: 7
+  acceleration: 10
+  braking: 18
+  turnSpeed: 340
   grip: 9
   boostMultiplier: 2.8
   boostSeconds: 0.6
@@ -40,7 +40,7 @@ MonoBehaviour:
   - {r: 0.25, g: 0.5, b: 0.95, a: 1}
   - {r: 0.95, g: 0.55, b: 0.15, a: 1}
   - {r: 0.75, g: 0.3, b: 0.85, a: 1}
-  cellsPerBag: 200
+  cellsPerBag: 180
   bagSpacing: 0.8
   bagRadius: 0.32
   slowdownPerBag: 0.02
