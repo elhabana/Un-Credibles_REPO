@@ -19,21 +19,21 @@ MonoBehaviour:
     maxSpeed: 330
     reverses: 1
     balls: 1
-    ballInterval: {x: 5, y: 8}
+    ballInterval: {x: 3.5, y: 5.5}
   - arms: 1
     startSpeed: 70
     acceleration: 12
     maxSpeed: 400
     reverses: 1
     balls: 1
-    ballInterval: {x: 3.5, y: 6}
+    ballInterval: {x: 3, y: 4.5}
   - arms: 2
     startSpeed: 50
     acceleration: 6
     maxSpeed: 220
     reverses: 1
     balls: 1
-    ballInterval: {x: 3, y: 5}
+    ballInterval: {x: 2.5, y: 4}
   roundIntroSeconds: 1.5
   roundOutroSeconds: 2.5
   startClearance: 30
@@ -42,7 +42,9 @@ MonoBehaviour:
   brakeSeconds: 0.35
   reversePause: 0.2
   reaccelerateSeconds: 0.5
-  ballFirstDelay: 3
+  ballFirstDelay: 2
+  ballRampSeconds: 25
+  ballRampMinFactor: 0.35
   ballFlightSeconds: 1.1
   ballSafetyGap: 0.8
   ballHeight: 0.95

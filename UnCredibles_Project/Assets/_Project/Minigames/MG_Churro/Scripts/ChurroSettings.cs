@@ -16,15 +16,15 @@ namespace UnCredibles.Minigames.Churro
             [Min(1f)] public float maxSpeed;
             [Tooltip("The kid sometimes brakes and spins the other way during this round.")] public bool reverses;
             [Tooltip("Beach balls are thrown at the players during this round (duck to dodge).")] public bool balls;
-            [Tooltip("Seconds between two balls (random in range).")] public Vector2 ballInterval;
+            [Tooltip("Seconds between two balls when the round starts (random in range); it shrinks as the round goes on.")] public Vector2 ballInterval;
         }
 
         [Header("Rounds")]
         [SerializeField] private Round[] rounds =
         {
-            new Round { arms = 1, startSpeed = 55f, acceleration = 9f, maxSpeed = 330f, reverses = true, balls = true, ballInterval = new Vector2(5f, 8f) },
-            new Round { arms = 1, startSpeed = 70f, acceleration = 12f, maxSpeed = 400f, reverses = true, balls = true, ballInterval = new Vector2(3.5f, 6f) },
-            new Round { arms = 2, startSpeed = 50f, acceleration = 6f, maxSpeed = 220f, reverses = true, balls = true, ballInterval = new Vector2(3f, 5f) },
+            new Round { arms = 1, startSpeed = 55f, acceleration = 9f, maxSpeed = 330f, reverses = true, balls = true, ballInterval = new Vector2(3.5f, 5.5f) },
+            new Round { arms = 1, startSpeed = 70f, acceleration = 12f, maxSpeed = 400f, reverses = true, balls = true, ballInterval = new Vector2(3f, 4.5f) },
+            new Round { arms = 2, startSpeed = 50f, acceleration = 6f, maxSpeed = 220f, reverses = true, balls = true, ballInterval = new Vector2(2.5f, 4f) },
         };
         [SerializeField, Min(0f)] private float roundIntroSeconds = 1.5f;
         [SerializeField, Min(0f)] private float roundOutroSeconds = 2.5f;
@@ -41,7 +41,10 @@ namespace UnCredibles.Minigames.Churro
         [SerializeField, Min(0.05f), Tooltip("Seconds to get back to the previous speed.")] private float reaccelerateSeconds = 0.5f;
 
         [Header("Beach balls")]
-        [SerializeField, Min(0f), Tooltip("Seconds of spinning before the first ball of a round.")] private float ballFirstDelay = 3f;
+        [SerializeField, Min(0f), Tooltip("Seconds of spinning before the first ball of a round.")] private float ballFirstDelay = 2f;
+        [SerializeField, Min(1f), Tooltip("Seconds of spinning until balls come at their fastest rate.")] private float ballRampSeconds = 25f;
+        [SerializeField, Range(0.1f, 1f), Tooltip("Ball interval multiplier once the ramp is over (0.35 = almost 3 times more balls).")]
+        private float ballRampMinFactor = 0.35f;
         [SerializeField, Min(0.3f), Tooltip("Seconds from the throw until the ball reaches the player.")] private float ballFlightSeconds = 1.1f;
         [SerializeField, Min(0f), Tooltip("A ball never arrives closer than this (s) to the churro passing the same player.")]
         private float ballSafetyGap = 0.8f;
@@ -80,6 +83,8 @@ namespace UnCredibles.Minigames.Churro
 
         public float BallFirstDelay => ballFirstDelay;
         public float BallFlightSeconds => ballFlightSeconds;
+        // Interval multiplier after `seconds` of spinning: 1 at the start, down to the minimum.
+        public float BallIntervalFactor(float seconds) => Mathf.Lerp(1f, ballRampMinFactor, Mathf.Clamp01(seconds / ballRampSeconds));
         public float BallSafetyGap => ballSafetyGap;
         public float BallHeight => ballHeight;
         public float BallRadius => ballRadius;

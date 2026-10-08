@@ -32,6 +32,7 @@ namespace UnCredibles.Minigames.Churro
         private readonly List<ChurroPlayer> ballHits = new List<ChurroPlayer>(PlayerRegistry.MaxPlayers);
         private readonly List<ChurroPlayer> ballCandidates = new List<ChurroPlayer>(PlayerRegistry.MaxPlayers);
         private float ballTimer;
+        private float spinTime; // seconds the churro has been spinning this round
         private float firstStartAngle = 45f;
         private int firstDirection = 1;
         private RoundPhase phase;
@@ -97,6 +98,7 @@ namespace UnCredibles.Minigames.Churro
 
                 case RoundPhase.Spinning:
                     spinner.Tick(deltaTime);
+                    spinTime += deltaTime;
                     TryThrowBall(deltaTime);
                     foreach (var brain in brains) brain.Tick(); // before avatars read their input
                     TickAvatars(deltaTime, true);
@@ -125,6 +127,7 @@ namespace UnCredibles.Minigames.Churro
             else spinner.ResetForRound(settings, round, FairStartAngle(round.arms), UnityEngine.Random.value < 0.5f ? 1 : -1);
             balls.Clear();
             ballTimer = settings.BallFirstDelay;
+            spinTime = 0f;
             phase = RoundPhase.Intro;
             phaseTimer = settings.RoundIntroSeconds;
             RoundStarted?.Invoke(CurrentRound, TotalRounds);
@@ -223,7 +226,8 @@ namespace UnCredibles.Minigames.Churro
                 message.Write((byte)avatars.IndexOf(target));
                 message.Write(flight);
                 SendEvent();
-                ballTimer = UnityEngine.Random.Range(round.ballInterval.x, round.ballInterval.y);
+                // More and more balls as the round goes on.
+                ballTimer = UnityEngine.Random.Range(round.ballInterval.x, round.ballInterval.y) * settings.BallIntervalFactor(spinTime);
                 return;
             }
             ballTimer = 0.25f; // nobody can get a fair ball right now: try again soon
