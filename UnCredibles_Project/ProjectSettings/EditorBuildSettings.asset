@@ -26,6 +26,9 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/_Project/Minigames/MG_Churro/Scenes/MG_Churro.unity
     guid: 5e1f186634d83744b8484e895f8ee73c
+  - enabled: 1
+    path: Assets/_Project/Minigames/MG_MowTheLawn/Scenes/MG_MowTheLawn.unity
+    guid: 92935b7689fbc9ea2e65201245388a0c
   - enabled: 0
     path: Assets/_Project/Networking/Scenes/NET_Test.unity
     guid: 3de56ab44ddf83d4e8e9a4bc4c175fca
