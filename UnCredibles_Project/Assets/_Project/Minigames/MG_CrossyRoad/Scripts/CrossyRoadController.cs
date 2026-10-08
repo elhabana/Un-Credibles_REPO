@@ -8,10 +8,13 @@ namespace UnCredibles.Minigames.CrossyRoad
 {
     // Pick up a grandma in the first lane, cross 5 roads and drop her in the last lane for points.
     // Hit by a car: the grandma goes back home and the player respawns in the spawn lane.
+    // Traffic starts calm and gets busier and faster as time runs out; in the final rush every
+    // delivered grandma is worth double.
     // The only Update of the minigame: traffic, AI and avatars are ticked from here in a fixed order.
     public sealed class CrossyRoadController : MinigameController
     {
         private const byte GrandmaLaunchedEvent = 1;
+        private const byte FinalRushEvent = 2;
 
         [SerializeField] private CrossyRoadBoard board;
         [SerializeField] private CrossyRoadTraffic traffic;
@@ -24,6 +27,9 @@ namespace UnCredibles.Minigames.CrossyRoad
         private readonly List<CrossyRoadAIBrain> brains = new List<CrossyRoadAIBrain>(PlayerRegistry.MaxPlayers);
         private readonly float[] respawnTimers = new float[PlayerRegistry.MaxPlayers];
         private System.Func<Vector3, CrossyRoadPlayer, bool> isMoveBlocked;
+
+        public bool IsFinalRush { get; private set; }
+        public event System.Action FinalRushStarted;
 
         private CrossyRoadSettings Settings => board.Settings;
         private float Radius => Settings.PlayerRadius;
@@ -62,6 +68,10 @@ namespace UnCredibles.Minigames.CrossyRoad
                 foreach (var avatar in avatars) avatar.TickRemote(remoteDelta);
                 return;
             }
+
+            traffic.SetDifficulty(Settings.Difficulty(GameProgress()));
+            if (IsPlaying && !IsFinalRush && Timer != null && Timer.IsRunning && Timer.Remaining <= Settings.FinalRushSeconds)
+                StartFinalRush();
 
             // Cars already drive during the countdown so the scene feels alive.
             if (State == MinigameState.Waiting || State == MinigameState.Countdown || IsPlaying)
@@ -109,7 +119,7 @@ namespace UnCredibles.Minigames.CrossyRoad
             if (avatar.Lane < board.GoalLane) return;
             grandmas.Return(avatar.CarriedGrandma);
             avatar.SetCarrying(-1);
-            Score.AddScore(avatar.Slot.PlayerId, Settings.PointsPerDelivery);
+            Score.AddScore(avatar.Slot.PlayerId, Settings.PointsPerDelivery * (IsFinalRush ? Settings.FinalRushMultiplier : 1));
             if (Settings.ReturnToSpawnAfterDelivery) avatar.Respawn(FindFreeSpawn(avatar.SpawnPosition, avatar), 0f);
         }
 
@@ -231,6 +241,26 @@ namespace UnCredibles.Minigames.CrossyRoad
         {
             if (eventId == GrandmaLaunchedEvent)
                 grandmas.Launch(new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle()));
+            else if (eventId == FinalRushEvent && !IsFinalRush)
+            {
+                IsFinalRush = true;
+                FinalRushStarted?.Invoke();
+            }
+        }
+
+        // 0 before and at the start of the game, 1 when the time is up.
+        private float GameProgress()
+        {
+            if (!IsPlaying || Timer == null || !Timer.IsRunning || Data == null || Data.Duration <= 0f) return State > MinigameState.Playing ? 1f : 0f;
+            return 1f - Timer.Remaining / Data.Duration;
+        }
+
+        private void StartFinalRush()
+        {
+            IsFinalRush = true;
+            FinalRushStarted?.Invoke();
+            BeginEvent(FinalRushEvent);
+            SendEvent();
         }
 
         private bool IsMoveBlocked(Vector3 position, CrossyRoadPlayer self) => traffic.Overlaps(position, Radius);

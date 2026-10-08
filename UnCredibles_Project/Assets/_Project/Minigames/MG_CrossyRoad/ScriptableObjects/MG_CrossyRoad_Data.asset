@@ -15,10 +15,10 @@ MonoBehaviour:
   id: crossy_road
   displayName: Crossy Road
   sceneName: MG_CrossyRoad
-  duration: 60
+  duration: 120
   countdownSeconds: 3
   minPlayers: 1
   maxPlayers: 4
   thumbnail: {fileID: 0}
   music: {fileID: 0}
-  rules: Cross the road without getting hit.
+  rules: Carry grandmas across the road without getting hit. Traffic gets busier over time and in the last 30 seconds every grandma is worth double.

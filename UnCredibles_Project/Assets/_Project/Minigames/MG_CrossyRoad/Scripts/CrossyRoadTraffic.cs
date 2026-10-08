@@ -33,7 +33,8 @@ namespace UnCredibles.Minigames.CrossyRoad
             public CrossyRoadSettings.RoadLane Config;
             public float Z;
             public float HalfLength;
-            public float Velocity; // world units per second, signed
+            public float BaseVelocity; // world units per second, signed, at multiplier 1
+            public float Velocity;     // current one, grows with the difficulty
             public float Timer;
             public readonly List<Car> Cars = new List<Car>();
         }
@@ -49,12 +50,17 @@ namespace UnCredibles.Minigames.CrossyRoad
         private readonly List<int> receivedIds = new List<int>();
         private readonly List<float> receivedX = new List<float>();
         private int nextId;
+        private float difficulty;
+        private float speedMultiplier = 1f;
+        private float spawnMultiplier = 1f;
 
         // An online client starts empty: its cars come from the host.
         public void Initialize(bool prefill = true)
         {
             var settings = board.Settings;
             block = new MaterialPropertyBlock();
+            speedMultiplier = settings.SpeedMultiplier(0f);
+            spawnMultiplier = settings.SpawnMultiplier(0f);
             spawnX = board.HalfWidth + settings.OffscreenMargin;
             despawnX = spawnX + settings.CellSize * 3f;
 
@@ -67,11 +73,23 @@ namespace UnCredibles.Minigames.CrossyRoad
                     Config = config,
                     Z = board.LaneToZ(CrossyRoadBoard.FirstRoadLane + i),
                     HalfLength = config.carLength * settings.CellSize * 0.5f,
-                    Velocity = config.direction * config.speed * settings.CellSize,
+                    BaseVelocity = config.direction * config.speed * settings.CellSize,
                 };
+                lane.Velocity = lane.BaseVelocity * speedMultiplier;
                 lanes[i] = lane;
                 if (prefill) Prefill(lane);
             }
+        }
+
+        // 0 = calm start (few, slow cars), 1 = end of the game (many, fast cars). Set by the host
+        // every frame and sent to the clients with the cars.
+        public void SetDifficulty(float value)
+        {
+            difficulty = Mathf.Clamp01(value);
+            var settings = board.Settings;
+            speedMultiplier = settings.SpeedMultiplier(difficulty);
+            spawnMultiplier = settings.SpawnMultiplier(difficulty);
+            foreach (var lane in lanes) lane.Velocity = lane.BaseVelocity * speedMultiplier;
         }
 
         // `leak`: trucks only drop oil while the game is being played.
@@ -83,7 +101,7 @@ namespace UnCredibles.Minigames.CrossyRoad
                 if (lane.Timer <= 0f && EntryIsClear(lane))
                 {
                     Spawn(lane, -Mathf.Sign(lane.Velocity) * spawnX, NextId(), RollOilTruck());
-                    lane.Timer = Random.Range(lane.Config.minSpawnInterval, lane.Config.maxSpawnInterval);
+                    lane.Timer = Random.Range(lane.Config.minSpawnInterval, lane.Config.maxSpawnInterval) * spawnMultiplier;
                 }
 
                 for (int i = lane.Cars.Count - 1; i >= 0; i--)
@@ -143,7 +161,9 @@ namespace UnCredibles.Minigames.CrossyRoad
 
         private bool RollOilTruck()
         {
-            if (oilTruckPrefab == null || Random.value >= board.Settings.OilTruckChance) return false;
+            // No trucks at the very start; more likely as the game gets harder.
+            float chance = board.Settings.OilTruckChance * Mathf.Clamp01(difficulty * 1.5f);
+            if (oilTruckPrefab == null || Random.value >= chance) return false;
             int trucks = 0;
             foreach (var lane in lanes)
             {
@@ -198,6 +218,7 @@ namespace UnCredibles.Minigames.CrossyRoad
 
         public void WriteState(BinaryWriter writer)
         {
+            writer.Write((byte)Mathf.RoundToInt(difficulty * 255f));
             writer.Write((byte)lanes.Length);
             foreach (var lane in lanes)
             {
@@ -214,6 +235,7 @@ namespace UnCredibles.Minigames.CrossyRoad
         // Client: same cars as the host (matched by id), gently pulled to the host position.
         public void ReadState(BinaryReader reader)
         {
+            SetDifficulty(reader.ReadByte() / 255f);
             int laneCount = reader.ReadByte();
             for (int l = 0; l < laneCount; l++)
             {
@@ -268,12 +290,12 @@ namespace UnCredibles.Minigames.CrossyRoad
             while (Mathf.Abs(x) <= spawnX || Mathf.Sign(x) != direction)
             {
                 Spawn(lane, x, NextId(), RollOilTruck());
-                float interval = Random.Range(lane.Config.minSpawnInterval, lane.Config.maxSpawnInterval);
+                float interval = Random.Range(lane.Config.minSpawnInterval, lane.Config.maxSpawnInterval) * spawnMultiplier;
                 x += direction * Mathf.Max(Mathf.Abs(lane.Velocity) * interval, lane.HalfLength * 2f + board.CellSize);
             }
             // Keep "last in the list = closest to the entry", as Tick appends new cars at the end.
             lane.Cars.Reverse();
-            lane.Timer = Random.Range(0f, lane.Config.minSpawnInterval);
+            lane.Timer = Random.Range(0f, lane.Config.minSpawnInterval) * spawnMultiplier;
         }
 
         private bool EntryIsClear(Lane lane)

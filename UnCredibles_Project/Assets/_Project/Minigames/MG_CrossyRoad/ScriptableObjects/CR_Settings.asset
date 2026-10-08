@@ -67,8 +67,8 @@ MonoBehaviour:
   grandmaLaunchUp: {x: 9, y: 13}
   grandmaSpinSpeed: 900
   grandmaGravity: 20
-  oilTruckChance: 0.18
-  maxOilTrucks: 2
+  oilTruckChance: 0.08
+  maxOilTrucks: 1
   oilDropsPerTruck: 2
   oilLifetime: 8
   oilRadius: 1.5
@@ -78,6 +78,13 @@ MonoBehaviour:
   oilMaxSpeedMultiplier: 1.4
   oilSlideBoost: 1.25
   oilAfterSlip: 0.6
+  startSpeedMultiplier: 0.5
+  endSpeedMultiplier: 1.2
+  startSpawnMultiplier: 2.4
+  endSpawnMultiplier: 0.75
+  difficultyRamp: 1.4
+  finalRushSeconds: 30
+  finalRushMultiplier: 2
   grandmaCount: 6
   pickupRadius: 0.9
   pointsPerDelivery: 1
