@@ -69,7 +69,7 @@ MonoBehaviour:
   grandmaGravity: 20
   oilTruckChance: 0.08
   maxOilTrucks: 1
-  oilDropsPerTruck: 2
+  oilDropsPerTruck: 1
   oilLifetime: 8
   oilRadius: 1.5
   maxOilSlicks: 4
@@ -78,10 +78,10 @@ MonoBehaviour:
   oilMaxSpeedMultiplier: 1.4
   oilSlideBoost: 1.25
   oilAfterSlip: 0.6
-  startSpeedMultiplier: 0.5
-  endSpeedMultiplier: 1.2
-  startSpawnMultiplier: 3.5
-  endSpawnMultiplier: 0.75
+  startSpeedMultiplier: 0.75
+  endSpeedMultiplier: 1.35
+  startSpawnMultiplier: 2
+  endSpawnMultiplier: 0.6
   difficultyRamp: 1
   finalRushSeconds: 30
   finalRushMultiplier: 2
