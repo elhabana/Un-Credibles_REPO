@@ -88,7 +88,7 @@ namespace UnCredibles.Minigames.CrossyRoad
         [SerializeField, Min(0.05f), Tooltip("Car speed multiplier at the end of the game.")] private float endSpeedMultiplier = 1.2f;
         [SerializeField, Min(0.1f), Tooltip("Time between cars multiplier at the start (higher = fewer cars).")] private float startSpawnMultiplier = 2.4f;
         [SerializeField, Min(0.1f), Tooltip("Time between cars multiplier at the end (lower = more cars).")] private float endSpawnMultiplier = 0.75f;
-        [SerializeField, Min(0.1f), Tooltip("1 = linear. Higher = stays easy longer and gets hard near the end.")] private float difficultyRamp = 1.4f;
+        [SerializeField, Min(0.1f), Tooltip("1 = linear. Higher = stays easy longer and gets hard near the end.")] private float difficultyRamp = 1f;
 
         [Header("Final rush")]
         [SerializeField, Min(0f), Tooltip("Last seconds of the game where deliveries are worth more.")] private float finalRushSeconds = 30f;
