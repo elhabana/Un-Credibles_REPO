@@ -12,14 +12,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fc38a5df3a0b8c2e8ecd9b3704ab6bea, type: 3}
   m_Name: MW_Settings
   m_EditorClassIdentifier: 
-  lawnWidth: 26
-  lawnDepth: 16
+  lawnWidth: 30
+  lawnDepth: 17
+  visualMargin: 6
   cellSize: 0.4
   regrowSeconds: 20
   minCutHeight: 0.4
   tallGrassColor: {r: 0.27, g: 0.62, b: 0.22, a: 1}
   stripeGrassColor: {r: 0.33, g: 0.7, b: 0.27, a: 1}
   cutColor: {r: 0.45, g: 0.3, b: 0.16, a: 1}
+  bladeHeight: 0.32
+  bladesPerCell: 6
   speed: 8.5
   acceleration: 24
   braking: 28

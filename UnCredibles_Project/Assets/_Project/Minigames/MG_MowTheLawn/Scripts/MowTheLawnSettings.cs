@@ -6,8 +6,10 @@ namespace UnCredibles.Minigames.MowTheLawn
     public sealed class MowTheLawnSettings : ScriptableObject
     {
         [Header("Lawn")]
-        [SerializeField, Min(2f)] private float lawnWidth = 26f;
-        [SerializeField, Min(2f)] private float lawnDepth = 16f;
+        [SerializeField, Min(2f), Tooltip("Playable area. The camera fits it to the screen.")] private float lawnWidth = 30f;
+        [SerializeField, Min(2f)] private float lawnDepth = 17f;
+        [SerializeField, Min(0f), Tooltip("Extra grass drawn around the playable area so it reaches the screen edges.")]
+        private float visualMargin = 6f;
         [SerializeField, Min(0.1f), Tooltip("Size of one grass cell. Smaller = finer trail, more work.")]
         private float cellSize = 0.4f;
         [SerializeField, Min(0.5f), Tooltip("Seconds for a cut cell to grow back completely.")]
@@ -17,6 +19,8 @@ namespace UnCredibles.Minigames.MowTheLawn
         [SerializeField] private Color tallGrassColor = new Color(0.27f, 0.62f, 0.22f);
         [SerializeField] private Color stripeGrassColor = new Color(0.33f, 0.7f, 0.27f);
         [SerializeField] private Color cutColor = new Color(0.45f, 0.3f, 0.16f);
+        [SerializeField, Min(0.05f), Tooltip("Height of fully grown grass blades.")] private float bladeHeight = 0.32f;
+        [SerializeField, Range(1, 12), Tooltip("Blades drawn per grass cell.")] private int bladesPerCell = 6;
 
         [Header("Mowers")]
         [SerializeField, Min(0.1f), Tooltip("Top speed with the stick fully pushed.")] private float speed = 8.5f;
@@ -68,6 +72,9 @@ namespace UnCredibles.Minigames.MowTheLawn
 
         public float LawnWidth => lawnWidth;
         public float LawnDepth => lawnDepth;
+        public float VisualMargin => visualMargin;
+        public float BladeHeight => bladeHeight;
+        public int BladesPerCell => bladesPerCell;
         public float CellSize => cellSize;
         public float RegrowSeconds => regrowSeconds;
         public float MinCutHeight => minCutHeight;
