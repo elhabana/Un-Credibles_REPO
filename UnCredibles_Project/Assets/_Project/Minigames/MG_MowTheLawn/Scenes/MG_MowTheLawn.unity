@@ -176,6 +176,7 @@ MonoBehaviour:
   settings: {fileID: 11400000, guid: fb032d0f55a8b9fb6c7e541162a953e6, type: 2}
   lawn: {fileID: 474}
   bags: {fileID: 342}
+  fx: {fileID: 352}
   mowerPrefab: {fileID: 102, guid: 734dd0a5cc9e5a9250aee450b4c181ff, type: 3}
   binPrefab: {fileID: 102, guid: bb1634790609145c223f72d39d4f8eee, type: 3}
   playersParent: {fileID: 331}
@@ -470,6 +471,7 @@ Transform:
   m_Children:
   - {fileID: 331}
   - {fileID: 341}
+  - {fileID: 351}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &330
@@ -548,6 +550,55 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   bagPrefab: {fileID: 102, guid: 75d81bbb3a9e6ea670e2ce53677228a5, type: 3}
+--- !u!1 &350
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 351}
+  - component: {fileID: 352}
+  m_Layer: 0
+  m_Name: Effects
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &351
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 350}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 301}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &352
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 350}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 67d36fe65f86fc240fb379ef917a4329, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ringMaterial: {fileID: 2100000, guid: 82d354c79dc3193057f3c1c5a4e99f73, type: 2}
+  cameraFit: {fileID: 1006}
+  ringSize: 4
+  shake: 0.35
+  lostColor: {r: 1, g: 0.25, b: 0.2, a: 1}
 --- !u!1 &400
 GameObject:
   m_ObjectHideFlags: 0

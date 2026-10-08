@@ -3,8 +3,8 @@ using UnityEngine;
 
 namespace UnCredibles.Minigames.MowTheLawn
 {
-    // Mow The Lawn extras on top of the shared MinigameUI: the final frenzy banner and a red,
-    // pulsing timer while it lasts. Only listens to the controller.
+    // Mow The Lawn extras on top of the shared MinigameUI: a start banner that explains the turbo,
+    // the final frenzy banner and a red, pulsing timer while it lasts. Only listens to the controller.
     public sealed class MowHud : MonoBehaviour
     {
         [SerializeField] private MowTheLawnController controller;
@@ -24,19 +24,32 @@ namespace UnCredibles.Minigames.MowTheLawn
 
         private void OnEnable()
         {
-            if (controller != null) controller.FrenzyStarted += HandleFrenzy;
+            if (controller == null) return;
+            controller.FrenzyStarted += HandleFrenzy;
+            controller.StateChanged += HandleStateChanged;
         }
 
         private void OnDisable()
         {
-            if (controller != null) controller.FrenzyStarted -= HandleFrenzy;
+            if (controller == null) return;
+            controller.FrenzyStarted -= HandleFrenzy;
+            controller.StateChanged -= HandleStateChanged;
         }
 
-        private void HandleFrenzy()
+        private void HandleStateChanged(MinigameState state)
+        {
+            if (state == MinigameState.Playing)
+                ShowBanner("¡A CORTAR!\n<size=50%>ESPACIO / A: TURBO  ·  choca con turbo para quitar bolsas\nDescarga las bolsas en tu contenedor</size>");
+        }
+
+        private void HandleFrenzy() =>
+            ShowBanner("¡FRENESÍ FINAL!\n<size=60%>El césped vuelve a crecer · bolsas x2</size>");
+
+        private void ShowBanner(string message)
         {
             bannerTimer = bannerSeconds;
             if (bannerText == null) return;
-            bannerText.text = "¡FRENESÍ FINAL!\n<size=60%>El césped vuelve a crecer · bolsas x2</size>";
+            bannerText.text = message;
             bannerText.gameObject.SetActive(true);
         }
 

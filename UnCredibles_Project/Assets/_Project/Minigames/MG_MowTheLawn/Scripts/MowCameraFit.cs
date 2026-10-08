@@ -14,12 +14,16 @@ namespace UnCredibles.Minigames.MowTheLawn
         [SerializeField, Min(1f)] private float distance = 40f;
 
         private Camera view;
+        private float shakeAmount;
 
         private void Awake()
         {
             view = GetComponent<Camera>();
             view.orthographic = true;
         }
+
+        // A short jolt (rams). Fades out by itself.
+        public void Shake(float amount) => shakeAmount = Mathf.Max(shakeAmount, amount);
 
         private void LateUpdate()
         {
@@ -31,7 +35,13 @@ namespace UnCredibles.Minigames.MowTheLawn
             view.orthographicSize = Mathf.Max(depth * 0.5f, width * 0.5f / Mathf.Max(0.1f, view.aspect));
 
             var rotation = Quaternion.Euler(pitch, 0f, 0f);
-            transform.SetPositionAndRotation(lawnCenter.position - rotation * Vector3.forward * distance, rotation);
+            var position = lawnCenter.position - rotation * Vector3.forward * distance;
+            if (shakeAmount > 0.001f)
+            {
+                position += rotation * (Vector3)(Random.insideUnitCircle * shakeAmount);
+                shakeAmount = Mathf.MoveTowards(shakeAmount, 0f, Time.unscaledDeltaTime * 1.5f);
+            }
+            transform.SetPositionAndRotation(position, rotation);
         }
     }
 }

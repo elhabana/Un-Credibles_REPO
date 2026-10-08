@@ -28,8 +28,8 @@ MonoBehaviour:
   braking: 28
   turnSpeed: 380
   grip: 9
-  boostMultiplier: 1.7
-  boostSeconds: 0.4
+  boostMultiplier: 2.1
+  boostSeconds: 0.5
   boostCooldown: 1.6
   bumpForce: 8
   mowerRadius: 0.55

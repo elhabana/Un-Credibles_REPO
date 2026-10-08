@@ -16,10 +16,12 @@ namespace UnCredibles.Minigames.MowTheLawn
     {
         private const byte BagDeliveredEvent = 1;
         private const byte FrenzyStartedEvent = 2;
+        private const byte RamEvent = 3;
 
         [SerializeField] private MowTheLawnSettings settings;
         [SerializeField] private MowLawn lawn;
         [SerializeField] private MowBags bags;
+        [SerializeField] private MowFx fx;
         [SerializeField] private MowerPlayer mowerPrefab;
         [SerializeField] private MowBin binPrefab;
         [SerializeField] private Transform playersParent;
@@ -75,6 +77,7 @@ namespace UnCredibles.Minigames.MowTheLawn
             lawn.Tick(deltaTime);
             bags.Tick(deltaTime, !IsReplica);
             foreach (var bin in bins) bin.Tick(deltaTime);
+            if (fx != null) fx.Tick(deltaTime);
 
             if (IsReplica)
             {
@@ -134,6 +137,12 @@ namespace UnCredibles.Minigames.MowTheLawn
                 foreach (var position in dropped) bags.Drop(position);
             }
             victim.Stun(settings.StunSeconds, settings.RamImmunitySeconds);
+            if (fx != null) fx.Ram(victim.Position, lost);
+
+            var message = BeginEvent(RamEvent);
+            message.Write((byte)mowers.IndexOf(victim));
+            message.Write((byte)lost);
+            SendEvent();
             return true;
         }
 
@@ -264,7 +273,7 @@ namespace UnCredibles.Minigames.MowTheLawn
 
         // ---------- Online ----------
 
-        // Mowers (position, heading, bags, next bag fill, turbo / protected / stunned) and loose bags.
+        // Mowers (position, heading, bags, next bag fill, turbo / protected / stunned / turbo ready) and loose bags.
         protected override void WriteSnapshot(BinaryWriter writer)
         {
             writer.Write((byte)mowers.Count);
@@ -277,7 +286,7 @@ namespace UnCredibles.Minigames.MowTheLawn
                 writer.Write(mower.transform.eulerAngles.y);
                 writer.Write((ushort)mower.BagCount);
                 writer.Write((byte)Mathf.RoundToInt(Mathf.Clamp01(mower.Fill) * 255f));
-                writer.Write((byte)((mower.IsBoosting ? 1 : 0) | (mower.IsTailProtected ? 2 : 0) | (mower.IsStunned ? 4 : 0)));
+                writer.Write((byte)((mower.IsBoosting ? 1 : 0) | (mower.IsTailProtected ? 2 : 0) | (mower.IsStunned ? 4 : 0) | (mower.CanBoost ? 8 : 0)));
             }
             bags.WriteState(writer);
         }
@@ -293,7 +302,7 @@ namespace UnCredibles.Minigames.MowTheLawn
                 float fill = reader.ReadByte() / 255f;
                 int flags = reader.ReadByte();
                 if (i < mowers.Count)
-                    mowers[i].ApplyRemote(position, yaw, bagCount, fill, (flags & 1) != 0, (flags & 2) != 0, (flags & 4) != 0);
+                    mowers[i].ApplyRemote(position, yaw, bagCount, fill, (flags & 1) != 0, (flags & 2) != 0, (flags & 4) != 0, (flags & 8) != 0);
             }
             bags.ReadState(reader);
         }
@@ -306,6 +315,12 @@ namespace UnCredibles.Minigames.MowTheLawn
                 if (index >= mowers.Count) return;
                 bags.Throw(mowers[index].TailEnd, bins[index].MouthPosition, mowers[index].Color);
                 bins[index].Bounce();
+            }
+            else if (eventId == RamEvent)
+            {
+                int index = reader.ReadByte();
+                int lost = reader.ReadByte();
+                if (fx != null && index < mowers.Count) fx.Ram(mowers[index].Position, lost);
             }
             else if (eventId == FrenzyStartedEvent && !IsFrenzy)
             {
