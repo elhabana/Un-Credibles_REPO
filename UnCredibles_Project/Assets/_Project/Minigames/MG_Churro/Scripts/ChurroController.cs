@@ -54,7 +54,7 @@ namespace UnCredibles.Minigames.Churro
 
             if (!IsReplica) EnsureBrains();
 
-            spinner.ResetForRound(settings.GetRound(0), 45f);
+            spinner.ResetForRound(settings, settings.GetRound(0), 45f, 1); // only the look before round 1
         }
 
         protected override void OnGameStarted() => BeginRound(0);
@@ -99,8 +99,8 @@ namespace UnCredibles.Minigames.Churro
             fallenThisRound = 0;
             foreach (var avatar in avatars) avatar.ResetOnFloat();
 
-            // Start with the churro between two floats so nobody is hit instantly.
-            spinner.ResetForRound(settings.GetRound(index), 45f);
+            // Random place and direction every round, never right next to a player.
+            spinner.ResetForRound(settings, settings.GetRound(index), FairStartAngle(settings.GetRound(index).arms), UnityEngine.Random.value < 0.5f ? 1 : -1);
             phase = RoundPhase.Intro;
             phaseTimer = settings.RoundIntroSeconds;
             RoundStarted?.Invoke(CurrentRound, TotalRounds);
@@ -165,6 +165,25 @@ namespace UnCredibles.Minigames.Churro
             }
         }
 
+        // A random angle for the churro that keeps every arm well away from every player.
+        private float FairStartAngle(int armCount)
+        {
+            float spacing = 360f / Mathf.Max(1, armCount);
+            float wanted = hitHalfAngle + settings.StartClearance;
+            float best = 45f, bestGap = -1f;
+            for (int attempt = 0; attempt < 32; attempt++)
+            {
+                float candidate = UnityEngine.Random.Range(0f, 360f);
+                float gap = float.MaxValue;
+                for (int arm = 0; arm < armCount; arm++)
+                    foreach (var avatar in avatars)
+                        gap = Mathf.Min(gap, Mathf.Abs(Mathf.DeltaAngle(candidate + arm * spacing, avatar.Angle)));
+                if (gap >= wanted) return candidate;
+                if (gap > bestGap) { bestGap = gap; best = candidate; }
+            }
+            return best;
+        }
+
         private int CountIn()
         {
             int count = 0;
@@ -196,7 +215,7 @@ namespace UnCredibles.Minigames.Churro
         protected override void WriteSnapshot(BinaryWriter writer)
         {
             writer.Write(spinner.Angle);
-            writer.Write(spinner.Speed);
+            writer.Write(spinner.AngularVelocity);
             writer.Write((byte)spinner.ArmCount);
             writer.Write((byte)avatars.Count);
             foreach (var avatar in avatars)

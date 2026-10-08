@@ -14,17 +14,29 @@ namespace UnCredibles.Minigames.Churro
             [Min(1f), Tooltip("Degrees per second when the round starts.")] public float startSpeed;
             [Min(0f), Tooltip("Degrees per second gained every second.")] public float acceleration;
             [Min(1f)] public float maxSpeed;
+            [Tooltip("The kid sometimes brakes and spins the other way during this round.")] public bool reverses;
         }
 
         [Header("Rounds")]
         [SerializeField] private Round[] rounds =
         {
-            new Round { arms = 1, startSpeed = 100f, acceleration = 10f, maxSpeed = 360f },
-            new Round { arms = 1, startSpeed = 140f, acceleration = 14f, maxSpeed = 420f },
-            new Round { arms = 2, startSpeed = 90f, acceleration = 6f, maxSpeed = 230f },
+            new Round { arms = 1, startSpeed = 55f, acceleration = 9f, maxSpeed = 330f, reverses = true },
+            new Round { arms = 1, startSpeed = 70f, acceleration = 12f, maxSpeed = 400f, reverses = true },
+            new Round { arms = 2, startSpeed = 50f, acceleration = 6f, maxSpeed = 220f, reverses = true },
         };
         [SerializeField, Min(0f)] private float roundIntroSeconds = 1.5f;
         [SerializeField, Min(0f)] private float roundOutroSeconds = 2.5f;
+
+        [Header("Start and direction changes")]
+        [SerializeField, Min(0f), Tooltip("Minimum degrees between the churro and any player when a round starts.")]
+        private float startClearance = 30f;
+        [SerializeField, Min(0f), Tooltip("Seconds of spinning before the first possible direction change.")]
+        private float firstReverseDelay = 3f;
+        [SerializeField, Tooltip("Seconds between direction changes (random in range).")]
+        private Vector2 reverseInterval = new Vector2(4f, 8f);
+        [SerializeField, Min(0.05f), Tooltip("Seconds the kid takes to brake to a stop.")] private float brakeSeconds = 0.35f;
+        [SerializeField, Min(0f), Tooltip("Seconds stopped before spinning the other way.")] private float reversePause = 0.2f;
+        [SerializeField, Min(0.05f), Tooltip("Seconds to get back to the previous speed.")] private float reaccelerateSeconds = 0.5f;
 
         [Header("Churro")]
         [SerializeField, Min(0.05f), Tooltip("Height of the churro above the float, in metres.")]
@@ -54,6 +66,13 @@ namespace UnCredibles.Minigames.Churro
         public float RoundIntroSeconds => roundIntroSeconds;
         public float RoundOutroSeconds => roundOutroSeconds;
 
+        public float StartClearance => startClearance;
+        public float FirstReverseDelay => firstReverseDelay;
+        public Vector2 ReverseInterval => reverseInterval;
+        public float BrakeSeconds => brakeSeconds;
+        public float ReversePause => reversePause;
+        public float ReaccelerateSeconds => reaccelerateSeconds;
+
         public float ChurroHeight => churroHeight;
         public float ChurroRadius => churroRadius;
         // Feet must be above this to clear the churro.
@@ -72,6 +91,7 @@ namespace UnCredibles.Minigames.Churro
         private void OnValidate()
         {
             if (aiMaxLead < aiMinLead) aiMaxLead = aiMinLead;
+            if (reverseInterval.y < reverseInterval.x) reverseInterval.y = reverseInterval.x;
             for (int i = 0; i < rounds.Length; i++)
                 if (rounds[i].maxSpeed < rounds[i].startSpeed) rounds[i].maxSpeed = rounds[i].startSpeed;
         }

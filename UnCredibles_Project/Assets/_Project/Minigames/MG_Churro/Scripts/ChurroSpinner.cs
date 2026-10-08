@@ -2,78 +2,142 @@ using UnityEngine;
 
 namespace UnCredibles.Minigames.Churro
 {
-    // The kid in the middle turning the churro clockwise (seen from above).
+    // The kid in the middle turning the churro. Each round starts slow in a random direction and
+    // speeds up; now and then the kid brakes, stops for a blink and spins the other way.
     // Angles follow Unity's yaw: 0 = +Z, 90 = +X, growing clockwise.
     public sealed class ChurroSpinner : MonoBehaviour
     {
+        private enum Phase { Spinning, Braking, Paused, Reversing }
+
         [SerializeField, Tooltip("Rotates with the kid; the churro arms hang from it.")]
         private Transform pivot;
         [SerializeField, Tooltip("Arms of the churro, enabled according to the round.")]
         private GameObject[] arms = new GameObject[0];
 
+        private ChurroSettings settings;
         private ChurroSettings.Round round;
+        private Phase phase;
+        private float phaseTimer;
+        private float reverseTimer;
+        private float resumeSpeed;
         private float remoteAngle;
 
         public float Angle { get; private set; }
         public float PreviousAngle { get; private set; }
-        public float Speed { get; private set; }
+        public float Speed { get; private set; }          // degrees per second, always positive
+        public int Direction { get; private set; } = 1;   // 1 = clockwise, -1 = counter-clockwise
+        public float AngularVelocity => Speed * Direction;
+        public bool IsBraking => phase == Phase.Braking || phase == Phase.Paused;
         public int ArmCount { get; private set; } = 1;
         public float ArmSpacing => 360f / ArmCount;
         public Vector3 Center => transform.position;
 
-        public void ResetForRound(ChurroSettings.Round roundSettings, float startAngle)
+        public void ResetForRound(ChurroSettings churroSettings, ChurroSettings.Round roundSettings, float startAngle, int direction)
         {
+            settings = churroSettings;
             round = roundSettings;
             ArmCount = Mathf.Clamp(roundSettings.arms, 1, Mathf.Max(1, arms.Length));
             for (int i = 0; i < arms.Length; i++) arms[i].SetActive(i < ArmCount);
 
             Speed = roundSettings.startSpeed;
-            Angle = PreviousAngle = startAngle;
+            Direction = direction >= 0 ? 1 : -1;
+            phase = Phase.Spinning;
+            reverseTimer = settings.FirstReverseDelay + RandomReverseInterval();
+            Angle = PreviousAngle = Mathf.Repeat(startAngle, 360f);
             ApplyRotation();
         }
 
         public void Tick(float deltaTime)
         {
             PreviousAngle = Angle;
-            Speed = Mathf.Min(Speed + round.acceleration * deltaTime, round.maxSpeed);
-            Angle += Speed * deltaTime;
+            switch (phase)
+            {
+                case Phase.Spinning:
+                    Speed = Mathf.Min(Speed + round.acceleration * deltaTime, round.maxSpeed);
+                    if (round.reverses && (reverseTimer -= deltaTime) <= 0f)
+                    {
+                        phase = Phase.Braking;
+                        resumeSpeed = Speed;
+                    }
+                    break;
+
+                case Phase.Braking:
+                    Speed = Mathf.MoveTowards(Speed, 0f, resumeSpeed / settings.BrakeSeconds * deltaTime);
+                    if (Speed <= 0f)
+                    {
+                        phase = Phase.Paused;
+                        phaseTimer = settings.ReversePause;
+                    }
+                    break;
+
+                case Phase.Paused:
+                    if ((phaseTimer -= deltaTime) <= 0f)
+                    {
+                        Direction = -Direction;
+                        phase = Phase.Reversing;
+                    }
+                    break;
+
+                case Phase.Reversing:
+                    Speed = Mathf.MoveTowards(Speed, resumeSpeed, resumeSpeed / settings.ReaccelerateSeconds * deltaTime);
+                    if (Speed >= resumeSpeed)
+                    {
+                        phase = Phase.Spinning;
+                        reverseTimer = RandomReverseInterval();
+                    }
+                    break;
+            }
+
+            Angle += AngularVelocity * deltaTime;
             // Keep both angles small without breaking the Angle - PreviousAngle sweep.
             if (Angle >= 360f)
             {
                 Angle -= 360f;
                 PreviousAngle -= 360f;
             }
+            else if (Angle < 0f)
+            {
+                Angle += 360f;
+                PreviousAngle += 360f;
+            }
             ApplyRotation();
         }
 
         // Did any arm touch [targetAngle - halfWidth, targetAngle + halfWidth] during the last Tick?
+        // Works for both directions: it looks at the arc each arm covered, whichever way it turned.
         public bool SweptThrough(float targetAngle, float halfWidth)
         {
             float swept = Angle - PreviousAngle;
+            float from = Mathf.Min(PreviousAngle, Angle);
+            float length = Mathf.Abs(swept);
             for (int arm = 0; arm < ArmCount; arm++)
             {
-                float armStart = PreviousAngle + arm * ArmSpacing;
-                // Distance from the arm to the far edge of the zone, in the direction of rotation.
+                float armStart = from + arm * ArmSpacing;
+                // Distance from the start of the arc to the far edge of the zone, going clockwise.
                 float toFarEdge = Mathf.Repeat(targetAngle + halfWidth - armStart, 360f);
-                if (toFarEdge <= halfWidth * 2f || toFarEdge - halfWidth * 2f <= swept) return true;
+                if (toFarEdge <= halfWidth * 2f || toFarEdge - halfWidth * 2f <= length) return true;
             }
             return false;
         }
 
-        // Seconds until the next arm reaches the near edge of the zone (used by the AI).
+        // Seconds until the next arm reaches the near edge of the zone, in the current direction
+        // (used by the AI; a sudden reversal can fool it, like it fools people).
         public float TimeUntilArrival(float targetAngle, float halfWidth)
         {
             float best = float.MaxValue;
             for (int arm = 0; arm < ArmCount; arm++)
             {
-                float distance = Mathf.Repeat(targetAngle - halfWidth - (Angle + arm * ArmSpacing), 360f);
+                float armAngle = Angle + arm * ArmSpacing;
+                float distance = Direction > 0
+                    ? Mathf.Repeat(targetAngle - halfWidth - armAngle, 360f)
+                    : Mathf.Repeat(armAngle - (targetAngle + halfWidth), 360f);
                 best = Mathf.Min(best, distance / Mathf.Max(Speed, 1f));
             }
             return best;
         }
 
-        // Online client: the host sends angle + speed; between packets we predict and blend in.
-        public void ApplyRemote(float angle, float speed, int armCount)
+        // Online client: the host sends angle + signed speed; between packets we predict and blend in.
+        public void ApplyRemote(float angle, float angularVelocity, int armCount)
         {
             if (armCount != ArmCount)
             {
@@ -82,13 +146,14 @@ namespace UnCredibles.Minigames.Churro
                 Angle = angle; // new round: no blending from the old one
             }
             remoteAngle = angle;
-            Speed = speed;
+            Speed = Mathf.Abs(angularVelocity);
+            Direction = angularVelocity >= 0f ? 1 : -1;
         }
 
         public void TickRemote(float deltaTime)
         {
-            remoteAngle += Speed * deltaTime;
-            float predicted = Angle + Speed * deltaTime;
+            remoteAngle += AngularVelocity * deltaTime;
+            float predicted = Angle + AngularVelocity * deltaTime;
             float error = Mathf.DeltaAngle(predicted, remoteAngle);
             Angle = Mathf.Repeat(Mathf.Abs(error) > 45f ? remoteAngle : predicted + error * Mathf.Min(1f, 10f * deltaTime), 360f);
             PreviousAngle = Angle;
@@ -100,6 +165,9 @@ namespace UnCredibles.Minigames.Churro
             var offset = position - center;
             return Mathf.Repeat(Mathf.Atan2(offset.x, offset.z) * Mathf.Rad2Deg, 360f);
         }
+
+        private float RandomReverseInterval() =>
+            settings != null ? Random.Range(settings.ReverseInterval.x, settings.ReverseInterval.y) : 999f;
 
         private void ApplyRotation() => pivot.localRotation = Quaternion.Euler(0f, Angle, 0f);
     }

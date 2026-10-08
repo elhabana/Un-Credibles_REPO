@@ -14,19 +14,28 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   rounds:
   - arms: 1
-    startSpeed: 100
-    acceleration: 10
-    maxSpeed: 360
+    startSpeed: 55
+    acceleration: 9
+    maxSpeed: 330
+    reverses: 1
   - arms: 1
-    startSpeed: 140
-    acceleration: 14
-    maxSpeed: 420
+    startSpeed: 70
+    acceleration: 12
+    maxSpeed: 400
+    reverses: 1
   - arms: 2
-    startSpeed: 90
+    startSpeed: 50
     acceleration: 6
-    maxSpeed: 230
+    maxSpeed: 220
+    reverses: 1
   roundIntroSeconds: 1.5
   roundOutroSeconds: 2.5
+  startClearance: 30
+  firstReverseDelay: 3
+  reverseInterval: {x: 4, y: 8}
+  brakeSeconds: 0.35
+  reversePause: 0.2
+  reaccelerateSeconds: 0.5
   churroHeight: 0.35
   churroRadius: 0.15
   jumpVelocity: 6.5
