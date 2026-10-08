@@ -8,10 +8,11 @@ using UnityEngine;
 namespace UnCredibles.Minigames.Churro
 {
     // Players on floats around a kid spinning a churro. Jump to dodge it and duck under the beach
-    // balls thrown at you; if either hits you, you are out
-    // for the round. Each round ends when one player is left. Points per round = players that fell
-    // before you, so after all rounds whoever lasted longest wins.
-    // The only Update of the minigame: spinner, AI and avatars are ticked from here in a fixed order.
+    // balls thrown at you; if either hits you, you are out for the round. Each round ends when one
+    // player is left. Points per round = players that fell before you, so after all rounds whoever
+    // lasted longest wins. From round 2 a kid cannonballs into the pool and splashes the screen.
+    // The only Update of the minigame: spinner, hazards, AI and avatars are ticked from here in a
+    // fixed order. Who gets a ball and when the kid jumps is decided by the two directors.
     public sealed class ChurroController : MinigameController
     {
         private enum RoundPhase { None, Intro, Spinning, Outro }
@@ -20,6 +21,8 @@ namespace UnCredibles.Minigames.Churro
         private const byte RoundEndedEvent = 2;
         private const byte BallThrownEvent = 3;
         private const byte CannonballEvent = 4;
+        private const int StartAngleAttempts = 32;
+        private const float DefaultStartAngle = 45f;
 
         [SerializeField] private ChurroSettings settings;
         [SerializeField] private ChurroSpinner spinner;
@@ -32,17 +35,15 @@ namespace UnCredibles.Minigames.Churro
         private readonly List<ChurroAIBrain> brains = new List<ChurroAIBrain>(PlayerRegistry.MaxPlayers);
         private readonly List<ChurroPlayer> hitThisFrame = new List<ChurroPlayer>(PlayerRegistry.MaxPlayers);
         private readonly List<ChurroPlayer> ballHits = new List<ChurroPlayer>(PlayerRegistry.MaxPlayers);
-        private readonly List<ChurroPlayer> ballCandidates = new List<ChurroPlayer>(PlayerRegistry.MaxPlayers);
-        private float ballTimer;
-        private float spinTime; // seconds the churro has been spinning this round
-        private float cannonTimer;
-        private float firstStartAngle = 45f;
-        private int firstDirection = 1;
+        private ChurroBallDirector ballDirector;
+        private ChurroCannonDirector cannonDirector;
         private RoundPhase phase;
         private int roundIndex;
         private int fallenThisRound;
         private float phaseTimer;
         private float hitHalfAngle;
+        private float firstStartAngle = DefaultStartAngle;
+        private int firstDirection = 1;
 
         public int CurrentRound => roundIndex + 1;
         public int TotalRounds => settings.RoundCount;
@@ -58,7 +59,7 @@ namespace UnCredibles.Minigames.Churro
                 var avatar = Spawns.Spawn(playerPrefab, player, playersParent);
                 avatar.Setup(player, settings, spinner.Center, settings.GetPlayerColor(player.SlotIndex));
                 avatars.Add(avatar);
-                floatDistance = Vector3.Distance(Flat(avatar.transform.position), Flat(spinner.Center));
+                floatDistance = Vector3.Distance(ChurroAngles.Flat(avatar.transform.position), ChurroAngles.Flat(spinner.Center));
             }
 
             // Angular half width of a player seen from the centre.
@@ -68,10 +69,12 @@ namespace UnCredibles.Minigames.Churro
             cannonball.Initialize(settings);
             if (!IsReplica)
             {
+                ballDirector = new ChurroBallDirector(settings, spinner, balls, avatars, hitHalfAngle);
+                cannonDirector = new ChurroCannonDirector(settings, cannonball, avatars, spinner.Center);
                 EnsureBrains();
                 // Pick the first round start now, so the countdown already shows the churro where it will start.
                 firstStartAngle = FairStartAngle(settings.GetRound(0).arms);
-                firstDirection = UnityEngine.Random.value < 0.5f ? 1 : -1;
+                firstDirection = RandomDirection();
             }
             spinner.ResetForRound(settings, settings.GetRound(0), firstStartAngle, firstDirection);
         }
@@ -102,15 +105,7 @@ namespace UnCredibles.Minigames.Churro
                     break;
 
                 case RoundPhase.Spinning:
-                    spinner.Tick(deltaTime);
-                    spinTime += deltaTime;
-                    TryThrowBall(deltaTime);
-                    TryCannonball(deltaTime);
-                    foreach (var brain in brains) brain.Tick(); // before avatars read their input
-                    TickAvatars(deltaTime, true);
-                    ballHits.Clear();
-                    balls.Tick(deltaTime, ballHits);
-                    CheckHits();
+                    TickSpinning(deltaTime);
                     break;
 
                 case RoundPhase.Outro:
@@ -121,6 +116,24 @@ namespace UnCredibles.Minigames.Churro
             }
         }
 
+        private void TickSpinning(float deltaTime)
+        {
+            var round = settings.GetRound(roundIndex);
+            spinner.Tick(deltaTime);
+
+            var ballTarget = ballDirector.Tick(deltaTime, round);
+            if (ballTarget != null) SendBallThrown(ballTarget, settings.BallFlightSeconds);
+            if (cannonDirector.Tick(deltaTime, round, out var start, out var landing)) SendCannonball(start, landing);
+
+            foreach (var brain in brains) brain.Tick(); // before avatars read their input
+            TickAvatars(deltaTime, true);
+            ballHits.Clear();
+            balls.Tick(deltaTime, ballHits);
+            CheckHits();
+        }
+
+        // ---------- Rounds ----------
+
         private void BeginRound(int index)
         {
             roundIndex = index;
@@ -130,45 +143,18 @@ namespace UnCredibles.Minigames.Churro
             // Random place and direction every round, never right next to a player.
             var round = settings.GetRound(index);
             if (index == 0) spinner.ResetForRound(settings, round, firstStartAngle, firstDirection);
-            else spinner.ResetForRound(settings, round, FairStartAngle(round.arms), UnityEngine.Random.value < 0.5f ? 1 : -1);
+            else spinner.ResetForRound(settings, round, FairStartAngle(round.arms), RandomDirection());
             balls.Clear();
-            ballTimer = settings.BallFirstDelay;
-            spinTime = 0f;
-            cannonTimer = settings.CannonFirstDelay;
+            ballDirector.ResetForRound();
+            cannonDirector.ResetForRound();
             phase = RoundPhase.Intro;
             phaseTimer = settings.RoundIntroSeconds;
+
             RoundStarted?.Invoke(CurrentRound, TotalRounds);
             var message = BeginEvent(RoundStartedEvent);
             message.Write((byte)CurrentRound);
             message.Write((byte)TotalRounds);
             SendEvent();
-        }
-
-        private void TickAvatars(float deltaTime, bool canJump)
-        {
-            foreach (var avatar in avatars) avatar.Tick(deltaTime, canJump);
-        }
-
-        private void CheckHits()
-        {
-            hitThisFrame.Clear();
-            foreach (var avatar in avatars)
-                if (avatar.IsIn && avatar.FeetHeight < settings.ClearHeight && spinner.SweptThrough(avatar.Angle, hitHalfAngle))
-                    hitThisFrame.Add(avatar);
-            foreach (var avatar in ballHits)
-                if (avatar.IsIn && !hitThisFrame.Contains(avatar)) hitThisFrame.Add(avatar);
-
-            // Players hit in the same frame share the same result.
-            foreach (var avatar in hitThisFrame)
-            {
-                Score.AddScore(avatar.Slot.PlayerId, fallenThisRound);
-                avatar.KnockOut(avatar.transform.position - spinner.Center);
-            }
-            fallenThisRound += hitThisFrame.Count;
-
-            int remaining = CountIn();
-            int stopAt = avatars.Count > 1 ? 1 : 0;
-            if (remaining <= stopAt) EndRound();
         }
 
         private void EndRound()
@@ -183,6 +169,7 @@ namespace UnCredibles.Minigames.Churro
 
             phase = RoundPhase.Outro;
             phaseTimer = settings.RoundOutroSeconds;
+
             RoundEnded?.Invoke(CurrentRound, survivors);
             var message = BeginEvent(RoundEndedEvent);
             message.Write((byte)CurrentRound);
@@ -201,127 +188,39 @@ namespace UnCredibles.Minigames.Churro
             }
         }
 
-        // ---------- Cannonball kid (round 2 on) ----------
-
-        // A kid jumps into the water between two floats; the splash covers the screen for a moment.
-        private void TryCannonball(float deltaTime)
-        {
-            var round = settings.GetRound(roundIndex);
-            if (!round.cannonballs || cannonball.IsBusy || (cannonTimer -= deltaTime) > 0f) return;
-            cannonTimer = UnityEngine.Random.Range(round.cannonInterval.x, round.cannonInterval.y);
-
-            // Lands on the water away from every player, a bit inside the ring of floats.
-            float angle = FreeWaterAngle();
-            var direction = Quaternion.Euler(0f, angle, 0f) * Vector3.forward;
-            var landing = Flat(spinner.Center) + direction * settings.CannonLandRadius;
-            var start = Flat(spinner.Center) + direction * settings.CannonStartRadius + Vector3.up;
-            cannonball.Play(start, landing);
-
-            var message = BeginEvent(CannonballEvent);
-            message.Write(start.x); message.Write(start.y); message.Write(start.z);
-            message.Write(landing.x); message.Write(landing.y); message.Write(landing.z);
-            SendEvent();
-        }
-
-        private float FreeWaterAngle()
-        {
-            float best = 0f, bestGap = -1f;
-            for (int attempt = 0; attempt < 16; attempt++)
-            {
-                float candidate = UnityEngine.Random.Range(0f, 360f);
-                float gap = float.MaxValue;
-                foreach (var avatar in avatars) gap = Mathf.Min(gap, Mathf.Abs(Mathf.DeltaAngle(candidate, avatar.Angle)));
-                if (gap > bestGap) { bestGap = gap; best = candidate; }
-            }
-            return best;
-        }
-
-        // ---------- Beach balls ----------
-
-        // Throws a ball at a random player whenever the timing is fair for them.
-        private void TryThrowBall(float deltaTime)
-        {
-            var round = settings.GetRound(roundIndex);
-            if (!round.balls || (ballTimer -= deltaTime) > 0f) return;
-            // Never while the kid is changing direction: the churro timing is not stable then.
-            if (spinner.IsChangingDirection)
-            {
-                ballTimer = 0.25f;
-                return;
-            }
-
-            ballCandidates.Clear();
-            foreach (var avatar in avatars)
-                if (avatar.IsIn && !balls.IsTargeted(avatar)) ballCandidates.Add(avatar);
-            float flight = settings.BallFlightSeconds;
-            while (ballCandidates.Count > 0)
-            {
-                int pick = UnityEngine.Random.Range(0, ballCandidates.Count);
-                var target = ballCandidates[pick];
-                ballCandidates.RemoveAt(pick);
-                if (!IsFairBall(target, flight)) continue;
-
-                balls.Throw(target, flight);
-                // The churro keeps its direction until the ball is gone, so the timing holds.
-                spinner.HoldDirection(flight + settings.BallSafetyGap + 0.3f);
-                var message = BeginEvent(BallThrownEvent);
-                message.Write((byte)avatars.IndexOf(target));
-                message.Write(flight);
-                SendEvent();
-                // More and more balls as the round goes on.
-                ballTimer = UnityEngine.Random.Range(round.ballInterval.x, round.ballInterval.y) * settings.BallIntervalFactor(spinTime);
-                return;
-            }
-            ballTimer = 0.25f; // nobody can get a fair ball right now: try again soon
-        }
-
-        // Fair = the ball reaches the player well apart from any moment the churro passes them,
-        // so there is always time to stand up and jump (or land and duck). Checked with the
-        // current speed and with the speed it will have by then, as it keeps accelerating.
-        private bool IsFairBall(ChurroPlayer target, float arrival)
-        {
-            float gap = settings.BallSafetyGap;
-            float laterSpeed = Mathf.Min(spinner.Speed + spinner.Acceleration * arrival, spinner.MaxSpeed);
-            return IsFairAtSpeed(target, arrival, gap, spinner.Speed) && IsFairAtSpeed(target, arrival, gap, laterSpeed);
-        }
-
-        private bool IsFairAtSpeed(ChurroPlayer target, float arrival, float gap, float speed)
-        {
-            speed = Mathf.Max(speed, 1f);
-            float passSeconds = hitHalfAngle * 2f / speed;
-            for (int arm = 0; arm < spinner.ArmCount; arm++)
-            {
-                float armAngle = spinner.Angle + arm * spinner.ArmSpacing;
-                float distance = spinner.Direction > 0
-                    ? Mathf.Repeat(target.Angle - hitHalfAngle - armAngle, 360f)
-                    : Mathf.Repeat(armAngle - (target.Angle + hitHalfAngle), 360f);
-                // Previous, next and following passes of this arm over the player.
-                for (int lap = -1; lap <= 2; lap++)
-                {
-                    float start = (distance + lap * 360f) / speed;
-                    if (arrival > start - gap && arrival < start + passSeconds + gap) return false;
-                }
-            }
-            return true;
-        }
-
         // A random angle for the churro that keeps every arm well away from every player.
-        private float FairStartAngle(int armCount)
+        private float FairStartAngle(int armCount) =>
+            ChurroAngles.RandomClearAngle(avatars, armCount, hitHalfAngle + settings.StartClearance, StartAngleAttempts, DefaultStartAngle);
+
+        private static int RandomDirection() => UnityEngine.Random.value < 0.5f ? 1 : -1;
+
+        // ---------- Avatars and hits ----------
+
+        private void TickAvatars(float deltaTime, bool canJump)
         {
-            float spacing = 360f / Mathf.Max(1, armCount);
-            float wanted = hitHalfAngle + settings.StartClearance;
-            float best = 45f, bestGap = -1f;
-            for (int attempt = 0; attempt < 32; attempt++)
+            foreach (var avatar in avatars) avatar.Tick(deltaTime, canJump);
+        }
+
+        // Churro (feet too low while an arm sweeps over) and beach balls (standing when one arrives).
+        private void CheckHits()
+        {
+            hitThisFrame.Clear();
+            foreach (var avatar in avatars)
+                if (avatar.IsIn && avatar.FeetHeight < settings.ClearHeight && spinner.SweptThrough(avatar.Angle, hitHalfAngle))
+                    hitThisFrame.Add(avatar);
+            foreach (var avatar in ballHits)
+                if (avatar.IsIn && !hitThisFrame.Contains(avatar)) hitThisFrame.Add(avatar);
+
+            // Players hit in the same frame share the same result.
+            foreach (var avatar in hitThisFrame)
             {
-                float candidate = UnityEngine.Random.Range(0f, 360f);
-                float gap = float.MaxValue;
-                for (int arm = 0; arm < armCount; arm++)
-                    foreach (var avatar in avatars)
-                        gap = Mathf.Min(gap, Mathf.Abs(Mathf.DeltaAngle(candidate + arm * spacing, avatar.Angle)));
-                if (gap >= wanted) return candidate;
-                if (gap > bestGap) { bestGap = gap; best = candidate; }
+                Score.AddScore(avatar.Slot.PlayerId, fallenThisRound);
+                avatar.KnockOut(avatar.transform.position - spinner.Center);
             }
-            return best;
+            fallenThisRound += hitThisFrame.Count;
+
+            int stopAt = avatars.Count > 1 ? 1 : 0;
+            if (CountIn() <= stopAt) EndRound();
         }
 
         private int CountIn()
@@ -351,75 +250,86 @@ namespace UnCredibles.Minigames.Churro
 
         // ---------- Online ----------
 
-        // Spinner (angle + speed for prediction) and every avatar, in the order of Players on all machines.
+        // Spinner and every avatar, in the order of Players on all machines.
         protected override void WriteSnapshot(BinaryWriter writer)
         {
-            writer.Write(spinner.Angle);
-            writer.Write(spinner.AngularVelocity);
-            writer.Write((byte)spinner.ArmCount);
+            spinner.WriteState(writer);
             writer.Write((byte)avatars.Count);
-            foreach (var avatar in avatars)
-            {
-                var position = avatar.transform.position;
-                var rotation = avatar.transform.rotation;
-                writer.Write(avatar.IsIn);
-                writer.Write(avatar.gameObject.activeSelf);
-                writer.Write(avatar.FeetHeight);
-                writer.Write(avatar.IsDucking);
-                writer.Write(position.x); writer.Write(position.y); writer.Write(position.z);
-                writer.Write(rotation.x); writer.Write(rotation.y); writer.Write(rotation.z); writer.Write(rotation.w);
-            }
+            foreach (var avatar in avatars) avatar.WriteState(writer);
         }
 
         protected override void ReadSnapshot(BinaryReader reader)
         {
-            spinner.ApplyRemote(reader.ReadSingle(), reader.ReadSingle(), reader.ReadByte());
+            spinner.ReadState(reader);
             int count = reader.ReadByte();
             for (int i = 0; i < count; i++)
             {
-                bool isIn = reader.ReadBoolean();
-                bool visible = reader.ReadBoolean();
-                float height = reader.ReadSingle();
-                bool ducking = reader.ReadBoolean();
-                var position = new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
-                var rotation = new Quaternion(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
-                if (i < avatars.Count) avatars[i].ApplyRemote(isIn, visible, height, ducking, position, rotation);
+                if (i < avatars.Count) avatars[i].ReadState(reader);
+                else reader.ReadBytes(ChurroPlayer.StateSize);
             }
+        }
+
+        private void SendBallThrown(ChurroPlayer target, float flight)
+        {
+            var message = BeginEvent(BallThrownEvent);
+            message.Write((byte)avatars.IndexOf(target));
+            message.Write(flight);
+            SendEvent();
+        }
+
+        private void SendCannonball(Vector3 start, Vector3 landing)
+        {
+            var message = BeginEvent(CannonballEvent);
+            WriteVector(message, start);
+            WriteVector(message, landing);
+            SendEvent();
         }
 
         protected override void OnNetworkEvent(byte eventId, BinaryReader reader)
         {
-            if (eventId == RoundStartedEvent)
+            switch (eventId)
             {
-                roundIndex = reader.ReadByte() - 1;
-                RoundStarted?.Invoke(CurrentRound, reader.ReadByte());
-            }
-            else if (eventId == BallThrownEvent)
-            {
-                int index = reader.ReadByte();
-                float flight = reader.ReadSingle();
-                if (index < avatars.Count) balls.Throw(avatars[index], flight);
-            }
-            else if (eventId == CannonballEvent)
-            {
-                var start = new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
-                var landing = new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
-                cannonball.Play(start, landing);
-            }
-            else if (eventId == RoundEndedEvent)
-            {
-                int round = reader.ReadByte();
-                int count = reader.ReadByte();
-                var survivors = new List<ChurroPlayer>(count);
-                for (int i = 0; i < count; i++)
+                case RoundStartedEvent:
+                    roundIndex = reader.ReadByte() - 1;
+                    RoundStarted?.Invoke(CurrentRound, reader.ReadByte());
+                    break;
+
+                case BallThrownEvent:
                 {
                     int index = reader.ReadByte();
-                    if (index < avatars.Count) survivors.Add(avatars[index]);
+                    float flight = reader.ReadSingle();
+                    if (index < avatars.Count) balls.Throw(avatars[index], flight);
+                    break;
                 }
-                RoundEnded?.Invoke(round, survivors);
+
+                case CannonballEvent:
+                    cannonball.Play(ReadVector(reader), ReadVector(reader));
+                    break;
+
+                case RoundEndedEvent:
+                {
+                    int round = reader.ReadByte();
+                    int count = reader.ReadByte();
+                    var survivors = new List<ChurroPlayer>(count);
+                    for (int i = 0; i < count; i++)
+                    {
+                        int index = reader.ReadByte();
+                        if (index < avatars.Count) survivors.Add(avatars[index]);
+                    }
+                    RoundEnded?.Invoke(round, survivors);
+                    break;
+                }
             }
         }
 
-        private static Vector3 Flat(Vector3 value) => new Vector3(value.x, 0f, value.z);
+        private static void WriteVector(BinaryWriter writer, Vector3 value)
+        {
+            writer.Write(value.x);
+            writer.Write(value.y);
+            writer.Write(value.z);
+        }
+
+        private static Vector3 ReadVector(BinaryReader reader) =>
+            new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
     }
 }

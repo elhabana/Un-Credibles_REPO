@@ -1,3 +1,4 @@
+using System.IO;
 using UnCredibles.Players;
 using UnCredibles.Players.Inputs;
 using UnityEngine;
@@ -100,9 +101,34 @@ namespace UnCredibles.Minigames.Churro
             visual.localPosition = new Vector3(0f, height, 0f);
         }
 
-        // Online client: the host decides; we only follow its position smoothly.
-        public void ApplyRemote(bool isIn, bool visible, float feetHeight, bool ducking, Vector3 position, Quaternion rotation)
+        // ---------- Online ----------
+
+        // Bytes written by WriteState (lets a client skip an avatar it does not have).
+        public const int StateSize = 1 + 1 + 4 + 1 + 3 * 4 + 4 * 4;
+
+        // Host: what a client needs to draw this avatar.
+        public void WriteState(BinaryWriter writer)
         {
+            var position = transform.position;
+            var rotation = transform.rotation;
+            writer.Write(IsIn);
+            writer.Write(gameObject.activeSelf);
+            writer.Write(FeetHeight);
+            writer.Write(IsDucking);
+            writer.Write(position.x); writer.Write(position.y); writer.Write(position.z);
+            writer.Write(rotation.x); writer.Write(rotation.y); writer.Write(rotation.z); writer.Write(rotation.w);
+        }
+
+        // Client: the host decides; we only follow its position smoothly.
+        public void ReadState(BinaryReader reader)
+        {
+            bool isIn = reader.ReadBoolean();
+            bool visible = reader.ReadBoolean();
+            float feetHeight = reader.ReadSingle();
+            bool ducking = reader.ReadBoolean();
+            var position = new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
+            var rotation = new Quaternion(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
+
             bool appeared = visible && !gameObject.activeSelf;
             if (gameObject.activeSelf != visible) gameObject.SetActive(visible);
             IsIn = isIn;

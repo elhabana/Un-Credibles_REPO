@@ -1,3 +1,4 @@
+using System.IO;
 using UnityEngine;
 
 namespace UnCredibles.Minigames.Churro
@@ -135,18 +136,34 @@ namespace UnCredibles.Minigames.Churro
         {
             float best = float.MaxValue;
             for (int arm = 0; arm < ArmCount; arm++)
-            {
-                float armAngle = Angle + arm * ArmSpacing;
-                float distance = Direction > 0
-                    ? Mathf.Repeat(targetAngle - halfWidth - armAngle, 360f)
-                    : Mathf.Repeat(armAngle - (targetAngle + halfWidth), 360f);
-                best = Mathf.Min(best, distance / Mathf.Max(Speed, 1f));
-            }
+                best = Mathf.Min(best, DistanceToZone(arm, targetAngle, halfWidth) / Mathf.Max(Speed, 1f));
             return best;
         }
 
-        // Online client: the host sends angle + signed speed; between packets we predict and blend in.
-        public void ApplyRemote(float angle, float angularVelocity, int armCount)
+        // Degrees this arm still has to turn, in the current direction, to reach the near edge of
+        // [targetAngle - halfWidth, targetAngle + halfWidth].
+        public float DistanceToZone(int arm, float targetAngle, float halfWidth)
+        {
+            float armAngle = Angle + arm * ArmSpacing;
+            return Direction > 0
+                ? Mathf.Repeat(targetAngle - halfWidth - armAngle, 360f)
+                : Mathf.Repeat(armAngle - (targetAngle + halfWidth), 360f);
+        }
+
+        // ---------- Online ----------
+
+        // Host: angle, signed speed (for the client prediction) and arm count.
+        public void WriteState(BinaryWriter writer)
+        {
+            writer.Write(Angle);
+            writer.Write(AngularVelocity);
+            writer.Write((byte)ArmCount);
+        }
+
+        public void ReadState(BinaryReader reader) => ApplyRemote(reader.ReadSingle(), reader.ReadSingle(), reader.ReadByte());
+
+        // Client: between packets we predict with the received speed and blend towards the host.
+        private void ApplyRemote(float angle, float angularVelocity, int armCount)
         {
             if (armCount != ArmCount)
             {
