@@ -20,6 +20,8 @@ MonoBehaviour:
     reverses: 1
     balls: 1
     ballInterval: {x: 3.5, y: 5.5}
+    cannonballs: 0
+    cannonInterval: {x: 0, y: 0}
   - arms: 1
     startSpeed: 70
     acceleration: 12
@@ -27,6 +29,8 @@ MonoBehaviour:
     reverses: 1
     balls: 1
     ballInterval: {x: 3, y: 4.5}
+    cannonballs: 1
+    cannonInterval: {x: 9, y: 13}
   - arms: 2
     startSpeed: 50
     acceleration: 6
@@ -34,6 +38,8 @@ MonoBehaviour:
     reverses: 1
     balls: 1
     ballInterval: {x: 2.5, y: 4}
+    cannonballs: 1
+    cannonInterval: {x: 7, y: 10}
   roundIntroSeconds: 1.5
   roundOutroSeconds: 2.5
   startClearance: 30
@@ -50,6 +56,11 @@ MonoBehaviour:
   ballHeight: 0.95
   ballRadius: 0.28
   ballThrowDistance: 7
+  cannonFirstDelay: 4
+  cannonWarnSeconds: 1.2
+  cannonFlightSeconds: 0.9
+  cannonLandRadius: 2.1
+  cannonStartRadius: 10
   churroHeight: 0.35
   churroRadius: 0.15
   jumpVelocity: 6.5

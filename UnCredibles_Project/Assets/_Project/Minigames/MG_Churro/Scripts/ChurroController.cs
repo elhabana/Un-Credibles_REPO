@@ -19,10 +19,12 @@ namespace UnCredibles.Minigames.Churro
         private const byte RoundStartedEvent = 1;
         private const byte RoundEndedEvent = 2;
         private const byte BallThrownEvent = 3;
+        private const byte CannonballEvent = 4;
 
         [SerializeField] private ChurroSettings settings;
         [SerializeField] private ChurroSpinner spinner;
         [SerializeField] private ChurroBalls balls;
+        [SerializeField] private ChurroCannonball cannonball;
         [SerializeField] private ChurroPlayer playerPrefab;
         [SerializeField] private Transform playersParent;
 
@@ -33,6 +35,7 @@ namespace UnCredibles.Minigames.Churro
         private readonly List<ChurroPlayer> ballCandidates = new List<ChurroPlayer>(PlayerRegistry.MaxPlayers);
         private float ballTimer;
         private float spinTime; // seconds the churro has been spinning this round
+        private float cannonTimer;
         private float firstStartAngle = 45f;
         private int firstDirection = 1;
         private RoundPhase phase;
@@ -62,6 +65,7 @@ namespace UnCredibles.Minigames.Churro
             hitHalfAngle = floatDistance > 0.01f ? Mathf.Atan2(settings.PlayerRadius, floatDistance) * Mathf.Rad2Deg : 10f;
 
             balls.Initialize(settings, spinner.Center);
+            cannonball.Initialize(settings);
             if (!IsReplica)
             {
                 EnsureBrains();
@@ -77,6 +81,7 @@ namespace UnCredibles.Minigames.Churro
         private void Update()
         {
             float deltaTime = Time.deltaTime;
+            cannonball.Tick(deltaTime); // only visual: runs the same on host and clients
             if (IsReplica)
             {
                 // Online client: only smooth what the host sends (spinner and avatars).
@@ -100,6 +105,7 @@ namespace UnCredibles.Minigames.Churro
                     spinner.Tick(deltaTime);
                     spinTime += deltaTime;
                     TryThrowBall(deltaTime);
+                    TryCannonball(deltaTime);
                     foreach (var brain in brains) brain.Tick(); // before avatars read their input
                     TickAvatars(deltaTime, true);
                     ballHits.Clear();
@@ -128,6 +134,7 @@ namespace UnCredibles.Minigames.Churro
             balls.Clear();
             ballTimer = settings.BallFirstDelay;
             spinTime = 0f;
+            cannonTimer = settings.CannonFirstDelay;
             phase = RoundPhase.Intro;
             phaseTimer = settings.RoundIntroSeconds;
             RoundStarted?.Invoke(CurrentRound, TotalRounds);
@@ -192,6 +199,41 @@ namespace UnCredibles.Minigames.Churro
                 phase = RoundPhase.None;
                 EndGame(MinigameEndReason.ObjectiveCompleted);
             }
+        }
+
+        // ---------- Cannonball kid (round 2 on) ----------
+
+        // A kid jumps into the water between two floats; the splash covers the screen for a moment.
+        private void TryCannonball(float deltaTime)
+        {
+            var round = settings.GetRound(roundIndex);
+            if (!round.cannonballs || cannonball.IsBusy || (cannonTimer -= deltaTime) > 0f) return;
+            cannonTimer = UnityEngine.Random.Range(round.cannonInterval.x, round.cannonInterval.y);
+
+            // Lands on the water away from every player, a bit inside the ring of floats.
+            float angle = FreeWaterAngle();
+            var direction = Quaternion.Euler(0f, angle, 0f) * Vector3.forward;
+            var landing = Flat(spinner.Center) + direction * settings.CannonLandRadius;
+            var start = Flat(spinner.Center) + direction * settings.CannonStartRadius + Vector3.up;
+            cannonball.Play(start, landing);
+
+            var message = BeginEvent(CannonballEvent);
+            message.Write(start.x); message.Write(start.y); message.Write(start.z);
+            message.Write(landing.x); message.Write(landing.y); message.Write(landing.z);
+            SendEvent();
+        }
+
+        private float FreeWaterAngle()
+        {
+            float best = 0f, bestGap = -1f;
+            for (int attempt = 0; attempt < 16; attempt++)
+            {
+                float candidate = UnityEngine.Random.Range(0f, 360f);
+                float gap = float.MaxValue;
+                foreach (var avatar in avatars) gap = Mathf.Min(gap, Mathf.Abs(Mathf.DeltaAngle(candidate, avatar.Angle)));
+                if (gap > bestGap) { bestGap = gap; best = candidate; }
+            }
+            return best;
         }
 
         // ---------- Beach balls ----------
@@ -357,6 +399,12 @@ namespace UnCredibles.Minigames.Churro
                 int index = reader.ReadByte();
                 float flight = reader.ReadSingle();
                 if (index < avatars.Count) balls.Throw(avatars[index], flight);
+            }
+            else if (eventId == CannonballEvent)
+            {
+                var start = new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
+                var landing = new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
+                cannonball.Play(start, landing);
             }
             else if (eventId == RoundEndedEvent)
             {
