@@ -67,7 +67,9 @@ MonoBehaviour:
   grandmaLaunchUp: {x: 9, y: 13}
   grandmaSpinSpeed: 900
   grandmaGravity: 20
-  oilDropInterval: {x: 6, y: 12}
+  oilTruckChance: 0.08
+  maxOilTrucks: 1
+  oilDropsPerTruck: 1
   oilLifetime: 8
   oilRadius: 1.5
   maxOilSlicks: 4
@@ -76,9 +78,18 @@ MonoBehaviour:
   oilMaxSpeedMultiplier: 1.4
   oilSlideBoost: 1.25
   oilAfterSlip: 0.6
+  startSpeedMultiplier: 0.75
+  endSpeedMultiplier: 1.35
+  startSpawnMultiplier: 2
+  endSpawnMultiplier: 0.6
+  difficultyRamp: 1
+  finalRushSeconds: 30
+  finalRushMultiplier: 2
   grandmaCount: 6
   pickupRadius: 0.9
-  pointsPerDelivery: 1
+  pointsPerDelivery: 50
+  hitPenalty: 15
+  hitWithGrandmaPenalty: 25
   grandmaRespawnDelay: 2
   returnToSpawnAfterDelivery: 0
   grandmaColor: {r: 0.75, g: 0.55, b: 0.85, a: 1}
@@ -87,7 +98,7 @@ MonoBehaviour:
   - {r: 0.95, g: 0.45, b: 0.1, a: 1}
   - {r: 0.15, g: 0.7, b: 0.85, a: 1}
   - {r: 0.95, g: 0.95, b: 0.95, a: 1}
-  - {r: 0.2, g: 0.2, b: 0.25, a: 1}
+  - {r: 0.9, g: 0.22, b: 0.25, a: 1}
   pickupLaneColor: {r: 0.55, g: 0.75, b: 0.45, a: 1}
   spawnLaneColor: {r: 0.45, g: 0.65, b: 0.4, a: 1}
   roadColor: {r: 0.22, g: 0.22, b: 0.25, a: 1}

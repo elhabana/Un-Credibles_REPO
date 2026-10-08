@@ -60,8 +60,10 @@ namespace UnCredibles.Minigames.CrossyRoad
         [SerializeField, Min(0.1f)] private float grandmaGravity = 20f;
 
         [Header("Oil slicks")]
-        [SerializeField, Tooltip("Seconds between two oil drops (random in range).")]
-        private Vector2 oilDropInterval = new Vector2(6f, 12f);
+        [SerializeField, Range(0f, 1f), Tooltip("Chance that a new vehicle is an oil truck at full difficulty (none at the start).")]
+        private float oilTruckChance = 0.08f;
+        [SerializeField, Min(0), Tooltip("Oil trucks on the road at the same time.")] private int maxOilTrucks = 1;
+        [SerializeField, Min(1), Tooltip("Oil slicks each truck leaks while crossing the board.")] private int oilDropsPerTruck = 1;
         [SerializeField, Min(0.5f)] private float oilLifetime = 8f;
         [SerializeField, Min(0.1f)] private float oilRadius = 1.5f;
         [SerializeField, Min(1)] private int maxOilSlicks = 4;
@@ -76,10 +78,23 @@ namespace UnCredibles.Minigames.CrossyRoad
         [SerializeField, Min(0f), Tooltip("Seconds a player keeps sliding after leaving the oil.")]
         private float oilAfterSlip = 0.6f;
 
+        [Header("Difficulty (grows during the game)")]
+        [SerializeField, Min(0.05f), Tooltip("Car speed multiplier at the start of the game.")] private float startSpeedMultiplier = 0.75f;
+        [SerializeField, Min(0.05f), Tooltip("Car speed multiplier at the end of the game.")] private float endSpeedMultiplier = 1.35f;
+        [SerializeField, Min(0.1f), Tooltip("Time between cars multiplier at the start (higher = fewer cars).")] private float startSpawnMultiplier = 2f;
+        [SerializeField, Min(0.1f), Tooltip("Time between cars multiplier at the end (lower = more cars).")] private float endSpawnMultiplier = 0.6f;
+        [SerializeField, Min(0.1f), Tooltip("1 = linear. Higher = stays easy longer and gets hard near the end.")] private float difficultyRamp = 1f;
+
+        [Header("Final rush")]
+        [SerializeField, Min(0f), Tooltip("Last seconds of the game where deliveries are worth more.")] private float finalRushSeconds = 30f;
+        [SerializeField, Min(1)] private int finalRushMultiplier = 2;
+
         [Header("Grandmas")]
         [SerializeField, Min(1), Tooltip("Grandmas spread evenly across the pickup lane.")] private int grandmaCount = 6;
         [SerializeField, Min(0.1f), Tooltip("Distance at which a player grabs a grandma.")] private float pickupRadius = 0.9f;
-        [SerializeField, Min(1)] private int pointsPerDelivery = 1;
+        [SerializeField, Min(1), Tooltip("Points for every grandma taken to the other side.")] private int pointsPerDelivery = 50;
+        [SerializeField, Min(0), Tooltip("Points lost when a car runs you over.")] private int hitPenalty = 15;
+        [SerializeField, Min(0), Tooltip("Points lost when a car runs you over while carrying a grandma.")] private int hitWithGrandmaPenalty = 25;
         [SerializeField, Min(0f)] private float grandmaRespawnDelay = 2f;
         [SerializeField, Tooltip("Teleport back to the spawn lane after a delivery instead of walking back.")]
         private bool returnToSpawnAfterDelivery;
@@ -88,10 +103,11 @@ namespace UnCredibles.Minigames.CrossyRoad
         [Header("Traffic")]
         [SerializeField, Min(1f), Tooltip("Lane depths outside the board where cars appear and disappear.")]
         private float offscreenMargin = 9f;
-        [SerializeField] private Color[] carColors =
+        [SerializeField, Tooltip("Plain cars. Avoid black and yellow: those are the oil trucks.")]
+        private Color[] carColors =
         {
             new Color(0.95f, 0.45f, 0.1f), new Color(0.15f, 0.7f, 0.85f),
-            new Color(0.95f, 0.95f, 0.95f), new Color(0.2f, 0.2f, 0.25f),
+            new Color(0.95f, 0.95f, 0.95f), new Color(0.9f, 0.22f, 0.25f),
         };
 
         [Header("Lane colors")]
@@ -126,7 +142,9 @@ namespace UnCredibles.Minigames.CrossyRoad
         public float GrandmaSpinSpeed => grandmaSpinSpeed;
         public float GrandmaGravity => grandmaGravity;
 
-        public Vector2 OilDropInterval => oilDropInterval;
+        public float OilTruckChance => oilTruckChance;
+        public int MaxOilTrucks => maxOilTrucks;
+        public int OilDropsPerTruck => oilDropsPerTruck;
         public float OilLifetime => oilLifetime;
         public float OilRadius => oilRadius;
         public int MaxOilSlicks => maxOilSlicks;
@@ -139,6 +157,15 @@ namespace UnCredibles.Minigames.CrossyRoad
         public int GrandmaCount => grandmaCount;
         public float PickupRadius => pickupRadius;
         public int PointsPerDelivery => pointsPerDelivery;
+        public int HitPenalty => hitPenalty;
+        public int HitWithGrandmaPenalty => hitWithGrandmaPenalty;
+        public float FinalRushSeconds => finalRushSeconds;
+        public int FinalRushMultiplier => finalRushMultiplier;
+
+        // 0 = start of the game, 1 = end; returns the curved difficulty used by the traffic.
+        public float Difficulty(float progress) => Mathf.Pow(Mathf.Clamp01(progress), difficultyRamp);
+        public float SpeedMultiplier(float difficulty) => Mathf.Lerp(startSpeedMultiplier, endSpeedMultiplier, difficulty);
+        public float SpawnMultiplier(float difficulty) => Mathf.Lerp(startSpawnMultiplier, endSpawnMultiplier, difficulty);
         public float GrandmaRespawnDelay => grandmaRespawnDelay;
         public bool ReturnToSpawnAfterDelivery => returnToSpawnAfterDelivery;
         public Color GrandmaColor => grandmaColor;
