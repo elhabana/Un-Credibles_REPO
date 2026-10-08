@@ -224,7 +224,7 @@ namespace UnCredibles.BatPad
             switch (button)
             {
                 case "A": action = PlayerAction.Jump; return true;
-                case "B": action = PlayerAction.Interact; return true;
+                case "B": action = PlayerAction.Crouch; return true;
                 case "START": action = PlayerAction.Pause; return true;
                 default: action = default; return false;
             }

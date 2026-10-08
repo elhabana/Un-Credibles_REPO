@@ -14,19 +14,53 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   rounds:
   - arms: 1
-    startSpeed: 100
-    acceleration: 10
-    maxSpeed: 360
+    startSpeed: 55
+    acceleration: 9
+    maxSpeed: 330
+    reverses: 1
+    balls: 1
+    ballInterval: {x: 3.5, y: 5.5}
+    cannonballs: 0
+    cannonInterval: {x: 0, y: 0}
   - arms: 1
-    startSpeed: 140
-    acceleration: 14
-    maxSpeed: 420
+    startSpeed: 70
+    acceleration: 12
+    maxSpeed: 400
+    reverses: 1
+    balls: 1
+    ballInterval: {x: 3, y: 4.5}
+    cannonballs: 1
+    cannonInterval: {x: 9, y: 13}
   - arms: 2
-    startSpeed: 90
+    startSpeed: 50
     acceleration: 6
-    maxSpeed: 230
+    maxSpeed: 220
+    reverses: 1
+    balls: 1
+    ballInterval: {x: 2.5, y: 4}
+    cannonballs: 1
+    cannonInterval: {x: 7, y: 10}
   roundIntroSeconds: 1.5
   roundOutroSeconds: 2.5
+  startClearance: 30
+  firstReverseDelay: 3
+  reverseInterval: {x: 4, y: 8}
+  brakeSeconds: 0.35
+  reversePause: 0.2
+  reaccelerateSeconds: 0.5
+  ballFirstDelay: 2
+  ballRampSeconds: 25
+  ballRampMinFactor: 0.35
+  ballFlightSeconds: 1.1
+  ballSafetyGap: 0.8
+  ballHeight: 0.95
+  ballRadius: 0.28
+  ballThrowDistance: 7
+  cannonFirstDelay: 4
+  cannonWarnSeconds: 1.2
+  cannonFlightSeconds: 0.9
+  cannonLandRadius: 2.1
+  cannonStartRadius: 10
   churroHeight: 0.35
   churroRadius: 0.15
   jumpVelocity: 6.5

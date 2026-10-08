@@ -21,4 +21,4 @@ MonoBehaviour:
   maxPlayers: 4
   thumbnail: {fileID: 0}
   music: {fileID: 0}
-  rules: Jump to dodge the churro. Last one standing wins the round. 3 rounds.
+  rules: Jump to dodge the churro (it can change direction) and duck (Ctrl / B) under the beach balls. Last one standing wins the round. 3 rounds.
