@@ -17,10 +17,14 @@ Los títulos visibles pueden estar en español. Los nombres técnicos se escribe
 | Abuela | `CrossyRoad` | `CR` | En el repositorio |
 | Niño en el agua | `Churro` | `CH` | En el repositorio |
 | Césped | `MowTheLawn` | `MW` | En el repositorio |
-| Ratones | `GarageMice` | `GM` | Pendiente |
+| Ratones | `GarageMice` | `GM` | Prototipo en el repositorio |
 | Gato | `CatRescue` | `CT` | Pendiente |
 
-Los nombres técnicos de Ratones y Gato son propuestas para su implementación.
+El nombre técnico de Gato es una propuesta para su implementación.
+
+Al comenzar una partida desde el lobby compartido, se abre la puerta del garaje y todos los jugadores salen corriendo hacia una luz intensa que oculta el exterior. Esta salida sucede una sola vez por partida, antes del primer minijuego.
+
+En el prototipo de `GarageMice`, la cámara mira desde arriba con una ligera inclinación para mostrar la profundidad del garaje ampliado. Las estanterías bloquean el paso. Los jugadores golpean con una escoba usando la acción `Jump` (`Espacio` o `A`, también disponible en BatPad). Cada ratón eliminado suma un punto; golpear a otro jugador lo aturde brevemente, con estrellas y un pequeño temblor de cámara. Gana quien haya eliminado más ratones al terminar los 90 segundos.
 
 ## 2. Organización de carpetas
 
@@ -36,7 +40,8 @@ _Project/
 │   ├── _Template/
 │   ├── MG_CrossyRoad/
 │   ├── MG_Churro/
-│   └── MG_MowTheLawn/
+│   ├── MG_MowTheLawn/
+│   └── MG_GarageMice/
 ├── UI/
 │   ├── Garage/
 │   ├── MainMenu/
@@ -50,7 +55,7 @@ _Project/
 └── Tests/
 ```
 
-Las carpetas `MG_GarageMice` y `MG_CatRescue` se crearán cuando comience su desarrollo. La integración de BatPad está dentro de `Networking/BatPad`.
+La carpeta `MG_CatRescue` se creará cuando comience su desarrollo. La integración de BatPad está dentro de `Networking/BatPad`.
 
 | Carpeta | Responsabilidad |
 |---|---|
@@ -110,6 +115,7 @@ Las escenas de minijuegos presentes siguen el formato `MG_<NombreTecnico>`:
 MG_CrossyRoad
 MG_Churro
 MG_MowTheLawn
+MG_GarageMice
 ```
 
 El nombre debe coincidir exactamente con el campo `SceneName` del asset `MinigameData`. Cada escena nueva debe estar habilitada en el perfil de compilación y registrada en `MinigameManager`, dentro de `01_Core`.
@@ -161,6 +167,7 @@ Cada minijuego utiliza un namespace propio:
 UnCredibles.Minigames.CrossyRoad
 UnCredibles.Minigames.Churro
 UnCredibles.Minigames.MowTheLawn
+UnCredibles.Minigames.GarageMice
 ```
 
 Su ensamblado sigue el mismo nombre. Por ejemplo:
@@ -169,7 +176,7 @@ Su ensamblado sigue el mismo nombre. Por ejemplo:
 UnCredibles.Minigames.MowTheLawn.asmdef
 ```
 
-Los namespaces y ensamblados de `GarageMice` y `CatRescue` se definirán al implementarlos.
+El namespace y ensamblado de `CatRescue` se definirán al implementarlo.
 
 Se conserva la convención actual de jugadores: carpeta `Player`, ensamblado `UnCredibles.Player` y namespace `UnCredibles.Players`.
 
@@ -204,9 +211,10 @@ Los IDs actuales de los minijuegos utilizan minúsculas; pueden incluir guiones 
 crossy_road
 churro
 mowthelawn
+garage_mice
 ```
 
-Estos son los IDs actuales de los tres `MinigameData` registrados. Cada ID debe ser único y permanecer estable aunque cambie el título visible. Los IDs de los minijuegos pendientes se decidirán al crearlos.
+Estos son los IDs actuales de los cuatro `MinigameData` registrados. Cada ID debe ser único y permanecer estable aunque cambie el título visible. El ID del minijuego pendiente se decidirá al crearlo.
 
 ## 8. Organización de la interfaz
 

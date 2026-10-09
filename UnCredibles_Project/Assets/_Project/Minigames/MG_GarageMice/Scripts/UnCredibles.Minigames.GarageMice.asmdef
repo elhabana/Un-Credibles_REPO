@@ -1,0 +1,5 @@
+{
+    "name": "UnCredibles.Minigames.GarageMice",
+    "references": ["UnCredibles.Minigames", "UnCredibles.Player", "Unity.TextMeshPro", "UnityEngine.UI"],
+    "autoReferenced": true
+}
