@@ -4,6 +4,7 @@ using UnCredibles.Core;
 using UnCredibles.UI.MainMenu;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 namespace UnCredibles.UI.Garage
@@ -25,6 +26,7 @@ namespace UnCredibles.UI.Garage
             PlaceSettingsOnTv();
             while (CoreRoot.Instance == null) yield return null;
             core = CoreRoot.Instance;
+            gameObject.AddComponent<UnCredibles.UI.Voting.MapVoteView>();
             core.GameFlow.StateChanged += StateChanged;
             menu.SettingsRequested += ShowSettings;
             masterVolume.SetValueWithoutNotify(core.Settings.MasterVolume);
@@ -45,6 +47,13 @@ namespace UnCredibles.UI.Garage
             if (menu != null) menu.SettingsRequested -= ShowSettings;
         }
 
+        private void Update()
+        {
+            if (cameras.View < GarageView.Settings) return;
+            if ((Gamepad.current != null && Gamepad.current.buttonEast.wasPressedThisFrame) ||
+                (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)) ShowHome();
+        }
+
         private void StateChanged(GameState previous, GameState current)
         {
             if (current == GameState.PartyLobby) Show(GarageView.Lobby);
@@ -52,6 +61,13 @@ namespace UnCredibles.UI.Garage
             {
                 Show(GarageView.Home);
                 menu.ResetView();
+            }
+            else if (current == GameState.Voting)
+            {
+                if (EventSystem.current != null) EventSystem.current.SetSelectedGameObject(null);
+                menuRoot.SetActive(false);
+                lobbyRoot.SetActive(false);
+                for (int i = 0; i < detailPanels.Length; i++) detailPanels[i].SetActive(false);
             }
             else lobbyRoot.SetActive(false);
         }
@@ -74,6 +90,17 @@ namespace UnCredibles.UI.Garage
             for (int i = 0; i < detailPanels.Length; i++)
                 detailPanels[i].SetActive((int)view == i + 2);
             cameras.Show(view);
+            if (view == GarageView.Home) menu.FocusMain();
+            else if ((int)view >= 2)
+            {
+                var buttons = detailPanels[(int)view - 2].GetComponentsInChildren<Button>(true);
+                foreach (var button in buttons)
+                    if (button.gameObject.activeInHierarchy && button.interactable)
+                    {
+                        if (EventSystem.current != null) EventSystem.current.SetSelectedGameObject(button.gameObject);
+                        break;
+                    }
+            }
         }
 
         private void SetVolume(float _) => core.Settings.SetVolumes(masterVolume.value, musicVolume.value, sfxVolume.value);

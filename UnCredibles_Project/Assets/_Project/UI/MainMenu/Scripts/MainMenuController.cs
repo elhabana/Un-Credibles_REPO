@@ -2,6 +2,8 @@ using UnCredibles.Core;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 
 namespace UnCredibles.UI.MainMenu
 {
@@ -41,6 +43,10 @@ namespace UnCredibles.UI.MainMenu
 
         private void Update()
         {
+            if (multiplayerSetupPanel.activeInHierarchy &&
+                ((Gamepad.current != null && Gamepad.current.buttonEast.wasPressedThisFrame) ||
+                 (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)))
+                CloseMultiplayerSetup();
             var core = CoreRoot.Instance;
             if (core == null) return;
             bool available = core.Online.CanConnect && !core.Scenes.IsLoading;
@@ -50,6 +56,8 @@ namespace UnCredibles.UI.MainMenu
             roomCodeInput.interactable = available;
             backButton.interactable = available;
             connectionStatus.text = core.Online.Status;
+            if (available && mainPanel.activeInHierarchy && EventSystem.current != null &&
+                EventSystem.current.currentSelectedGameObject == null) FocusMain();
             if (enteringOnline && core.Online.IsConnected && !core.Scenes.IsLoading)
             {
                 enteringOnline = false;
@@ -99,10 +107,18 @@ namespace UnCredibles.UI.MainMenu
 
         public void ResetView() => ShowMultiplayerSetup(false);
 
+        public void FocusMain()
+        {
+            if (EventSystem.current != null && singleplayerButton.interactable)
+                EventSystem.current.SetSelectedGameObject(singleplayerButton.gameObject);
+        }
+
         private void ShowMultiplayerSetup(bool show)
         {
             mainPanel.SetActive(!show);
             multiplayerSetupPanel.SetActive(show);
+            if (EventSystem.current != null)
+                EventSystem.current.SetSelectedGameObject(show ? createRoomButton.gameObject : singleplayerButton.gameObject);
         }
     }
 }

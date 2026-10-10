@@ -27,6 +27,7 @@ namespace UnCredibles.Networking
         private const string SceneMessage = "uc.flow.scene";
         private const string LoadedMessage = "uc.flow.loaded";
         private const string StandingsMessage = "uc.flow.standings";
+        private const string VoteMessage = "uc.flow.vote";
         private const string InputMessage = "uc.input";
         private const string HudMessage = "uc.mg.hud";
         private const string MinigameSnapshotMessage = "uc.mg.snapshot";
@@ -37,7 +38,7 @@ namespace UnCredibles.Networking
 
         private static readonly string[] HostMessages = { ReadyMessage, HelloMessage, LoadedMessage, InputMessage };
         private static readonly string[] ClientMessages =
-            { SnapshotMessage, CountdownMessage, SceneMessage, StandingsMessage, HudMessage, MinigameSnapshotMessage, EventMessage };
+            { SnapshotMessage, CountdownMessage, SceneMessage, StandingsMessage, VoteMessage, HudMessage, MinigameSnapshotMessage, EventMessage };
 
         private readonly RelayConnection connection;
         private readonly PlayerRegistry players;
@@ -71,11 +72,13 @@ namespace UnCredibles.Networking
         public IReadOnlyList<LobbySlotInfo> Slots => slots;
         // Client: last standings received for the Results screen.
         public OnlineStandings Standings { get; } = new OnlineStandings();
+        public List<int> VoteChoices { get; } = new List<int>(3);
 
         public event Action SlotsChanged;                   // client
         public event Action<int> CountdownReceived;         // client: seconds left, 0 = start, -1 = cancelled
         public event Action<string, byte> SceneRequested;   // client: scene to load + game state
         public event Action StandingsReceived;              // client
+        public event Action<int, float> VoteProgressReceived; // client
         public event Action<byte[], int> HudReceived;       // client (IMinigameNetwork)
         public event Action<byte[], int> SnapshotReceived;  // client (IMinigameNetwork)
         public event Action<byte[], int> EventReceived;     // client (IMinigameNetwork)
@@ -164,6 +167,16 @@ namespace UnCredibles.Networking
             messaging.SendNamedMessage(StandingsMessage, remoteClients, writer, NetworkDelivery.ReliableSequenced);
         }
 
+        public void SendVoteProgress(IReadOnlyList<int> choices, float seconds)
+        {
+            if (!IsActive || !IsHost || !CollectRemoteClients()) return;
+            using var writer = new FastBufferWriter(32, Allocator.Temp);
+            writer.WriteValueSafe(choices.Count);
+            writer.WriteValueSafe(seconds);
+            foreach (int index in choices) writer.WriteValueSafe(index);
+            messaging.SendNamedMessage(VoteMessage, remoteClients, writer, NetworkDelivery.ReliableSequenced);
+        }
+
         // Client: the controller of this machine's player, every frame while playing.
         public void SendInput(Vector2 move, int pressedMask, int heldMask)
         {
@@ -221,6 +234,7 @@ namespace UnCredibles.Networking
                 messaging.RegisterNamedMessageHandler(CountdownMessage, HandleCountdownMessage);
                 messaging.RegisterNamedMessageHandler(SceneMessage, HandleSceneMessage);
                 messaging.RegisterNamedMessageHandler(StandingsMessage, HandleStandingsMessage);
+                messaging.RegisterNamedMessageHandler(VoteMessage, HandleVoteMessage);
                 messaging.RegisterNamedMessageHandler(HudMessage, HandleHudMessage);
                 messaging.RegisterNamedMessageHandler(MinigameSnapshotMessage, HandleMinigameSnapshotMessage);
                 messaging.RegisterNamedMessageHandler(EventMessage, HandleEventMessage);
@@ -360,6 +374,19 @@ namespace UnCredibles.Networking
         {
             Standings.Read(reader);
             StandingsReceived?.Invoke();
+        }
+
+        private void HandleVoteMessage(ulong sender, FastBufferReader reader)
+        {
+            reader.ReadValueSafe(out int count);
+            reader.ReadValueSafe(out float seconds);
+            VoteChoices.Clear();
+            for (int i = 0; i < count && i < 3; i++)
+            {
+                reader.ReadValueSafe(out int index);
+                VoteChoices.Add(index);
+            }
+            VoteProgressReceived?.Invoke(count, seconds);
         }
 
         private void HandleHudMessage(ulong sender, FastBufferReader reader) => RaiseBytes(reader, HudReceived);
