@@ -39,12 +39,15 @@ namespace UnCredibles.Core
         private float voteDeadline;
         private bool voteFinalizing;
         private int voteGeneration;
+        private int nextVoteBallotId;
+        private int voteBallotId;
         private const float VoteSeconds = 12f;
         public IReadOnlyList<MinigameData> VoteCandidates => voteCandidates;
         public IReadOnlyList<MinigameData> VotedMinigames => votedMinigames;
         public IReadOnlyDictionary<int, int> Votes => votes;
         public IReadOnlyDictionary<int, int> VoteCursor => voteCursor;
         public float VoteSecondsLeft => Mathf.Max(0f, voteDeadline - Time.unscaledTime);
+        public bool CanChangeVote => GameFlow.State == GameState.Voting && !voteFinalizing && VoteSecondsLeft > 0f;
         public event System.Action VoteChanged;
 
         public static CoreRoot Instance { get; private set; }
@@ -94,6 +97,7 @@ namespace UnCredibles.Core
             minigames.ClientsReady = Room.AllClientsIn;
             Room.SceneRequested += HandleSceneRequested;
             Room.VoteProgressReceived += HandleVoteProgress;
+            Room.VoteRequested += HandleVoteRequested;
             minigames.MinigameStarted += HandleMinigameStarted;
             minigames.MinigameFinished += HandleMinigameFinished;
             batPad.PhoneDisconnected += HandlePhoneDisconnected;
@@ -196,6 +200,7 @@ namespace UnCredibles.Core
             if (Instance != this) return;
             Room.SceneRequested -= HandleSceneRequested;
             Room.VoteProgressReceived -= HandleVoteProgress;
+            Room.VoteRequested -= HandleVoteRequested;
             Room?.Dispose();
             onlineInput?.Dispose();
             if (Online != null) Destroy(Online.gameObject);
@@ -301,7 +306,7 @@ namespace UnCredibles.Core
         // Presses go out at once (reliable); the stick at most 30 times per second.
         private void SendOnlineInput()
         {
-            if (GameFlow.State != GameState.Minigame && GameFlow.State != GameState.Results && GameFlow.State != GameState.Voting) return;
+            if (GameFlow.State != GameState.Minigame && GameFlow.State != GameState.Results) return;
             onlineInput ??= input.CreateAnyDeviceInput();
 
             int pressed = 0, held = 0;
@@ -318,6 +323,7 @@ namespace UnCredibles.Core
         private void ClearVote()
         {
             voteGeneration++;
+            voteBallotId = 0;
             voteCandidates.Clear();
             votedMinigames.Clear();
             votes.Clear();
@@ -329,6 +335,7 @@ namespace UnCredibles.Core
 
         private void BeginVote()
         {
+            voteBallotId = ++nextVoteBallotId;
             votes.Clear();
             voteCursor.Clear();
             nextVoteMove.Clear();
@@ -340,12 +347,11 @@ namespace UnCredibles.Core
         private void UpdateVote()
         {
             if (voteFinalizing) return;
-            int required = 0;
+            if (Time.unscaledTime >= voteDeadline) { FinishVote(); return; }
             foreach (var slot in Players.Slots)
             {
                 if (!slot.IsOccupied || slot.IsAI || !slot.IsConnected || slot.Input == null) continue;
-                required++;
-                if (votes.ContainsKey(slot.PlayerId)) continue;
+                if (IsOnlineHost && Room.IsRemoteSlot(slot.SlotIndex)) continue;
                 int cursor = voteCursor.TryGetValue(slot.PlayerId, out int selected) ? selected : FirstAvailableVote();
                 float axis = slot.Input.Move.x;
                 if (Mathf.Abs(axis) > .55f && (!nextVoteMove.TryGetValue(slot.PlayerId, out float repeat) || Time.unscaledTime >= repeat))
@@ -357,16 +363,35 @@ namespace UnCredibles.Core
                 }
                 if (slot.Input.WasPressed(PlayerAction.Jump)) CastVote(slot.PlayerId, cursor);
             }
-            if ((required > 0 && votes.Count >= required) || Time.unscaledTime >= voteDeadline) FinishVote();
         }
 
         public void CastVote(int playerId, int candidateIndex)
         {
-            if (GameFlow.State != GameState.Voting || IsOnlineClient || votes.ContainsKey(playerId) ||
+            if (!CanChangeVote ||
                 candidateIndex < 0 || candidateIndex >= voteCandidates.Count || votedMinigames.Contains(voteCandidates[candidateIndex])) return;
             if (!Players.TryGetByPlayerId(playerId, out var slot) || slot.IsAI || !slot.IsConnected) return;
+            if (IsOnlineClient)
+            {
+                if (Room.Slots[slot.SlotIndex].Owner != Online.LocalClientId) return;
+                voteCursor[playerId] = candidateIndex;
+                Room.SendVote(voteBallotId, candidateIndex);
+                VoteChanged?.Invoke();
+                return;
+            }
+            voteCursor[playerId] = candidateIndex;
+            if (votes.TryGetValue(playerId, out int current) && current == candidateIndex)
+            {
+                VoteChanged?.Invoke();
+                return;
+            }
             votes[playerId] = candidateIndex;
+            if (IsOnlineHost) SendVoteProgress(VoteSecondsLeft);
             VoteChanged?.Invoke();
+        }
+
+        private void HandleVoteRequested(int ballotId, int playerId, int candidateIndex)
+        {
+            if (IsOnlineHost && ballotId == voteBallotId) CastVote(playerId, candidateIndex);
         }
 
         private int FirstAvailableVote() => NextAvailableVote(voteCandidates.Count - 1, 1);
@@ -416,27 +441,35 @@ namespace UnCredibles.Core
 
         private void HandleVoteProgress(int selectedCount, float seconds)
         {
-            if (!IsOnlineClient) return;
-            if (selectedCount == 0) voteCandidates.Clear();
+            if (!IsOnlineClient || (GameFlow.State != GameState.PartyLobby && GameFlow.State != GameState.Voting)) return;
+            bool newBallot = voteBallotId != Room.VoteBallotId;
+            if (newBallot && selectedCount == 0) voteCandidates.Clear();
             if (voteCandidates.Count == 0)
                 foreach (var data in minigames.Minigames)
                     if (data != null && data.SupportsPlayerCount(Players.OccupiedCount) && !voteCandidates.Contains(data))
                         voteCandidates.Add(data);
-            GameFlow.ChangeState(GameState.Voting);
+            voteBallotId = Room.VoteBallotId;
+            voteFinalizing = !Room.VoteIsOpen;
             voteDeadline = Time.unscaledTime + seconds;
             // The host sends chosen indices in the same registered candidate order.
             votedMinigames.Clear();
             votes.Clear();
-            voteCursor.Clear();
+            if (newBallot)
+            {
+                voteCursor.Clear();
+                nextVoteMove.Clear();
+            }
             foreach (int index in Room.VoteChoices)
                 if (index >= 0 && index < voteCandidates.Count) votedMinigames.Add(voteCandidates[index]);
+            foreach (var vote in Room.ConfirmedVotes) votes[vote.Key] = vote.Value;
+            GameFlow.ChangeState(GameState.Voting);
             VoteChanged?.Invoke();
         }
 
         private void UpdateClientVoteCursor()
         {
             onlineInput ??= input.CreateAnyDeviceInput();
-            if (onlineInput == null || voteCandidates.Count == 0) return;
+            if (onlineInput == null || voteCandidates.Count == 0 || !CanChangeVote) return;
             foreach (var slot in Players.Slots)
             {
                 if (!slot.IsOccupied || Room.Slots[slot.SlotIndex].Owner != Online.LocalClientId) continue;
@@ -450,8 +483,7 @@ namespace UnCredibles.Core
                 }
                 if (onlineInput.WasPressed(PlayerAction.Jump))
                 {
-                    votes[slot.PlayerId] = voteCursor.TryGetValue(slot.PlayerId, out selected) ? selected : cursor;
-                    VoteChanged?.Invoke();
+                    CastVote(slot.PlayerId, cursor);
                 }
                 break;
             }
@@ -461,7 +493,7 @@ namespace UnCredibles.Core
         {
             var indices = new List<int>(votedMinigames.Count);
             foreach (var data in votedMinigames) indices.Add(voteCandidates.IndexOf(data));
-            Room.SendVoteProgress(indices, seconds);
+            Room.SendVoteProgress(voteBallotId, !voteFinalizing, indices, votes, seconds);
         }
 
         // ---------- Online host: what the clients' Results screen shows ----------

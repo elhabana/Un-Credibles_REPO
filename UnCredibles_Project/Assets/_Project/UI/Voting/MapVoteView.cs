@@ -133,7 +133,7 @@ namespace UnCredibles.UI.Voting
                 {
                     if (!slot.IsOccupied || slot.IsAI) continue;
                     if (core.Votes.TryGetValue(slot.PlayerId, out int choice) && choice == i) votes++;
-                    else if (!core.Votes.ContainsKey(slot.PlayerId) &&
+                    if (IsLocalVoter(slot) &&
                              (core.VoteCursor.TryGetValue(slot.PlayerId, out int cursor) ? cursor == i : i == FirstAvailable()))
                         selectors.Add(slot.PlayerName);
                 }
@@ -143,12 +143,18 @@ namespace UnCredibles.UI.Voting
                 card.footer.text = picked ? "EN LA RUTA" :
                     selectors.Count > 0 ? string.Join(", ", selectors) + (votes > 0 ? $"  ·  {votes} votos" : "") :
                     votes > 0 ? $"{votes} votos" : "DISPONIBLE";
-                card.button.interactable = !picked &&
-                    (core.GameFlow.Session == SessionMode.Local || core.Online.IsHost);
+                card.button.interactable = !picked && core.CanChangeVote;
             }
-            hint.text = core.GameFlow.Session == SessionMode.Online && !core.Online.IsHost
-                ? "IZQUIERDA / DERECHA: ELEGIR     A / ESPACIO: VOTAR     Esperando al anfitrion"
-                : "IZQUIERDA / DERECHA: ELEGIR     A / ESPACIO: VOTAR";
+            hint.text = round >= 3 ? "RUTA DECIDIDA" :
+                "IZQUIERDA / DERECHA: ELEGIR     A / ESPACIO: VOTAR O CAMBIAR     VOTOS CONFIRMADOS";
+        }
+
+        private bool IsLocalVoter(UnCredibles.Players.PlayerSlot slot)
+        {
+            if (!slot.IsOccupied || slot.IsAI || !slot.IsConnected) return false;
+            if (core.GameFlow.Session == SessionMode.Local) return true;
+            return core.Online.IsHost ? !core.Room.IsRemoteSlot(slot.SlotIndex) :
+                core.Room.Slots[slot.SlotIndex].Owner == core.Online.LocalClientId;
         }
 
         private int FirstAvailable()
@@ -168,10 +174,14 @@ namespace UnCredibles.UI.Voting
             int selectedIndex = index;
             card.button.onClick.AddListener(() =>
             {
+                UnCredibles.Players.PlayerSlot voter = null;
                 foreach (var slot in core.Players.Slots)
-                    if (slot.IsOccupied && !slot.IsAI && !core.Votes.ContainsKey(slot.PlayerId) &&
-                        !(slot.Input is UnCredibles.Networking.NetworkInput))
-                    { core.CastVote(slot.PlayerId, selectedIndex); break; }
+                {
+                    if (!IsLocalVoter(slot)) continue;
+                    if (voter == null) voter = slot;
+                    if (!core.Votes.ContainsKey(slot.PlayerId)) { voter = slot; break; }
+                }
+                if (voter != null) core.CastVote(voter.PlayerId, selectedIndex);
             });
             card.thumbnail = Panel("Miniatura", card.background.transform, new Color(.18f, .28f, .32f));
             Place(card.thumbnail.rectTransform, 0, 73, width - 28, 208);

@@ -28,6 +28,7 @@ namespace UnCredibles.Networking
         private const string LoadedMessage = "uc.flow.loaded";
         private const string StandingsMessage = "uc.flow.standings";
         private const string VoteMessage = "uc.flow.vote";
+        private const string VoteRequestMessage = "uc.flow.vote.request";
         private const string InputMessage = "uc.input";
         private const string HudMessage = "uc.mg.hud";
         private const string MinigameSnapshotMessage = "uc.mg.snapshot";
@@ -36,7 +37,7 @@ namespace UnCredibles.Networking
         // Bigger snapshots cannot travel unreliable in one packet.
         private const int UnreliableLimit = 1000;
 
-        private static readonly string[] HostMessages = { ReadyMessage, HelloMessage, LoadedMessage, InputMessage };
+        private static readonly string[] HostMessages = { ReadyMessage, HelloMessage, LoadedMessage, InputMessage, VoteRequestMessage };
         private static readonly string[] ClientMessages =
             { SnapshotMessage, CountdownMessage, SceneMessage, StandingsMessage, VoteMessage, HudMessage, MinigameSnapshotMessage, EventMessage };
 
@@ -73,12 +74,17 @@ namespace UnCredibles.Networking
         // Client: last standings received for the Results screen.
         public OnlineStandings Standings { get; } = new OnlineStandings();
         public List<int> VoteChoices { get; } = new List<int>(3);
+        private readonly Dictionary<int, int> confirmedVotes = new Dictionary<int, int>(PlayerRegistry.MaxPlayers);
+        public IReadOnlyDictionary<int, int> ConfirmedVotes => confirmedVotes;
+        public int VoteBallotId { get; private set; }
+        public bool VoteIsOpen { get; private set; }
 
         public event Action SlotsChanged;                   // client
         public event Action<int> CountdownReceived;         // client: seconds left, 0 = start, -1 = cancelled
         public event Action<string, byte> SceneRequested;   // client: scene to load + game state
         public event Action StandingsReceived;              // client
         public event Action<int, float> VoteProgressReceived; // client
+        public event Action<int, int, int> VoteRequested; // host: ballot id, sender's player id, candidate index
         public event Action<byte[], int> HudReceived;       // client (IMinigameNetwork)
         public event Action<byte[], int> SnapshotReceived;  // client (IMinigameNetwork)
         public event Action<byte[], int> EventReceived;     // client (IMinigameNetwork)
@@ -167,14 +173,33 @@ namespace UnCredibles.Networking
             messaging.SendNamedMessage(StandingsMessage, remoteClients, writer, NetworkDelivery.ReliableSequenced);
         }
 
-        public void SendVoteProgress(IReadOnlyList<int> choices, float seconds)
+        public void SendVoteProgress(int ballotId, bool isOpen, IReadOnlyList<int> choices,
+            IReadOnlyDictionary<int, int> votes, float seconds)
         {
             if (!IsActive || !IsHost || !CollectRemoteClients()) return;
-            using var writer = new FastBufferWriter(32, Allocator.Temp);
+            using var writer = new FastBufferWriter(128, Allocator.Temp);
+            writer.WriteValueSafe(ballotId);
+            writer.WriteValueSafe((byte)(isOpen ? 1 : 0));
             writer.WriteValueSafe(choices.Count);
             writer.WriteValueSafe(seconds);
             foreach (int index in choices) writer.WriteValueSafe(index);
+            writer.WriteValueSafe(votes.Count);
+            foreach (var vote in votes)
+            {
+                writer.WriteValueSafe(vote.Key);
+                writer.WriteValueSafe(vote.Value);
+            }
             messaging.SendNamedMessage(VoteMessage, remoteClients, writer, NetworkDelivery.ReliableSequenced);
+        }
+
+        // Submit the selected candidate, never reconstruct a ballot from movement packets.
+        public void SendVote(int ballotId, int candidateIndex)
+        {
+            if (!IsActive || IsHost) return;
+            using var writer = new FastBufferWriter(8, Allocator.Temp);
+            writer.WriteValueSafe(ballotId);
+            writer.WriteValueSafe(candidateIndex);
+            messaging.SendNamedMessage(VoteRequestMessage, NetworkManager.ServerClientId, writer, NetworkDelivery.ReliableSequenced);
         }
 
         // Client: the controller of this machine's player, every frame while playing.
@@ -219,6 +244,10 @@ namespace UnCredibles.Networking
         {
             clientSlots.Clear();
             clientScenes.Clear();
+            VoteBallotId = 0;
+            VoteIsOpen = false;
+            VoteChoices.Clear();
+            confirmedVotes.Clear();
             AcceptingPlayers = true;
             messaging = connection.Manager.CustomMessagingManager;
             if (connection.Manager.IsServer)
@@ -227,6 +256,7 @@ namespace UnCredibles.Networking
                 messaging.RegisterNamedMessageHandler(HelloMessage, HandleHelloMessage);
                 messaging.RegisterNamedMessageHandler(LoadedMessage, HandleLoadedMessage);
                 messaging.RegisterNamedMessageHandler(InputMessage, HandleInputMessage);
+                messaging.RegisterNamedMessageHandler(VoteRequestMessage, HandleVoteRequestMessage);
             }
             else
             {
@@ -315,6 +345,14 @@ namespace UnCredibles.Networking
                 input.Apply(new Vector2(x, y), pressed, held);
         }
 
+        private void HandleVoteRequestMessage(ulong sender, FastBufferReader reader)
+        {
+            if (!clientSlots.TryGetValue(sender, out int slotIndex) || !reader.TryBeginRead(sizeof(int) * 2)) return;
+            reader.ReadValueSafe(out int ballotId);
+            reader.ReadValueSafe(out int candidateIndex);
+            VoteRequested?.Invoke(ballotId, players.Slots[slotIndex].PlayerId, candidateIndex);
+        }
+
         private void SendLobbySnapshot()
         {
             if (!CollectRemoteClients()) return;
@@ -378,13 +416,28 @@ namespace UnCredibles.Networking
 
         private void HandleVoteMessage(ulong sender, FastBufferReader reader)
         {
+            if (sender != NetworkManager.ServerClientId || !reader.TryBeginRead(sizeof(int) * 2 + sizeof(byte) + sizeof(float))) return;
+            reader.ReadValueSafe(out int ballotId);
+            reader.ReadValueSafe(out byte isOpen);
             reader.ReadValueSafe(out int count);
             reader.ReadValueSafe(out float seconds);
+            if (ballotId < VoteBallotId || count < 0 || count > 3 ||
+                !reader.TryBeginRead(count * sizeof(int) + sizeof(int))) return;
+            // Validate the full bounded payload before replacing the last confirmed state.
+            var choices = new int[count];
+            for (int i = 0; i < count; i++) reader.ReadValueSafe(out choices[i]);
+            reader.ReadValueSafe(out int voteCount);
+            if (voteCount < 0 || voteCount > PlayerRegistry.MaxPlayers || !reader.TryBeginRead(voteCount * sizeof(int) * 2)) return;
+            VoteBallotId = ballotId;
+            VoteIsOpen = isOpen != 0;
             VoteChoices.Clear();
-            for (int i = 0; i < count && i < 3; i++)
+            VoteChoices.AddRange(choices);
+            confirmedVotes.Clear();
+            for (int i = 0; i < voteCount; i++)
             {
+                reader.ReadValueSafe(out int playerId);
                 reader.ReadValueSafe(out int index);
-                VoteChoices.Add(index);
+                confirmedVotes[playerId] = index;
             }
             VoteProgressReceived?.Invoke(count, seconds);
         }
