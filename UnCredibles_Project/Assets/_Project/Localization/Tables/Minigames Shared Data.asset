@@ -130,6 +130,26 @@ MonoBehaviour:
     m_Metadata:
       m_Items:
       - rid: 889587772777824259
+  - m_Id: 17129633087488
+    m_Key: phone.churro.a
+    m_Metadata:
+      m_Items:
+      - rid: 889587773146660864
+  - m_Id: 17129679224832
+    m_Key: phone.churro.b
+    m_Metadata:
+      m_Items:
+      - rid: 889587773146660865
+  - m_Id: 17129679224833
+    m_Key: phone.mowthelawn.a
+    m_Metadata:
+      m_Items:
+      - rid: 889587773146660866
+  - m_Id: 17129679224834
+    m_Key: phone.garage_mice.a
+    m_Metadata:
+      m_Items:
+      - rid: 889587773146660867
   m_Metadata:
     m_Items: []
   m_KeyGenerator:
@@ -233,3 +253,19 @@ MonoBehaviour:
       type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
       data:
         m_CommentText: Phone instruction in Garage Mice
+    - rid: 889587773146660864
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: 'Phone: button A in Churro'
+    - rid: 889587773146660865
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: 'Phone: button B in Churro'
+    - rid: 889587773146660866
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: 'Phone: button A in Mow The Lawn'
+    - rid: 889587773146660867
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: 'Phone: button A in Garage Mice'

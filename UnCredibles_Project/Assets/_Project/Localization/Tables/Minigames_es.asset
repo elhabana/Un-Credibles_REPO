@@ -115,6 +115,22 @@ MonoBehaviour:
     m_Localized: "Joystick: mu\xE9vete \xB7 A: escobazo a las ratas"
     m_Metadata:
       m_Items: []
+  - m_Id: 17129633087488
+    m_Localized: Saltar
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17129679224832
+    m_Localized: Agacharse
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17129679224833
+    m_Localized: Turbo
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17129679224834
+    m_Localized: Escobazo
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

@@ -228,30 +228,62 @@ namespace UnCredibles.Core
 
         private void HandleMinigameStarted(IMinigame minigame) => GameFlow.ChangeState(GameState.Minigame);
 
-        // What BatPad phones show under the player badge, following the game state.
+        // What BatPad phones show for each moment of the game: instruction, button names, exit button.
         private void UpdatePhoneHint(GameState previous, GameState current)
         {
-            string key = current switch
+            var hint = new BatPadService.PhoneHint();
+            switch (current)
             {
-                GameState.MainMenu or GameState.PartyLobby => "phone.lobby",
-                GameState.Voting => "phone.vote",
-                GameState.Loading => "phone.loading",
-                GameState.Results => "phone.results",
-                GameState.FinalResults => "phone.final",
-                _ => null,
-            };
-            if (current == GameState.Minigame) batPad.SetHint(PhoneMinigameHint());
-            else if (key != null) batPad.SetHint(L10n.Get(L10n.UI, key));
+                case GameState.MainMenu:
+                case GameState.PartyLobby:
+                    hint.Text = L10n.Get(L10n.UI, "phone.lobby");
+                    hint.A = L10n.Get(L10n.UI, "phone.a_ready");
+                    hint.B = L10n.Get(L10n.UI, "phone.b_unready");
+                    hint.ShowExit = true;
+                    hint.Pulse = true;
+                    break;
+                case GameState.Voting:
+                    hint.Text = L10n.Get(L10n.UI, "phone.vote");
+                    hint.A = L10n.Get(L10n.UI, "phone.a_vote");
+                    break;
+                case GameState.Loading:
+                    hint.Text = L10n.Get(L10n.UI, "phone.loading");
+                    break;
+                case GameState.Minigame:
+                    hint = PhoneMinigameHint();
+                    break;
+                case GameState.Results:
+                    hint.Text = L10n.Get(L10n.UI, "phone.results");
+                    hint.A = L10n.Get(L10n.UI, "phone.a_continue");
+                    hint.Pulse = true;
+                    break;
+                case GameState.FinalResults:
+                    hint.Text = L10n.Get(L10n.UI, "phone.final");
+                    break;
+                default:
+                    return;
+            }
+            batPad.SetHint(hint);
         }
 
-        // Each minigame has its own line in the Minigames table ("phone.<id>"); a generic one otherwise.
-        private string PhoneMinigameHint()
+        // Each minigame has its own lines in the Minigames table: "phone.<id>" for the instruction and
+        // "phone.<id>.a" / ".b" for the buttons (missing = that button does nothing there).
+        private BatPadService.PhoneHint PhoneMinigameHint()
         {
             var data = minigames.ActiveData;
-            if (data == null) return L10n.Get(L10n.UI, "phone.minigame");
+            var hint = new BatPadService.PhoneHint { Text = L10n.Get(L10n.UI, "phone.minigame") };
+            if (data == null) return hint;
             string key = "phone." + data.Id;
-            string text = L10n.Get(L10n.Minigames, key);
-            return text == key ? L10n.Get(L10n.UI, "phone.minigame") : text;
+            hint.Text = Optional(L10n.Minigames, key) ?? hint.Text;
+            hint.A = Optional(L10n.Minigames, key + ".a");
+            hint.B = Optional(L10n.Minigames, key + ".b");
+            return hint;
+        }
+
+        private static string Optional(string table, string key)
+        {
+            string text = L10n.Get(table, key);
+            return text == key ? null : text;
         }
 
         private void Update()

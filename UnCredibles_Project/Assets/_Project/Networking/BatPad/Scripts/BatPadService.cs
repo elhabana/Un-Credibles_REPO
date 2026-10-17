@@ -22,8 +22,22 @@ namespace UnCredibles.BatPad
         private readonly Queue<string> outgoing = new Queue<string>();
         private const float RetrySeconds = 3f;
         // The BatPad server drops messages over 256 characters; the JSON wrapper needs the rest.
-        private const int MaxHintLength = 160;
-        private string hint = string.Empty;
+        private const int MaxHintLength = 110;
+        private const int MaxLabelLength = 20;
+        private PhoneHint hint;
+        private bool hasHint;
+
+        // What the phones show for the current moment: the instruction in the middle, the names under
+        // A and B (empty = that button does nothing now), whether the exit button is shown and whether
+        // the instruction pulses to catch the eye.
+        public struct PhoneHint
+        {
+            public string Text;
+            public string A;
+            public string B;
+            public bool ShowExit;
+            public bool Pulse;
+        }
 
         private readonly List<BatPadInput> phones = new List<BatPadInput>();
         // Phones that dropped: if they come back with the same ClientId they get the same BatPadInput,
@@ -100,20 +114,25 @@ namespace UnCredibles.BatPad
             foreach (var phone in phones) AssignSlot(phone, BatPadInput.NoSlot);
         }
 
-        // Short "what to do now" line shown on every phone (e.g. "A: jump the churro").
         // Kept and re-sent to phones that join or reconnect later.
-        public void SetHint(string text)
+        public void SetHint(PhoneHint value)
         {
-            text = text ?? string.Empty;
-            hint = text.Length > MaxHintLength ? text.Substring(0, MaxHintLength) : text;
+            hint = value;
+            hasHint = true;
             foreach (var phone in phones) SendHint(phone);
         }
 
         private void SendHint(BatPadInput phone)
         {
-            if (!phone.IsConnected || hint.Length == 0) return;
-            Send($"{{\"t\":\"send\",\"player\":{phone.PhoneId},\"msg\":{{\"t\":\"hint\",\"text\":{JsonString(hint)}}}}}");
+            if (!phone.IsConnected || !hasHint) return;
+            string msg = $"{{\"t\":\"hint\",\"text\":{JsonString(Clip(hint.Text, MaxHintLength))}," +
+                         $"\"a\":{JsonString(Clip(hint.A, MaxLabelLength))},\"b\":{JsonString(Clip(hint.B, MaxLabelLength))}," +
+                         $"\"x\":{(hint.ShowExit ? 1 : 0)},\"p\":{(hint.Pulse ? 1 : 0)}}}";
+            Send($"{{\"t\":\"send\",\"player\":{phone.PhoneId},\"msg\":{msg}}}");
         }
+
+        private static string Clip(string text, int max) =>
+            string.IsNullOrEmpty(text) ? string.Empty : text.Length > max ? text.Substring(0, max) : text;
 
         private static string JsonString(string value)
         {

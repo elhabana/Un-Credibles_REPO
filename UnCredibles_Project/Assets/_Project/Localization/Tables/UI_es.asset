@@ -336,7 +336,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 11230633918464
-    m_Localized: "Pulsa A cuando est\xE9s listo \xB7 II para salir"
+    m_Localized: "Pulsa A cuando est\xE9s listo"
     m_Metadata:
       m_Items: []
   - m_Id: 11230713610240
@@ -357,6 +357,22 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 11230713610244
     m_Localized: "\xA1Partida terminada! Mira el podio"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17131226923008
+    m_Localized: Listo
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17131289837568
+    m_Localized: Cancelar listo
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17131289837569
+    m_Localized: Votar
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17131289837570
+    m_Localized: Continuar
     m_Metadata:
       m_Items: []
   references:

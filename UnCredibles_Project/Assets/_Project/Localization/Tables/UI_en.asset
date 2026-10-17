@@ -336,7 +336,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 11230633918464
-    m_Localized: "Press A when you're ready \xB7 II to leave"
+    m_Localized: Press A when you're ready
     m_Metadata:
       m_Items: []
   - m_Id: 11230713610240
@@ -357,6 +357,22 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 11230713610244
     m_Localized: Match over! Check the podium
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17131226923008
+    m_Localized: Ready
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17131289837568
+    m_Localized: Cancel ready
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17131289837569
+    m_Localized: Vote
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17131289837570
+    m_Localized: Continue
     m_Metadata:
       m_Items: []
   references:

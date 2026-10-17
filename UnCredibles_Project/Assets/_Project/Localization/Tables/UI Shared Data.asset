@@ -440,6 +440,26 @@ MonoBehaviour:
     m_Metadata:
       m_Items:
       - rid: 889587772777824265
+  - m_Id: 17131226923008
+    m_Key: phone.a_ready
+    m_Metadata:
+      m_Items:
+      - rid: 889587773146660868
+  - m_Id: 17131289837568
+    m_Key: phone.b_unready
+    m_Metadata:
+      m_Items:
+      - rid: 889587773146660869
+  - m_Id: 17131289837569
+    m_Key: phone.a_vote
+    m_Metadata:
+      m_Items:
+      - rid: 889587773146660870
+  - m_Id: 17131289837570
+    m_Key: phone.a_continue
+    m_Metadata:
+      m_Items:
+      - rid: 889587773146660871
   m_Metadata:
     m_Items: []
   m_KeyGenerator:
@@ -791,3 +811,19 @@ MonoBehaviour:
       type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
       data:
         m_CommentText: Phone instruction on the final podium
+    - rid: 889587773146660868
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: 'Phone: name under button A in the lobby'
+    - rid: 889587773146660869
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: 'Phone: name under button B in the lobby'
+    - rid: 889587773146660870
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: 'Phone: name under button A while voting'
+    - rid: 889587773146660871
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: 'Phone: name under button A on the results screen'

@@ -149,9 +149,12 @@ namespace UnCredibles.UI.PartyLobby
                 if (joinFrame[slot.SlotIndex] == Time.frameCount) continue; // the join press is not a ready press
 
                 if (slot.Input.WasPressed(PlayerAction.Jump)) Players.SetReady(slot.SlotIndex, !slot.IsReady);
+                else if (slot.Input.WasPressed(PlayerAction.Crouch)) Players.SetReady(slot.SlotIndex, false);
                 else if (slot.Input.WasPressed(PlayerAction.Pause))
                 {
-                    if (slot.IsReady) Players.SetReady(slot.SlotIndex, false);
+                    // The phone shows Pause as an exit button: it leaves at once.
+                    // Keyboard and gamepad keep the two steps (un-ready first, then leave).
+                    if (slot.IsReady && !(slot.Input is BatPadInput)) Players.SetReady(slot.SlotIndex, false);
                     else RemovePlayer(slot.SlotIndex);
                 }
             }
