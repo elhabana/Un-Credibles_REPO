@@ -36,7 +36,9 @@ namespace UnCredibles.UI.Garage.Editor
             accent = Material("Accent", new Color(.92f, .57f, .15f));
             Box("Floor", new Vector3(0,-.2f,0), new Vector3(15,.4f,15), concrete);
             Box("North wall", new Vector3(0,2.5f,7), new Vector3(14,5,.3f), concrete);
-            Box("West wall", new Vector3(-7,2.5f,0), new Vector3(.3f,5,14), concrete);
+            Box("Garage door left jamb", new Vector3(-7,2.5f,-5.95f), new Vector3(.3f,5,2.1f), concrete);
+            Box("Garage door right jamb", new Vector3(-7,2.5f,5.95f), new Vector3(.3f,5,2.1f), concrete);
+            Box("Garage door header", new Vector3(-7,4.5f,0), new Vector3(.3f,1,9.8f), concrete);
             Box("East wall", new Vector3(7,2.5f,0), new Vector3(.3f,5,14), concrete);
             Box("Garage door", new Vector3(-6.8f,2,0), new Vector3(.1f,3.8f,10), metal);
             for(int i=0;i<7;i++) Box("Door slat",new Vector3(-6.72f,.4f+i*.5f,0),new Vector3(.05f,.04f,10),concrete);

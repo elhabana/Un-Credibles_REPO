@@ -2,7 +2,7 @@ using System;
 
 namespace UnCredibles.Core
 {
-    public enum GameState { Boot, MainMenu, PartyLobby, Loading, Minigame, Results, FinalResults }
+    public enum GameState { Boot, MainMenu, PartyLobby, Loading, Minigame, Results, FinalResults, Voting }
 
     // Singleplayer/local and Multiplayer/online share the same flow; only the available features change.
     public enum SessionMode { Local, Online }

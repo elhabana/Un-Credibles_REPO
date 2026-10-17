@@ -55,9 +55,9 @@ public sealed class PlayerIdentityTests
             Assert.IsTrue(registry.ReplaceWithAI(2, new AIInput()));
             yield return null;
             yield return null;
-            Assert.IsTrue(bot.GetComponentInChildren<TextMeshPro>().text == "IA");
-            Assert.IsTrue(bot.GetComponentInChildren<TextMeshPro>().color == PlayerIdentity.ColorFor(2, true));
-            Assert.IsTrue(HasBodyColor(bot, PlayerIdentity.ColorFor(2, true)));
+            Assert.IsTrue(bot.GetComponentInChildren<TextMeshPro>().text == "BOT");
+            Assert.IsTrue(bot.GetComponentInChildren<TextMeshPro>().color == PlayerIdentity.ColorFor(2));
+            Assert.IsTrue(HasBodyColor(bot, PlayerIdentity.ColorFor(2)));
         }
         finally
         {

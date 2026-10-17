@@ -4,6 +4,7 @@ using NUnit.Framework;
 using UnCredibles.Core;
 using UnCredibles.UI.Garage;
 using UnCredibles.UI.PartyLobby;
+using UnCredibles.Players;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
@@ -81,5 +82,59 @@ public sealed class GarageFlowTests
         Assert.IsTrue(frontend.cameras.View == GarageView.Lobby);
         core.ReturnToMainMenu();
         yield return WaitFor(() => !core.Scenes.IsLoading);
+    }
+
+    [UnityTest]
+    public IEnumerator ThreeRoundMatchVotesThreeDifferentDestinationsBeforeLoading()
+    {
+        yield return SceneManager.LoadSceneAsync(GameScenes.MainMenu, LoadSceneMode.Single);
+        yield return WaitFor(() => CoreRoot.Instance != null && !CoreRoot.Instance.Scenes.IsLoading);
+        var core = CoreRoot.Instance;
+        core.OpenPartyLobby(SessionMode.Local);
+        yield return WaitFor(() => core.GameFlow.State == GameState.PartyLobby &&
+            Object.FindFirstObjectByType<GarageFrontend>().lobbyRoot.GetComponent<PartyLobbyController>().Players != null);
+        Assert.IsTrue(core.Players.TryAddPlayer(PlayerType.LocalPlayer, core.Input.CreateAIInput(), null, out var first));
+        Assert.IsTrue(core.Players.TryAddPlayer(PlayerType.LocalPlayer, core.Input.CreateAIInput(), null, out var second));
+        Assert.IsTrue(core.StartMatch(3));
+        Assert.AreEqual(GameState.Voting, core.GameFlow.State);
+        Assert.GreaterOrEqual(core.VoteCandidates.Count, 3);
+
+        for (int round = 0; round < 3; round++)
+        {
+            int choice = -1;
+            for (int i = 0; i < core.VoteCandidates.Count; i++)
+                if (!Contains(core.VotedMinigames, core.VoteCandidates[i])) { choice = i; break; }
+            Assert.GreaterOrEqual(choice, 0);
+            core.CastVote(first.PlayerId, choice);
+            int alternate = -1;
+            for (int i = 0; i < core.VoteCandidates.Count; i++)
+                if (i != choice && !Contains(core.VotedMinigames, core.VoteCandidates[i])) { alternate = i; break; }
+            Assert.GreaterOrEqual(alternate, 0);
+            core.CastVote(first.PlayerId, alternate);
+            Assert.AreEqual(alternate, core.Votes[first.PlayerId], "Players must be able to change an accepted vote.");
+            core.CastVote(first.PlayerId, -1);
+            Assert.AreEqual(alternate, core.Votes[first.PlayerId], "An invalid candidate must not replace the vote.");
+            core.CastVote(first.PlayerId, choice);
+            Assert.AreEqual(round, core.VotedMinigames.Count, "Voting must stay open while someone has not voted.");
+            core.CastVote(second.PlayerId, choice);
+            yield return new WaitForSecondsRealtime(.2f);
+            Assert.AreEqual(round + 1, core.VotedMinigames.Count, "Voting must close once everyone has voted.");
+            Assert.AreSame(core.VoteCandidates[choice], core.VotedMinigames[round]);
+        }
+
+        Assert.AreEqual(3, core.VotedMinigames.Count);
+        Assert.AreNotSame(core.VotedMinigames[0], core.VotedMinigames[1]);
+        Assert.AreNotSame(core.VotedMinigames[1], core.VotedMinigames[2]);
+        yield return WaitFor(() => !core.Scenes.IsLoading && core.GameFlow.State == GameState.Minigame);
+        Assert.AreSame(core.VotedMinigames[0], core.Minigames.ActiveData);
+        core.ReturnToMainMenu();
+        yield return WaitFor(() => !core.Scenes.IsLoading && core.GameFlow.State == GameState.MainMenu);
+    }
+
+    private static bool Contains(IReadOnlyList<UnCredibles.Minigames.MinigameData> list,
+        UnCredibles.Minigames.MinigameData data)
+    {
+        foreach (var item in list) if (item == data) return true;
+        return false;
     }
 }

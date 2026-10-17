@@ -6,6 +6,7 @@ using UnCredibles.Core;
 using UnCredibles.Networking;
 using UnCredibles.Players;
 using UnCredibles.Players.Inputs;
+using UnCredibles.UI.Garage;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Utilities;
@@ -384,6 +385,7 @@ namespace UnCredibles.UI.PartyLobby
             starting = true;
             if (IsOnline) room.AcceptingPlayers = false; // nobody joins once the match starts
             Tick(0);
+            yield return new WaitForSeconds(GaragePlayers.DepartureSeconds + .4f);
             if (core.StartMatch(roundsPerMatch)) yield break;
 
             // The match could not start: back to the lobby.
