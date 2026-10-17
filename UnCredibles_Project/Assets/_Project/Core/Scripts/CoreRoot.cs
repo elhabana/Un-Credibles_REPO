@@ -89,6 +89,7 @@ namespace UnCredibles.Core
             GameFlow = new GameFlowManager();
             PlayerRegistry.DefaultNameProvider = (index, isAI) =>
                 isAI ? "BOT" : L10n.Format(L10n.UI, "results.player_n", index + 1);
+            PlayerIdentity.LabelProvider = index => L10n.Format(L10n.UI, "player.tag", index + 1);
             Players = new PlayerRegistry();
             Match = new MatchManager(pointsByPlacement);
             Settings = new SettingsManager();

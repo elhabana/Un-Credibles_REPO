@@ -465,6 +465,16 @@ MonoBehaviour:
     m_Metadata:
       m_Items:
       - rid: 889587773980803072
+  - m_Id: 35710311727104
+    m_Key: player.tag
+    m_Metadata:
+      m_Items:
+      - rid: 889587774307958784
+  - m_Id: 35710362058752
+    m_Key: settings.language
+    m_Metadata:
+      m_Items:
+      - rid: 889587774307958785
   m_Metadata:
     m_Items: []
   m_KeyGenerator:
@@ -836,3 +846,11 @@ MonoBehaviour:
       type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
       data:
         m_CommentText: 'Lobby: blinking callout above the BatPad QR (shown in capitals)'
+    - rid: 889587774307958784
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Short player tag over heads and on vote badges (P1 / J1)
+    - rid: 889587774307958785
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: 'Settings TV: label above the language selector'

@@ -21,6 +21,10 @@ namespace UnCredibles.UI.Garage
         public Slider musicVolume;
         public Slider sfxVolume;
         private CoreRoot core;
+        private TextMeshProUGUI languageLabel;
+        private TextMeshProUGUI languageValue;
+        private Button previousLanguage;
+        private Button nextLanguage;
 
         private IEnumerator Start()
         {
@@ -39,6 +43,9 @@ namespace UnCredibles.UI.Garage
             masterVolume.onValueChanged.AddListener(SetVolume);
             musicVolume.onValueChanged.AddListener(SetVolume);
             sfxVolume.onValueChanged.AddListener(SetVolume);
+            previousLanguage.onClick.AddListener(() => core.Settings.SetLanguage(L10n.NextLanguage(-1)));
+            nextLanguage.onClick.AddListener(() => core.Settings.SetLanguage(L10n.NextLanguage(1)));
+            ShowLanguage();
             L10n.LanguageChanged += HandleLanguageChanged;
             StateChanged(core.GameFlow.State, core.GameFlow.State);
         }
@@ -55,7 +62,14 @@ namespace UnCredibles.UI.Garage
             ShowVolume(masterVolume, "GENERAL", masterVolume.value);
             ShowVolume(musicVolume, "MUSICA", musicVolume.value);
             ShowVolume(sfxVolume, "EFECTOS", sfxVolume.value);
+            ShowLanguage();
             AddInstruction(detailPanels[0].transform);
+        }
+
+        private void ShowLanguage()
+        {
+            languageLabel.text = L10n.Get(L10n.UI, "settings.language");
+            languageValue.text = L10n.LanguageName(L10n.CurrentLanguage).ToUpperInvariant();
         }
 
         private void Update()
@@ -152,10 +166,53 @@ namespace UnCredibles.UI.Garage
             Place(backLabel.rectTransform, Vector2.zero, new Vector2(36, 14));
             backLabel.fontSize = 5;
 
-            PlaceVolume(masterVolume, "GENERAL", 21);
-            PlaceVolume(musicVolume, "MUSICA", -2);
-            PlaceVolume(sfxVolume, "EFECTOS", -25);
+            // Rows are kept short so the language selector fits under the three volumes.
+            PlaceVolume(masterVolume, "GENERAL", 26);
+            PlaceVolume(musicVolume, "MUSICA", 11);
+            PlaceVolume(sfxVolume, "EFECTOS", -4);
+            AddLanguageSelector(settings.transform, back);
             AddInstruction(settings.transform);
+        }
+
+        // "<  ESPAÑOL  >" built from the scene's own label and VOLVER button, so it looks like the rest of the TV.
+        private void AddLanguageSelector(Transform parent, RectTransform backButton)
+        {
+            var source = detailPanels[0].transform.Find("Text - GENERAL").GetComponent<TextMeshProUGUI>();
+            languageLabel = Instantiate(source, parent);
+            languageLabel.name = "Text - LANGUAGE";
+            Place(languageLabel.rectTransform, new Vector2(0, -19), new Vector2(120, 8));
+            languageValue = Instantiate(source, parent);
+            languageValue.name = "Language value";
+            languageValue.alignment = TextAlignmentOptions.Center;
+            languageValue.fontStyle = FontStyles.Bold;
+            Place(languageValue.rectTransform, new Vector2(0, -28), new Vector2(70, 9));
+            previousLanguage = ArrowButton(backButton, parent, "<", -45);
+            nextLanguage = ArrowButton(backButton, parent, ">", 45);
+        }
+
+        private static Button ArrowButton(RectTransform template, Transform parent, string arrow, float x)
+        {
+            var rect = Instantiate(template, parent);
+            rect.name = arrow == "<" ? "Language previous" : "Language next";
+            var button = rect.GetComponent<Button>();
+            button.onClick = new Button.ButtonClickedEvent(); // drop VOLVER's scene listener
+            // VOLVER's label is localized by the scene and would write "VOLVER" back over the arrow,
+            // so the copy gets a plain label of its own instead.
+            var copied = rect.GetComponentInChildren<TextMeshProUGUI>(true);
+            var label = new GameObject("Arrow", typeof(RectTransform), typeof(TextMeshProUGUI))
+                .GetComponent<TextMeshProUGUI>();
+            label.transform.SetParent(rect, false);
+            label.font = copied.font;
+            label.color = copied.color;
+            label.raycastTarget = false;
+            Destroy(copied.gameObject);
+            label.text = arrow;
+            label.fontSize = 7;
+            label.fontStyle = FontStyles.Bold;
+            label.alignment = TextAlignmentOptions.Center;
+            Place(rect, new Vector2(x, -28), new Vector2(16, 10));
+            Place(label.rectTransform, Vector2.zero, new Vector2(16, 10));
+            return button;
         }
 
         private static void AddInstruction(Transform parent)
@@ -203,10 +260,10 @@ namespace UnCredibles.UI.Garage
         private void PlaceVolume(Slider slider, string label, float y)
         {
             var text = detailPanels[0].transform.Find("Text - " + label).GetComponent<TextMeshProUGUI>();
-            Place(text.rectTransform, new Vector2(0, y), new Vector2(120, 10));
-            text.fontSize = 6;
-            Place((RectTransform)slider.transform, new Vector2(0, y - 10), new Vector2(125, 5));
-            Place(slider.handleRect, Vector2.zero, new Vector2(6, 8));
+            Place(text.rectTransform, new Vector2(0, y), new Vector2(120, 8));
+            text.fontSize = 5;
+            Place((RectTransform)slider.transform, new Vector2(0, y - 7), new Vector2(125, 3.5f));
+            Place(slider.handleRect, Vector2.zero, new Vector2(5, 6));
         }
 
         private static void Place(RectTransform rect, Vector2 position, Vector2 size)

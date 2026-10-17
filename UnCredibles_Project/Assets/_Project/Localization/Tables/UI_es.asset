@@ -376,7 +376,16 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 30479012200448
-    m_Localized: "\xBFOtro jugador? Conecta un mando o escanea el QR con el m\xF3vil"
+    m_Localized: "<size=125%>\xBFOtro jugador?</size>\nConecta un mando\no escanea
+      el QR"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 35710311727104
+    m_Localized: J{0}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 35710362058752
+    m_Localized: IDIOMA
     m_Metadata:
       m_Items: []
   references:

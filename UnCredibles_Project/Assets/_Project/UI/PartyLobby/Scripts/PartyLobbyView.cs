@@ -49,9 +49,12 @@ namespace UnCredibles.UI.PartyLobby
             var qrRect = (RectTransform)batPadQr.transform;
             var rect = addPlayerCallout.rectTransform;
             rect.anchorMin = rect.anchorMax = qrRect.anchorMin;
-            rect.sizeDelta = new Vector2(Mathf.Max(qrRect.sizeDelta.x * 2.4f, rect.sizeDelta.x), rect.sizeDelta.y * 1.4f);
-            rect.anchoredPosition = qrRect.anchoredPosition + new Vector2(0f, (qrRect.sizeDelta.y + rect.sizeDelta.y) * 0.5f + 10f);
-            addPlayerCallout.fontSize = batPadText.fontSize * 1.3f;
+            // Three short lines (question, gamepad, QR) read the same in every language and stay
+            // narrow enough not to leave the screen next to the QR.
+            rect.sizeDelta = new Vector2(340f, 120f);
+            rect.anchoredPosition = qrRect.anchoredPosition + new Vector2(0f, (qrRect.sizeDelta.y + rect.sizeDelta.y) * 0.5f + 8f);
+            addPlayerCallout.fontSize = batPadText.fontSize * 1.2f;
+            addPlayerCallout.lineSpacing = -10f;
             addPlayerCallout.fontStyle = FontStyles.Bold | FontStyles.UpperCase;
             addPlayerCallout.alignment = TextAlignmentOptions.Center;
             addPlayerCallout.text = L10n.Get(L10n.UI, "lobby.add_player");
@@ -145,8 +148,9 @@ namespace UnCredibles.UI.PartyLobby
 
             batPadQr.texture = batPadQrTexture;
             batPadQr.gameObject.SetActive(batPadQrTexture != null);
-            batPadText.gameObject.SetActive(usesPhones);
-            batPadText.text = url != null ? L10n.Get(L10n.UI, "lobby.batpad_scan") : L10n.Get(L10n.UI, "lobby.batpad_connecting");
+            // Once the QR is up the callout above it explains it, so the caption only says "connecting".
+            batPadText.gameObject.SetActive(usesPhones && url == null);
+            batPadText.text = L10n.Get(L10n.UI, "lobby.batpad_connecting");
             if (initialized) RenderAll();
         }
 

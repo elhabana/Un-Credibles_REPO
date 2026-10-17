@@ -376,7 +376,20 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 30479012200448
-    m_Localized: Another player? Connect a gamepad or scan the QR with your phone
+    m_Localized: '<size=125%>Another player?</size>
+
+      Connect a gamepad
+
+      or
+      scan the QR'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 35710311727104
+    m_Localized: P{0}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 35710362058752
+    m_Localized: LANGUAGE
     m_Metadata:
       m_Items: []
   references:

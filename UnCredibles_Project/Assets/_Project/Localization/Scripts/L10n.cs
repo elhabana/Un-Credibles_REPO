@@ -31,6 +31,41 @@ namespace UnCredibles.Localization
 
         private static void RaiseLanguageChanged(UnityEngine.Localization.Locale _) => LanguageChanged?.Invoke();
 
+        // Locale code of the language on screen ("es", "en").
+        public static string CurrentLanguage => LocalizationSettings.SelectedLocale?.Identifier.Code ?? string.Empty;
+
+        // Safe at boot: before Localization finishes loading it waits and applies the language then.
+        public static void SetLanguage(string code)
+        {
+            if (string.IsNullOrEmpty(code)) return;
+            var init = LocalizationSettings.InitializationOperation;
+            if (!init.IsDone)
+            {
+                init.Completed += _ => SetLanguage(code);
+                return;
+            }
+            var locale = LocalizationSettings.AvailableLocales.GetLocale(code);
+            if (locale != null && locale != LocalizationSettings.SelectedLocale) LocalizationSettings.SelectedLocale = locale;
+        }
+
+        // Code of the next (+1) or previous (-1) language of the project, wrapping around.
+        public static string NextLanguage(int step)
+        {
+            var locales = LocalizationSettings.AvailableLocales.Locales;
+            if (locales.Count == 0) return CurrentLanguage;
+            int index = Mathf.Max(0, locales.IndexOf(LocalizationSettings.SelectedLocale));
+            index = ((index + step) % locales.Count + locales.Count) % locales.Count;
+            return locales[index].Identifier.Code;
+        }
+
+        // Each language in its own words, so whoever can't read the current one still finds theirs.
+        public static string LanguageName(string code) => code switch
+        {
+            "es" => "Español",
+            "en" => "English",
+            _ => code.ToUpperInvariant(),
+        };
+
         public static string Get(string table, string key)
         {
             try

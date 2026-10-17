@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace UnCredibles.Players
@@ -18,6 +19,11 @@ namespace UnCredibles.Players
             }
         }
 
-        public static string LabelFor(int slotIndex, bool isAI = false) => isAI ? "BOT" : $"P{slotIndex + 1}";
+        // Short tag ("P1" / "J1"). Core plugs in the translated one so this assembly stays free of
+        // the localization package; the English tag is only the fallback.
+        public static Func<int, string> LabelProvider;
+
+        public static string LabelFor(int slotIndex, bool isAI = false) =>
+            isAI ? "BOT" : LabelProvider?.Invoke(slotIndex) ?? $"P{slotIndex + 1}";
     }
 }

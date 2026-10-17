@@ -1,4 +1,5 @@
 using TMPro;
+using UnCredibles.Localization;
 using UnCredibles.Players;
 using UnityEngine;
 
@@ -56,6 +57,7 @@ namespace UnCredibles.Minigames
             if (labelMaterial != null) labelMaterial.EnableKeyword("OUTLINE_ON");
             label.raycastTarget = false;
             label.GetComponent<MeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            L10n.LanguageChanged += RefreshColor; // "P1" / "J1"
         }
 
         private void RefreshColor()
@@ -100,6 +102,7 @@ namespace UnCredibles.Minigames
 
         private void OnDestroy()
         {
+            L10n.LanguageChanged -= RefreshColor;
             if (labelMaterial != null) Destroy(labelMaterial);
         }
     }
