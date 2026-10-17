@@ -97,6 +97,24 @@ MonoBehaviour:
       bolsas x2</size>"
     m_Metadata:
       m_Items: []
+  - m_Id: 11229052665856
+    m_Localized: "Joystick: mu\xE9vete \xB7 Coge a una abuela y cr\xFAzala sin que
+      te atropellen"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11229094608896
+    m_Localized: "A: salta el churro \xB7 Mant\xE9n B: ag\xE1chate ante las pelotas"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11229094608897
+    m_Localized: "Joystick: conduce \xB7 A: turbo \xB7 Vac\xEDa las bolsas en tu
+      contenedor"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11229094608898
+    m_Localized: "Joystick: mu\xE9vete \xB7 A: escobazo a las ratas"
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

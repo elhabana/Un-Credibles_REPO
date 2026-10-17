@@ -103,6 +103,7 @@ namespace UnCredibles.Core
             minigames.MinigameFinished += HandleMinigameFinished;
             batPad.PhoneDisconnected += HandlePhoneDisconnected;
             batPad.PhoneReconnected += HandlePhoneReconnected;
+            GameFlow.StateChanged += UpdatePhoneHint;
         }
 
         private IEnumerator Start()
@@ -209,6 +210,7 @@ namespace UnCredibles.Core
             minigames.MinigameFinished -= HandleMinigameFinished;
             batPad.PhoneDisconnected -= HandlePhoneDisconnected;
             batPad.PhoneReconnected -= HandlePhoneReconnected;
+            GameFlow.StateChanged -= UpdatePhoneHint;
             Players.Clear();
             Instance = null;
         }
@@ -225,6 +227,32 @@ namespace UnCredibles.Core
         }
 
         private void HandleMinigameStarted(IMinigame minigame) => GameFlow.ChangeState(GameState.Minigame);
+
+        // What BatPad phones show under the player badge, following the game state.
+        private void UpdatePhoneHint(GameState previous, GameState current)
+        {
+            string key = current switch
+            {
+                GameState.MainMenu or GameState.PartyLobby => "phone.lobby",
+                GameState.Voting => "phone.vote",
+                GameState.Loading => "phone.loading",
+                GameState.Results => "phone.results",
+                GameState.FinalResults => "phone.final",
+                _ => null,
+            };
+            if (current == GameState.Minigame) batPad.SetHint(PhoneMinigameHint());
+            else if (key != null) batPad.SetHint(L10n.Get(L10n.UI, key));
+        }
+
+        // Each minigame has its own line in the Minigames table ("phone.<id>"); a generic one otherwise.
+        private string PhoneMinigameHint()
+        {
+            var data = minigames.ActiveData;
+            if (data == null) return L10n.Get(L10n.UI, "phone.minigame");
+            string key = "phone." + data.Id;
+            string text = L10n.Get(L10n.Minigames, key);
+            return text == key ? L10n.Get(L10n.UI, "phone.minigame") : text;
+        }
 
         private void Update()
         {

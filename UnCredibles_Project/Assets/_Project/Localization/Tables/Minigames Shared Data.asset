@@ -110,6 +110,26 @@ MonoBehaviour:
     m_Metadata:
       m_Items:
       - rid: 889587772075540555
+  - m_Id: 11229052665856
+    m_Key: phone.crossy_road
+    m_Metadata:
+      m_Items:
+      - rid: 889587772777824256
+  - m_Id: 11229094608896
+    m_Key: phone.churro
+    m_Metadata:
+      m_Items:
+      - rid: 889587772777824257
+  - m_Id: 11229094608897
+    m_Key: phone.mowthelawn
+    m_Metadata:
+      m_Items:
+      - rid: 889587772777824258
+  - m_Id: 11229094608898
+    m_Key: phone.garage_mice
+    m_Metadata:
+      m_Items:
+      - rid: 889587772777824259
   m_Metadata:
     m_Items: []
   m_KeyGenerator:
@@ -197,3 +217,19 @@ MonoBehaviour:
       type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
       data:
         m_CommentText: Mow The Lawn final frenzy banner
+    - rid: 889587772777824256
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Phone instruction in Crossy Road
+    - rid: 889587772777824257
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Phone instruction in Churro
+    - rid: 889587772777824258
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Phone instruction in Mow The Lawn
+    - rid: 889587772777824259
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Phone instruction in Garage Mice

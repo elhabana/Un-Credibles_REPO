@@ -98,6 +98,23 @@ MonoBehaviour:
     m_Localized: "FINAL FRENZY!\n<size=60%>The grass grows back \xB7 bags x2</size>"
     m_Metadata:
       m_Items: []
+  - m_Id: 11229052665856
+    m_Localized: "Joystick: move \xB7 Pick up a grandma and cross without getting
+      run over"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11229094608896
+    m_Localized: "A: jump the churro \xB7 Hold B: duck under the balls"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11229094608897
+    m_Localized: "Joystick: drive \xB7 A: turbo \xB7 Unload the bags into your bin"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11229094608898
+    m_Localized: "Joystick: move \xB7 A: swing your broom at the mice"
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

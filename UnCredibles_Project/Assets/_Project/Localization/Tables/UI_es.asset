@@ -335,6 +335,30 @@ MonoBehaviour:
     m_Localized: "Volviendo al men\xFA en {0}..."
     m_Metadata:
       m_Items: []
+  - m_Id: 11230633918464
+    m_Localized: "Pulsa A cuando est\xE9s listo \xB7 II para salir"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11230713610240
+    m_Localized: "Joystick: elige minijuego \xB7 A: votar"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11230713610241
+    m_Localized: Cargando el minijuego...
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11230713610242
+    m_Localized: Mira la pantalla del juego
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11230713610243
+    m_Localized: 'A: continuar'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11230713610244
+    m_Localized: "\xA1Partida terminada! Mira el podio"
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

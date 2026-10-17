@@ -21,6 +21,9 @@ namespace UnCredibles.BatPad
         private readonly Queue<string> incoming = new Queue<string>();
         private readonly Queue<string> outgoing = new Queue<string>();
         private const float RetrySeconds = 3f;
+        // The BatPad server drops messages over 256 characters; the JSON wrapper needs the rest.
+        private const int MaxHintLength = 160;
+        private string hint = string.Empty;
 
         private readonly List<BatPadInput> phones = new List<BatPadInput>();
         // Phones that dropped: if they come back with the same ClientId they get the same BatPadInput,
@@ -89,11 +92,47 @@ namespace UnCredibles.BatPad
             phone.SlotIndex = slotIndex;
             if (!phone.IsConnected) return;
             Send($"{{\"t\":\"send\",\"player\":{phone.PhoneId},\"msg\":{{\"t\":\"slot\",\"slot\":{slotIndex}}}}}");
+            SendHint(phone);
         }
 
         public void ClearSlots()
         {
             foreach (var phone in phones) AssignSlot(phone, BatPadInput.NoSlot);
+        }
+
+        // Short "what to do now" line shown on every phone (e.g. "A: jump the churro").
+        // Kept and re-sent to phones that join or reconnect later.
+        public void SetHint(string text)
+        {
+            text = text ?? string.Empty;
+            hint = text.Length > MaxHintLength ? text.Substring(0, MaxHintLength) : text;
+            foreach (var phone in phones) SendHint(phone);
+        }
+
+        private void SendHint(BatPadInput phone)
+        {
+            if (!phone.IsConnected || hint.Length == 0) return;
+            Send($"{{\"t\":\"send\",\"player\":{phone.PhoneId},\"msg\":{{\"t\":\"hint\",\"text\":{JsonString(hint)}}}}}");
+        }
+
+        private static string JsonString(string value)
+        {
+            var json = new StringBuilder(value.Length + 2).Append('"');
+            foreach (char c in value)
+            {
+                switch (c)
+                {
+                    case '"': json.Append("\\\""); break;
+                    case '\\': json.Append("\\\\"); break;
+                    case '\n': json.Append("\\n"); break;
+                    case '\r': break;
+                    default:
+                        if (c < ' ') json.Append($"\\u{(int)c:x4}");
+                        else json.Append(c);
+                        break;
+                }
+            }
+            return json.Append('"').ToString();
         }
 
         private async void Connect()
@@ -203,6 +242,7 @@ namespace UnCredibles.BatPad
 
             phone = new BatPadInput(phoneId, clientId);
             phones.Add(phone);
+            SendHint(phone);
             PhoneConnected?.Invoke(phone);
         }
 
@@ -217,6 +257,7 @@ namespace UnCredibles.BatPad
         private void ResendSlot(BatPadInput phone)
         {
             if (phone.SlotIndex != BatPadInput.NoSlot) AssignSlot(phone, phone.SlotIndex);
+            else SendHint(phone);
         }
 
         private static bool TryMapButton(string button, out PlayerAction action)

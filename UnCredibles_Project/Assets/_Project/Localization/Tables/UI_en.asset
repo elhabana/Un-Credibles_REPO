@@ -335,6 +335,30 @@ MonoBehaviour:
     m_Localized: Back to the menu in {0}...
     m_Metadata:
       m_Items: []
+  - m_Id: 11230633918464
+    m_Localized: "Press A when you're ready \xB7 II to leave"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11230713610240
+    m_Localized: "Joystick: choose a minigame \xB7 A: vote"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11230713610241
+    m_Localized: Loading the minigame...
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11230713610242
+    m_Localized: Watch the game screen
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11230713610243
+    m_Localized: 'A: continue'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11230713610244
+    m_Localized: Match over! Check the podium
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []
