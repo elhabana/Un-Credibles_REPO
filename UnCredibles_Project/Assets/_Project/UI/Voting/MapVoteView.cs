@@ -28,7 +28,22 @@ namespace UnCredibles.UI.Voting
             public TMP_Text footer;
             public Image thumbnail;
             public Button button;
+            public readonly Badge[] badges = new Badge[PlayerRegistry.MaxPlayers];
         }
+
+        private sealed class Badge
+        {
+            public Image background;
+            public Outline outline;
+            public TMP_Text label;
+        }
+
+        private const float BadgeWidth = 64f;
+        private const float BadgeHeight = 42f;
+        private const float BadgeGap = 8f;
+        private const float BadgeY = -170f;
+        private readonly bool[] votedBy = new bool[PlayerRegistry.MaxPlayers];
+        private readonly bool[] hoveredBy = new bool[PlayerRegistry.MaxPlayers];
 
         private IEnumerator Start()
         {
@@ -128,21 +143,24 @@ namespace UnCredibles.UI.Voting
                 var card = cards[i];
                 bool picked = Contains(core.VotedMinigames, candidates[i]);
                 int votes = 0;
-                var selectors = new List<string>();
+                int selectors = 0;
                 foreach (var slot in core.Players.Slots)
                 {
-                    if (!slot.IsOccupied || slot.IsAI) continue;
-                    if (core.Votes.TryGetValue(slot.PlayerId, out int choice) && choice == i) votes++;
-                    if (IsLocalVoter(slot) &&
-                             (core.VoteCursor.TryGetValue(slot.PlayerId, out int cursor) ? cursor == i : i == FirstAvailable()))
-                        selectors.Add(slot.PlayerName);
+                    int index = slot.SlotIndex;
+                    votedBy[index] = hoveredBy[index] = false;
+                    if (!slot.IsOccupied || slot.IsAI || picked) continue;
+                    votedBy[index] = core.Votes.TryGetValue(slot.PlayerId, out int choice) && choice == i;
+                    hoveredBy[index] = IsLocalVoter(slot) &&
+                        (core.VoteCursor.TryGetValue(slot.PlayerId, out int cursor) ? cursor == i : i == FirstAvailable());
+                    if (votedBy[index]) votes++;
+                    if (hoveredBy[index]) selectors++;
                 }
-                card.background.color = picked ? new Color(.10f, .15f, .17f) : selectors.Count > 0 ?
+                LayoutBadges(card);
+                card.background.color = picked ? new Color(.10f, .15f, .17f) : selectors > 0 ?
                     new Color(.24f, .39f, .43f) : new Color(.13f, .22f, .28f);
                 card.title.color = picked ? new Color(.52f, .59f, .61f) : Color.white;
                 card.footer.text = picked ? "EN LA RUTA" :
-                    selectors.Count > 0 ? string.Join(", ", selectors) + (votes > 0 ? $"  ·  {votes} votos" : "") :
-                    votes > 0 ? $"{votes} votos" : "DISPONIBLE";
+                    votes == 1 ? "1 voto" : votes > 1 ? $"{votes} votos" : "DISPONIBLE";
                 card.button.interactable = !picked && core.CanChangeVote;
             }
             hint.text = round >= 3 ? "RUTA DECIDIDA" :
@@ -187,12 +205,54 @@ namespace UnCredibles.UI.Voting
             Place(card.thumbnail.rectTransform, 0, 73, width - 28, 208);
             if (data.Thumbnail != null) { card.thumbnail.sprite = data.Thumbnail; card.thumbnail.color = Color.white; }
             card.title = Label("Nombre", card.background.transform, data.DisplayName, 31, TextAlignmentOptions.Center);
-            Place(card.title.rectTransform, 0, -85, width - 24, 73);
+            Place(card.title.rectTransform, 0, -80, width - 24, 60);
             card.title.fontStyle = FontStyles.Bold;
             card.footer = Label("Votos", card.background.transform, "DISPONIBLE", 19, TextAlignmentOptions.Center);
-            Place(card.footer.rectTransform, 0, -158, width - 24, 40);
+            Place(card.footer.rectTransform, 0, -127, width - 24, 28);
             card.footer.color = new Color(1f, .79f, .35f);
+            for (int slot = 0; slot < card.badges.Length; slot++)
+                card.badges[slot] = CreateBadge(card.background.transform, slot);
             return card;
+        }
+
+        private static Badge CreateBadge(Transform parent, int slotIndex)
+        {
+            var badge = new Badge();
+            badge.background = Panel("Chapa P" + (slotIndex + 1), parent, PlayerIdentity.ColorFor(slotIndex));
+            Place(badge.background.rectTransform, 0, BadgeY, BadgeWidth, BadgeHeight);
+            badge.background.raycastTarget = false;
+            badge.outline = badge.background.gameObject.AddComponent<Outline>();
+            badge.outline.effectDistance = new Vector2(3f, -3f);
+            badge.label = Label("Texto", badge.background.transform, PlayerIdentity.LabelFor(slotIndex), 26,
+                TextAlignmentOptions.Center);
+            Stretch(badge.label.rectTransform, Vector2.zero, Vector2.zero);
+            badge.label.fontStyle = FontStyles.Bold;
+            badge.background.gameObject.SetActive(false);
+            return badge;
+        }
+
+        // Confirmed votes are solid; a local player only pointing at the card gets a hollow badge.
+        private void LayoutBadges(Card card)
+        {
+            int visible = 0;
+            for (int i = 0; i < card.badges.Length; i++)
+                if (votedBy[i] || hoveredBy[i]) visible++;
+            float x = -(visible - 1) * (BadgeWidth + BadgeGap) * .5f;
+            for (int i = 0; i < card.badges.Length; i++)
+            {
+                var badge = card.badges[i];
+                bool shown = votedBy[i] || hoveredBy[i];
+                badge.background.gameObject.SetActive(shown);
+                if (!shown) continue;
+                bool voted = votedBy[i];
+                Color color = PlayerIdentity.ColorFor(i);
+                bool bright = color.r * .299f + color.g * .587f + color.b * .114f > .6f;
+                badge.background.color = voted ? color : new Color(color.r, color.g, color.b, .18f);
+                badge.outline.effectColor = voted ? new Color(1f, 1f, 1f, .9f) : color;
+                badge.label.color = voted && bright ? new Color(.1f, .1f, .1f) : voted ? Color.white : color;
+                badge.background.rectTransform.anchoredPosition = new Vector2(x, BadgeY);
+                x += BadgeWidth + BadgeGap;
+            }
         }
 
         private static Image Panel(string name, Transform parent, Color color)

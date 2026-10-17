@@ -223,7 +223,7 @@ namespace UnCredibles.Players
             for (int i = 0; i < MaxPlayers; i++) RemovePlayer(i);
         }
 
-        private static string DefaultName(int index, bool isAI) => isAI ? $"Bot {index + 1}" : $"Player {index + 1}";
+        private static string DefaultName(int index, bool isAI) => isAI ? "BOT" : $"Player {index + 1}";
         private static bool IsValidIndex(int index) => index >= 0 && index < MaxPlayers;
         private bool IsOccupied(int index) => IsValidIndex(index) && slots[index].IsOccupied;
     }

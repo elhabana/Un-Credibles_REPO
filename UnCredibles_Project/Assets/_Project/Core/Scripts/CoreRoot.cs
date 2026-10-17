@@ -347,7 +347,7 @@ namespace UnCredibles.Core
         private void UpdateVote()
         {
             if (voteFinalizing) return;
-            if (Time.unscaledTime >= voteDeadline) { FinishVote(); return; }
+            if (Time.unscaledTime >= voteDeadline || EveryoneVoted()) { FinishVote(); return; }
             foreach (var slot in Players.Slots)
             {
                 if (!slot.IsOccupied || slot.IsAI || !slot.IsConnected || slot.Input == null) continue;
@@ -363,6 +363,19 @@ namespace UnCredibles.Core
                 }
                 if (slot.Input.WasPressed(PlayerAction.Jump)) CastVote(slot.PlayerId, cursor);
             }
+        }
+
+        // The ballot closes as soon as every connected human has voted; bots never vote.
+        private bool EveryoneVoted()
+        {
+            int voters = 0;
+            foreach (var slot in Players.Slots)
+            {
+                if (!slot.IsOccupied || slot.IsAI || !slot.IsConnected) continue;
+                if (!votes.ContainsKey(slot.PlayerId)) return false;
+                voters++;
+            }
+            return voters > 0;
         }
 
         public void CastVote(int playerId, int candidateIndex)

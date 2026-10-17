@@ -115,10 +115,11 @@ public sealed class GarageFlowTests
             core.CastVote(first.PlayerId, -1);
             Assert.AreEqual(alternate, core.Votes[first.PlayerId], "An invalid candidate must not replace the vote.");
             core.CastVote(first.PlayerId, choice);
+            Assert.AreEqual(round, core.VotedMinigames.Count, "Voting must stay open while someone has not voted.");
             core.CastVote(second.PlayerId, choice);
             yield return new WaitForSecondsRealtime(.2f);
-            Assert.AreEqual(round, core.VotedMinigames.Count, "Voting must stay open after everyone has voted.");
-            yield return WaitFor(() => core.VotedMinigames.Count == round + 1);
+            Assert.AreEqual(round + 1, core.VotedMinigames.Count, "Voting must close once everyone has voted.");
+            Assert.AreSame(core.VoteCandidates[choice], core.VotedMinigames[round]);
         }
 
         Assert.AreEqual(3, core.VotedMinigames.Count);

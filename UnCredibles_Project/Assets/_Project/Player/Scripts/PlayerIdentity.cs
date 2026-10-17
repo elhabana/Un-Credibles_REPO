@@ -5,9 +5,9 @@ namespace UnCredibles.Players
     // Slot identity is already shared by the lobby and network snapshots.
     public static class PlayerIdentity
     {
+        // Bots keep their slot color, so a human replaced by a bot keeps it too.
         public static Color ColorFor(int slotIndex, bool isAI = false)
         {
-            if (isAI) return new Color(.5f, .5f, .5f);
             switch (slotIndex)
             {
                 case 0: return new Color(.9f, .12f, .12f);
@@ -18,6 +18,6 @@ namespace UnCredibles.Players
             }
         }
 
-        public static string LabelFor(int slotIndex, bool isAI = false) => isAI ? "IA" : $"P{slotIndex + 1}";
+        public static string LabelFor(int slotIndex, bool isAI = false) => isAI ? "BOT" : $"P{slotIndex + 1}";
     }
 }

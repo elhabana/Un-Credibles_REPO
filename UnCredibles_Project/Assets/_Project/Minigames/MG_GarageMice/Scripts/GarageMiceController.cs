@@ -16,6 +16,8 @@ namespace UnCredibles.Minigames.GarageMice
         private const float MouseRadius = .2f;
         private const float MoveSpeed = 4.4f;
         private const float MouseSpeed = 2.1f;
+        private const float MouseFleeSpeed = 3.2f;
+        private const float MouseFleeRadius = 3f;
         private const float SwingReach = 1.5f;
         private const float SwingHalfAngle = 65f;
         private const float SwingCooldown = .55f;
@@ -24,6 +26,16 @@ namespace UnCredibles.Minigames.GarageMice
         private const float StunImmunitySeconds = 1.8f;
         private const float MouseRespawnSeconds = 2f;
         private const int MouseCount = 26;
+        private const float GoldenSpeed = 2.6f;
+        private const float GoldenFleeSpeed = 3.8f;
+        private const int GoldenPoints = 5;
+        private const float GoldenRespawnSeconds = 20f;
+        private const float ShelterSeconds = 2.5f;
+        private const float ShelterCooldownSeconds = 4f;
+        private const float HoleCooldownSeconds = 3f;
+        private const float ShelterSeekRadius = 3.5f;
+        private const float HoleEnterDistance = .45f;
+        private const byte CatchEvent = 1;
 
         private struct Shelf
         {
@@ -55,10 +67,15 @@ namespace UnCredibles.Minigames.GarageMice
             public Vector3 Direction;
             public float TurnTimer;
             public float Respawn;
+            public bool Golden;
+            public float Tunnel;        // Seconds left inside a wall hole.
+            public int ExitHole;
+            public float ShelterTime;   // Seconds spent hiding under the current shelf.
+            public float HideCooldown;  // Shelves and holes are off limits while above zero.
         }
 
         private readonly List<Sweeper> sweepers = new List<Sweeper>(PlayerRegistry.MaxPlayers);
-        private readonly List<Mouse> mice = new List<Mouse>(MouseCount);
+        private readonly List<Mouse> mice = new List<Mouse>(MouseCount + 1);
         private readonly List<Material> materials = new List<Material>();
         private readonly Shelf[] shelves =
         {
@@ -66,20 +83,31 @@ namespace UnCredibles.Minigames.GarageMice
             new Shelf(6.6f, -2.1f, 1.2f, .55f), new Shelf(6.6f, 2.1f, 1.2f, .55f),
             new Shelf(-3.9f, .5f, 1.05f, .55f), new Shelf(3.9f, .5f, 1.05f, .55f)
         };
+        // Points just inside the walls. A scared mouse that reaches one pops out of another later.
+        private readonly Vector3[] holes =
+        {
+            new Vector3(-HalfWidth + .3f, .16f, 0f), new Vector3(HalfWidth - .3f, .16f, 0f),
+            new Vector3(-3f, .16f, HalfDepth - .3f), new Vector3(3f, .16f, HalfDepth - .3f),
+            new Vector3(-3f, .16f, -HalfDepth + .3f), new Vector3(3f, .16f, -HalfDepth + .3f)
+        };
         private Transform arena;
         private Camera arenaCamera;
         private Vector3 cameraHome;
         private float cameraShake;
         private GarageMiceHud hud;
+        private GarageMicePopups popups;
 
         protected override void OnInitialize(MinigameContext context)
         {
             ConfigureCamera();
             BuildArena();
             foreach (var slot in Players) BuildSweeper(slot);
-            for (int i = 0; i < MouseCount; i++) BuildMouse(i);
+            for (int i = 0; i < MouseCount; i++) BuildMouse(i, false);
+            BuildMouse(MouseCount, true);
             hud = gameObject.AddComponent<GarageMiceHud>();
             hud.Setup(this);
+            popups = gameObject.AddComponent<GarageMicePopups>();
+            popups.Setup(arenaCamera != null ? arenaCamera.transform : null);
         }
 
         protected override void OnGameStarted() { }
@@ -89,6 +117,7 @@ namespace UnCredibles.Minigames.GarageMice
             if (State < MinigameState.Waiting || State >= MinigameState.Exit) return;
             float deltaTime = Time.deltaTime;
             foreach (var sweeper in sweepers) UpdateBroom(sweeper, deltaTime);
+            popups.Tick(deltaTime);
             if (IsReplica || !IsPlaying) return;
 
             TickMice(deltaTime);
@@ -124,13 +153,20 @@ namespace UnCredibles.Minigames.GarageMice
             Vector3 origin = attacker.Root.position;
             Vector3 facing = attacker.Root.forward;
             float reach = SwingReach + MouseRadius;
+            int caught = 0;
+            int points = 0;
+            bool golden = false;
             foreach (var mouse in mice)
             {
-                if (mouse.Respawn > 0f || !InSwing(origin, facing, mouse.Root.position, reach)) continue;
-                mouse.Respawn = MouseRespawnSeconds;
+                if (!IsCatchable(mouse) || !InSwing(origin, facing, mouse.Root.position, reach)) continue;
+                caught++;
+                points += mouse.Golden ? GoldenPoints : 1;
+                golden |= mouse.Golden;
+                mouse.Respawn = mouse.Golden ? GoldenRespawnSeconds : MouseRespawnSeconds;
                 mouse.Root.gameObject.SetActive(false);
-                Score.AddScore(attacker.Slot.PlayerId, 1);
             }
+            // Combo: every mouse in the same swing multiplies the whole catch.
+            if (caught > 0) AwardCatch(attacker, points * caught, caught, golden);
             foreach (var rival in sweepers)
             {
                 if (rival == attacker || rival.Immunity > 0f ||
@@ -140,6 +176,32 @@ namespace UnCredibles.Minigames.GarageMice
                 cameraShake = Mathf.Max(cameraShake, .17f);
             }
         }
+
+        private void AwardCatch(Sweeper attacker, int points, int combo, bool golden)
+        {
+            Score.AddScore(attacker.Slot.PlayerId, points);
+            popups.Show(attacker.Root.position, points, combo, golden);
+            var message = BeginEvent(CatchEvent);
+            message.Write((byte)sweepers.IndexOf(attacker));
+            message.Write((short)points);
+            message.Write((byte)combo);
+            message.Write(golden);
+            SendEvent();
+        }
+
+        protected override void OnNetworkEvent(byte eventId, BinaryReader reader)
+        {
+            if (eventId != CatchEvent) return;
+            int index = reader.ReadByte();
+            int points = reader.ReadInt16();
+            int combo = reader.ReadByte();
+            bool golden = reader.ReadBoolean();
+            if (index < sweepers.Count) popups.Show(sweepers[index].Root.position, points, combo, golden);
+        }
+
+        // Mice in a hole or hiding under a shelf cannot be hit.
+        private bool IsCatchable(Mouse mouse) =>
+            mouse.Respawn <= 0f && mouse.Tunnel <= 0f && !InShelf(mouse.Root.position, 0f);
 
         private static bool InSwing(Vector3 origin, Vector3 facing, Vector3 target, float reach)
         {
@@ -158,8 +220,9 @@ namespace UnCredibles.Minigames.GarageMice
                 float best = float.MaxValue;
                 foreach (var mouse in mice)
                 {
-                    if (mouse.Respawn > 0f) continue;
+                    if (!IsCatchable(mouse)) continue;
                     float distance = (mouse.Root.position - sweeper.Root.position).sqrMagnitude;
+                    if (mouse.Golden) distance *= .25f; // Bots go for the golden mouse first.
                     if (distance >= best) continue;
                     best = distance;
                     nearest = mouse;
@@ -182,7 +245,8 @@ namespace UnCredibles.Minigames.GarageMice
                     desired = !IsBlocked(firstTest, PlayerRadius) ? first : second;
                 }
                 input.SetMove(desired);
-                if (best < SwingReach * SwingReach && sweeper.Cooldown <= 0f &&
+                offset.y = 0f;
+                if (offset.sqrMagnitude < SwingReach * SwingReach && sweeper.Cooldown <= 0f &&
                     Vector3.Angle(sweeper.Root.forward, offset) < SwingHalfAngle)
                     input.Press(PlayerAction.Jump);
             }
@@ -198,14 +262,34 @@ namespace UnCredibles.Minigames.GarageMice
                     if (mouse.Respawn <= 0f) PlaceMouse(mouse);
                     continue;
                 }
+                if (mouse.Tunnel > 0f)
+                {
+                    mouse.Tunnel -= deltaTime;
+                    if (mouse.Tunnel <= 0f) LeaveHole(mouse);
+                    continue;
+                }
+                mouse.HideCooldown = Mathf.Max(0f, mouse.HideCooldown - deltaTime);
+                if (mouse.HideCooldown <= 0f && InShelf(mouse.Root.position, 0f))
+                {
+                    // Hiding under a shelf: it stays still, then has to come out for a while.
+                    mouse.ShelterTime += deltaTime;
+                    if (mouse.ShelterTime < ShelterSeconds) continue;
+                    mouse.ShelterTime = 0f;
+                    mouse.HideCooldown = ShelterCooldownSeconds;
+                    mouse.Direction = OutOfShelf(mouse.Root.position);
+                }
+                bool fleeing = TryFlee(mouse);
+                if (fleeing && mouse.HideCooldown <= 0f && TryEnterHole(mouse)) continue;
                 mouse.TurnTimer -= deltaTime;
-                if (mouse.TurnTimer <= 0f)
+                if (!fleeing && mouse.TurnTimer <= 0f)
                 {
                     mouse.TurnTimer = Random.Range(.4f, 1.3f);
                     mouse.Direction = Quaternion.Euler(0f, Random.Range(-70f, 70f), 0f) * mouse.Direction;
                 }
-                Vector3 next = mouse.Root.position + mouse.Direction * (MouseSpeed * deltaTime);
-                if (IsBlocked(next, MouseRadius))
+                float speed = mouse.Golden ? (fleeing ? GoldenFleeSpeed : GoldenSpeed) :
+                    fleeing ? MouseFleeSpeed : MouseSpeed;
+                Vector3 next = mouse.Root.position + mouse.Direction * (speed * deltaTime);
+                if (IsBlockedForMouse(mouse, next, fleeing))
                 {
                     mouse.Direction = Quaternion.Euler(0f, Random.Range(110f, 250f), 0f) * mouse.Direction;
                     mouse.TurnTimer = .25f;
@@ -213,21 +297,146 @@ namespace UnCredibles.Minigames.GarageMice
                 else mouse.Root.position = next;
                 mouse.Root.rotation = Quaternion.LookRotation(mouse.Direction);
             }
+            SeparateMice();
         }
+
+        private bool TryEnterHole(Mouse mouse)
+        {
+            for (int i = 0; i < holes.Length; i++)
+            {
+                Vector3 offset = holes[i] - mouse.Root.position;
+                offset.y = 0f;
+                if (offset.sqrMagnitude > HoleEnterDistance * HoleEnterDistance) continue;
+                mouse.Tunnel = Random.Range(2.5f, 4f);
+                mouse.ExitHole = (i + Random.Range(1, holes.Length)) % holes.Length;
+                mouse.Root.gameObject.SetActive(false);
+                return true;
+            }
+            return false;
+        }
+
+        private void LeaveHole(Mouse mouse)
+        {
+            Vector3 hole = holes[mouse.ExitHole];
+            mouse.Tunnel = 0f;
+            mouse.HideCooldown = HoleCooldownSeconds;
+            mouse.Root.position = hole;
+            mouse.Direction = new Vector3(-hole.x, 0f, -hole.z).normalized;
+            mouse.TurnTimer = Random.Range(.4f, 1.3f);
+            mouse.Root.gameObject.SetActive(true);
+        }
+
+        private Vector3 OutOfShelf(Vector3 position)
+        {
+            foreach (var shelf in shelves)
+            {
+                var offset = new Vector3(position.x - shelf.Center.x, 0f, position.z - shelf.Center.y);
+                if (Mathf.Abs(offset.x) < shelf.HalfSize.x && Mathf.Abs(offset.z) < shelf.HalfSize.y)
+                    return offset.sqrMagnitude > .0001f ? offset.normalized : Vector3.forward;
+            }
+            return Vector3.forward;
+        }
+
+        // Pushes overlapping mice apart, half each, unless that would put one inside a wall or shelf.
+        private void SeparateMice()
+        {
+            const float minDistance = MouseRadius * 2f;
+            for (int i = 0; i < mice.Count; i++)
+            {
+                var a = mice[i];
+                if (a.Respawn > 0f || a.Tunnel > 0f) continue;
+                for (int j = i + 1; j < mice.Count; j++)
+                {
+                    var b = mice[j];
+                    if (b.Respawn > 0f || b.Tunnel > 0f) continue;
+                    Vector3 offset = b.Root.position - a.Root.position;
+                    offset.y = 0f;
+                    float distance = offset.magnitude;
+                    if (distance >= minDistance) continue;
+                    Vector3 push = (distance > .0001f ? offset / distance : a.Direction) * ((minDistance - distance) * .5f);
+                    if (!IsBlocked(a.Root.position - push, MouseRadius)) a.Root.position -= push;
+                    if (!IsBlocked(b.Root.position + push, MouseRadius)) b.Root.position += push;
+                }
+            }
+        }
+
+        // Runs away from the closest sweeper in range, heading for a nearby shelf or hole when one lies
+        // away from the threat. When the way is blocked it slides sideways instead of freezing.
+        private bool TryFlee(Mouse mouse)
+        {
+            Vector3 position = mouse.Root.position;
+            Vector3 away = Vector3.zero;
+            float closest = MouseFleeRadius * MouseFleeRadius;
+            foreach (var sweeper in sweepers)
+            {
+                Vector3 offset = position - sweeper.Root.position;
+                offset.y = 0f;
+                float distance = offset.sqrMagnitude;
+                if (distance >= closest) continue;
+                closest = distance;
+                away = distance < .0001f ? mouse.Direction : offset.normalized;
+            }
+            if (away == Vector3.zero) return false;
+            Vector3 desired = away;
+            if (mouse.HideCooldown <= 0f)
+            {
+                float best = ShelterSeekRadius * ShelterSeekRadius;
+                foreach (var hole in holes) ConsiderShelter(position, away, hole, ref best, ref desired);
+                foreach (var shelf in shelves)
+                    ConsiderShelter(position, away, new Vector3(shelf.Center.x, 0f, shelf.Center.y), ref best, ref desired);
+            }
+            float probe = MouseFleeSpeed * .25f;
+            // Keep sliding the way it already heads, so it does not jitter along a wall.
+            float side = Vector3.Cross(desired, mouse.Direction).y >= 0f ? 1f : -1f;
+            foreach (float angle in FleeAngles)
+            {
+                Vector3 candidate = Quaternion.Euler(0f, angle * side, 0f) * desired;
+                if (IsBlockedForMouse(mouse, position + candidate * probe, true)) continue;
+                mouse.Direction = candidate;
+                return true;
+            }
+            return true;
+        }
+
+        private static void ConsiderShelter(Vector3 position, Vector3 away, Vector3 target, ref float best, ref Vector3 desired)
+        {
+            Vector3 offset = target - position;
+            offset.y = 0f;
+            float distance = offset.sqrMagnitude;
+            if (distance >= best || Vector3.Dot(offset, away) <= 0f) return;
+            best = distance;
+            desired = distance > .0001f ? offset / Mathf.Sqrt(distance) : away;
+        }
+
+        private static readonly float[] FleeAngles = { 0f, 35f, -35f, 70f, -70f, 105f, -105f };
 
         private static Vector3 Clamp(Vector3 position, float radius) => new Vector3(
             Mathf.Clamp(position.x, -HalfWidth + radius, HalfWidth - radius),
             position.y,
             Mathf.Clamp(position.z, -HalfDepth + radius, HalfDepth - radius));
 
-        private bool IsBlocked(Vector3 position, float radius)
+        private bool IsBlocked(Vector3 position, float radius) =>
+            IsOutsideArena(position, radius) || InShelf(position, radius);
+
+        private static bool IsOutsideArena(Vector3 position, float radius) =>
+            position.x < -HalfWidth + radius || position.x > HalfWidth - radius ||
+            position.z < -HalfDepth + radius || position.z > HalfDepth - radius;
+
+        private bool InShelf(Vector3 position, float radius)
         {
-            if (position.x < -HalfWidth + radius || position.x > HalfWidth - radius ||
-                position.z < -HalfDepth + radius || position.z > HalfDepth - radius) return true;
             foreach (var shelf in shelves)
                 if (Mathf.Abs(position.x - shelf.Center.x) < shelf.HalfSize.x + radius &&
                     Mathf.Abs(position.z - shelf.Center.y) < shelf.HalfSize.y + radius) return true;
             return false;
+        }
+
+        // Mice can slip under shelves (players cannot), but only to hide while scared.
+        private bool IsBlockedForMouse(Mouse mouse, Vector3 position, bool fleeing)
+        {
+            if (IsOutsideArena(position, MouseRadius)) return true;
+            if (InShelf(mouse.Root.position, MouseRadius)) return false; // Already under one: free to come out.
+            if (fleeing && mouse.HideCooldown <= 0f) return false;
+            return InShelf(position, MouseRadius);
         }
 
         private Vector3 MoveAroundShelves(Vector3 position, Vector3 motion, float radius)
@@ -242,6 +451,9 @@ namespace UnCredibles.Minigames.GarageMice
         private void PlaceMouse(Mouse mouse)
         {
             mouse.Respawn = 0f;
+            mouse.Tunnel = 0f;
+            mouse.ShelterTime = 0f;
+            mouse.HideCooldown = 0f;
             Vector3 candidate = Vector3.zero;
             for (int attempt = 0; attempt < 48; attempt++)
             {
@@ -300,7 +512,7 @@ namespace UnCredibles.Minigames.GarageMice
                 writer.Write(mouse.Root.position.x);
                 writer.Write(mouse.Root.position.z);
                 writer.Write(mouse.Root.eulerAngles.y);
-                writer.Write(mouse.Respawn);
+                writer.Write(Mathf.Max(mouse.Respawn, mouse.Tunnel));
             }
         }
 
@@ -350,6 +562,14 @@ namespace UnCredibles.Minigames.GarageMice
             Box("Front wall", new Vector3(0f, 1.3f, -HalfDepth - .15f),
                 new Vector3(HalfWidth * 2f + .6f, 2.6f, .3f), wall);
             for (int i = 0; i < shelves.Length; i++) BuildShelf(i, shelves[i], metal, wood);
+            Material hole = MakeMaterial(new Color(.02f, .02f, .025f));
+            foreach (var point in holes)
+            {
+                bool sideWall = Mathf.Abs(point.x) > HalfWidth - 1f;
+                var onWall = sideWall ? new Vector3(Mathf.Sign(point.x) * (HalfWidth - .03f), .17f, point.z)
+                    : new Vector3(point.x, .17f, Mathf.Sign(point.z) * (HalfDepth - .03f));
+                Box("Mouse hole", onWall, sideWall ? new Vector3(.08f, .34f, .55f) : new Vector3(.55f, .34f, .08f), hole);
+            }
         }
 
         private void BuildShelf(int index, Shelf shelf, Material metal, Material wood)
@@ -413,11 +633,13 @@ namespace UnCredibles.Minigames.GarageMice
             sweepers.Add(new Sweeper { Slot = slot, Root = root, Visual = visual, Broom = broom, Stars = stars });
         }
 
-        private void BuildMouse(int index)
+        private void BuildMouse(int index, bool golden)
         {
-            var root = new GameObject($"Mouse_{index}").transform;
+            var root = new GameObject(golden ? "Golden mouse" : $"Mouse_{index}").transform;
             root.SetParent(arena, false);
-            Material fur = MakeMaterial(new Color(.12f + index % 3 * .05f, .1f, .09f));
+            Material fur = golden ? MakeGlowMaterial(new Color(1f, .78f, .12f))
+                : MakeMaterial(new Color(.12f + index % 3 * .05f, .1f, .09f));
+            if (golden) root.localScale = Vector3.one * 1.2f;
             Primitive("Mouse body", PrimitiveType.Sphere, root, Vector3.zero, new Vector3(.42f, .25f, .28f), fur);
             Primitive("Head", PrimitiveType.Sphere, root, new Vector3(0f, .03f, .22f), Vector3.one * .2f, fur);
             Primitive("Left ear", PrimitiveType.Sphere, root, new Vector3(-.1f, .14f, .23f), Vector3.one * .11f, fur);
@@ -428,10 +650,15 @@ namespace UnCredibles.Minigames.GarageMice
             var tail = Primitive("Tail", PrimitiveType.Cylinder, root, new Vector3(0f, -.02f, -.43f),
                 new Vector3(.025f, .27f, .025f), MakeMaterial(new Color(.54f, .29f, .32f)));
             tail.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
-            var mouse = new Mouse { Root = root };
+            var mouse = new Mouse { Root = root, Golden = golden };
             mice.Add(mouse);
-            if (!IsReplica) PlaceMouse(mouse);
-            else root.gameObject.SetActive(false);
+            if (IsReplica) root.gameObject.SetActive(false);
+            else if (golden)
+            {
+                mouse.Respawn = GoldenRespawnSeconds;
+                root.gameObject.SetActive(false);
+            }
+            else PlaceMouse(mouse);
         }
 
         private GameObject Box(string name, Vector3 position, Vector3 size, Material material) =>
@@ -448,6 +675,14 @@ namespace UnCredibles.Minigames.GarageMice
             instance.GetComponent<Renderer>().sharedMaterial = material;
             Destroy(instance.GetComponent<Collider>());
             return instance;
+        }
+
+        private Material MakeGlowMaterial(Color color)
+        {
+            var material = MakeMaterial(color);
+            material.EnableKeyword("_EMISSION");
+            material.SetColor("_EmissionColor", color * 1.6f);
+            return material;
         }
 
         private Material MakeMaterial(Color color)

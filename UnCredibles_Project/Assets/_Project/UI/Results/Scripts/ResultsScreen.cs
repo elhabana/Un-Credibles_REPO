@@ -71,8 +71,8 @@ namespace UnCredibles.UI.Results
 
         private void ShowHeader(int round, int totalRounds)
         {
-            titleText.text = isFinal ? "PODIO FINAL" : "RESULTS";
-            roundText.text = isFinal ? "PUNTOS TOTALES" : $"Round {round} / {totalRounds}";
+            titleText.text = isFinal ? "FINAL PODIUM" : "RESULTS";
+            roundText.text = isFinal ? "TOTAL POINTS" : $"Round {round} / {totalRounds}";
             finalButtons.SetActive(isFinal);
             hintText.gameObject.SetActive(!isFinal);
             listBackground.SetActive(!isFinal);

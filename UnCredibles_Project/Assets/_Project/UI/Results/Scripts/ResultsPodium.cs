@@ -84,8 +84,21 @@ namespace UnCredibles.UI.Results
                 Box("Winner crown", new Vector3(x, top + 1.69f, -.08f), new Vector3(.55f, .14f, .42f),
                     new Color(1f, .72f, .13f));
 
-            Label($"{entry.Placement}º  {entry.Name}", new Vector3(x, top + 2.02f, -.2f), 2.8f, 2.1f);
+            Label($"{Ordinal(entry.Placement)}  {entry.Name}", new Vector3(x, top + 2.02f, -.2f), 2.8f, 2.1f);
             Label($"{entry.Points} PTS", new Vector3(x, FloorTop + height * .48f, -.71f), 3.2f, 1.7f);
+        }
+
+        private static string Ordinal(int place)
+        {
+            int lastTwo = place % 100;
+            if (lastTwo >= 11 && lastTwo <= 13) return place + "th";
+            switch (place % 10)
+            {
+                case 1: return place + "st";
+                case 2: return place + "nd";
+                case 3: return place + "rd";
+                default: return place + "th";
+            }
         }
 
         private void Primitive(string name, PrimitiveType type, Vector3 position, Vector3 scale, Material material)
