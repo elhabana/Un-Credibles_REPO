@@ -1,0 +1,340 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e9620f8c34305754d8cc9a7e49e852d9, type: 3}
+  m_Name: UI_es
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.StringTable
+  m_LocaleId:
+    m_Code: es
+  m_SharedData: {fileID: 11400000, guid: 3ed821782d4011f42bb88053e8bef4ce, type: 2}
+  m_Metadata:
+    m_Items: []
+  m_TableData:
+  - m_Id: 1580335104
+    m_Localized: JUGAR LOCAL
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1651638272
+    m_Localized: MULTIJUGADOR
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832576
+    m_Localized: AJUSTES
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832577
+    m_Localized: "CR\xC9DITOS"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832578
+    m_Localized: "GALER\xCDA"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832579
+    m_Localized: VOLVER
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832580
+    m_Localized: CREAR SALA
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832581
+    m_Localized: UNIRSE
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832582
+    m_Localized: "C\xD3DIGO DE SALA"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832583
+    m_Localized: SALIR DE LA SALA
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832584
+    m_Localized: GARAJE / PROTOTIPO
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832585
+    m_Localized: "Espacio reservado para los cr\xE9ditos del equipo."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832586
+    m_Localized: Espacio reservado para concepts, modelos y proceso de arte.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832587
+    m_Localized: GENERAL
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832588
+    m_Localized: "M\xDASICA"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832589
+    m_Localized: EFECTOS
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832590
+    m_Localized: CLIC O ARRASTRA PARA CAMBIAR EL VOLUMEN
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832591
+    m_Localized: + BOT
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832592
+    m_Localized: QUITAR
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832593
+    m_Localized: HOST
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832594
+    m_Localized: '[ Invitar amigo ]'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832595
+    m_Localized: "VAC\xCDO"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832596
+    m_Localized: LIBRE
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832597
+    m_Localized: "T\xFA"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832598
+    m_Localized: Teclado
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832599
+    m_Localized: Mando
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832600
+    m_Localized: BatPad
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832601
+    m_Localized: Online
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832602
+    m_Localized: BOT
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832603
+    m_Localized: Pulsa ESPACIO / A para unirte
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832604
+    m_Localized: Esperando jugador
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832605
+    m_Localized: Libre
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832606
+    m_Localized: Invitando...
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832607
+    m_Localized: Conectando...
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832608
+    m_Localized: Desconectado
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832609
+    m_Localized: LISTO
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832610
+    m_Localized: "Pulsa ESPACIO / A cuando est\xE9s listo"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832611
+    m_Localized: No listo
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832612
+    m_Localized: 'ESPACIO / A: unirse y listo     ESC / START: cancelar y salir'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832613
+    m_Localized: "Comparte el c\xF3digo para invitar.   ESPACIO / A: listo"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832614
+    m_Localized: 'ESPACIO / A: listo     ESC / B: cancelar'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832615
+    m_Localized: "Escanea para jugar con el m\xF3vil"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832616
+    m_Localized: "Conectando el mando del m\xF3vil..."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832617
+    m_Localized: "MULTIJUGADOR {0}/4  |  C\xD3DIGO: {1}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832618
+    m_Localized: UN JUGADOR
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832619
+    m_Localized: "\xA1YA!"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832620
+    m_Localized: "Hacen falta al menos 2 jugadores. Puedes a\xF1adir un BOT."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832621
+    m_Localized: No se pudo empezar la partida.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832622
+    m_Localized: EL MAPA DE LA PARTIDA
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832623
+    m_Localized: RUTA DECIDIDA
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832624
+    m_Localized: VOTAD EL MINIJUEGO {0} DE {1}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832625
+    m_Localized: VOTANDO...
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832626
+    m_Localized: POR DECIDIR
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832627
+    m_Localized: EN LA RUTA
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832628
+    m_Localized: 1 voto
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832629
+    m_Localized: '{0} votos'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832630
+    m_Localized: DISPONIBLE
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832631
+    m_Localized: 'IZQUIERDA / DERECHA: ELEGIR     A / ESPACIO: VOTAR'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832632
+    m_Localized: 'IZQUIERDA / DERECHA: ELEGIR     A / ESPACIO: VOTAR O CAMBIAR    
+      VOTOS CONFIRMADOS'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832633
+    m_Localized: RESULTADOS
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832634
+    m_Localized: PODIO FINAL
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832635
+    m_Localized: Ronda {0} / {1}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832636
+    m_Localized: PUNTOS TOTALES
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832637
+    m_Localized: Esperando al host...   ESPACIO / A para continuar
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832638
+    m_Localized: Siguiente minijuego en {0}...   ESPACIO / A para continuar
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832639
+    m_Localized: JUGADOR
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832640
+    m_Localized: RONDA
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832641
+    m_Localized: TOTAL
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832642
+    m_Localized: Volver al lobby
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832643
+    m_Localized: "Men\xFA principal"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832644
+    m_Localized: Jugador {0}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832645
+    m_Localized: '{0} PTS'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832646
+    m_Localized: "1.\xBA"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832647
+    m_Localized: "2.\xBA"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832648
+    m_Localized: "3.\xBA"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832649
+    m_Localized: "4.\xBA"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832650
+    m_Localized: "Conexi\xF3n perdida"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832651
+    m_Localized: El host se ha desconectado
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832652
+    m_Localized: "Volviendo al men\xFA en {0}..."
+    m_Metadata:
+      m_Items: []
+  references:
+    version: 2
+    RefIds: []

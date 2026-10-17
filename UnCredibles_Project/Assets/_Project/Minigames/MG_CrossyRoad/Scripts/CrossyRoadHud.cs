@@ -1,5 +1,6 @@
 using TMPro;
 using UnityEngine;
+using UnCredibles.Localization;
 
 namespace UnCredibles.Minigames.CrossyRoad
 {
@@ -36,7 +37,7 @@ namespace UnCredibles.Minigames.CrossyRoad
         {
             bannerTimer = bannerSeconds;
             if (bannerText == null) return;
-            bannerText.text = "¡RECTA FINAL!\n<size=60%>Cada abuela vale x2</size>";
+            bannerText.text = L10n.Get(L10n.Minigames, "crossy.final_rush");
             bannerText.gameObject.SetActive(true);
         }
 

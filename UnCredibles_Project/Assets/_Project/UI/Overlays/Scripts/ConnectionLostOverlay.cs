@@ -3,6 +3,7 @@ using UnCredibles.Core;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
+using UnCredibles.Localization;
 
 namespace UnCredibles.UI.Overlays
 {
@@ -47,7 +48,7 @@ namespace UnCredibles.UI.Overlays
             if (!showing) return;
 
             timeLeft -= Time.unscaledDeltaTime;
-            footerText.text = $"Volviendo al menu en {Mathf.CeilToInt(Mathf.Max(0f, timeLeft))}...";
+            footerText.text = L10n.Format(L10n.UI, "overlay.returning", Mathf.CeilToInt(Mathf.Max(0f, timeLeft)));
             if (timeLeft <= 0f || ContinuePressed()) Close();
         }
 

@@ -1,7 +1,7 @@
 {
     "name": "UnCredibles.Minigames.Churro",
     "rootNamespace": "",
-    "references": ["UnCredibles.Minigames", "UnCredibles.Player", "Unity.TextMeshPro", "UnityEngine.UI"],
+    "references": ["UnCredibles.Minigames", "UnCredibles.Player", "Unity.TextMeshPro", "UnityEngine.UI", "UnCredibles.Localization"],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

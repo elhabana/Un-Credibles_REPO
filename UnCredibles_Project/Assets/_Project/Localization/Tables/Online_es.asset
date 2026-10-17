@@ -1,0 +1,134 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e9620f8c34305754d8cc9a7e49e852d9, type: 3}
+  m_Name: Online_es
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.StringTable
+  m_LocaleId:
+    m_Code: es
+  m_SharedData: {fileID: 11400000, guid: 5dc8942f704795f4c8aca3df222decb3, type: 2}
+  m_Metadata:
+    m_Items: []
+  m_TableData:
+  - m_Id: 347209728
+    m_Localized: "Crea una partida o introduce un c\xF3digo para unirte."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 380764160
+    m_Localized: Conectando con Unity Services...
+    m_Metadata:
+      m_Items: []
+  - m_Id: 380764161
+    m_Localized: "Creando la conexi\xF3n Relay..."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 380764162
+    m_Localized: "Host iniciado. C\xF3digo generado."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 380764163
+    m_Localized: Buscando la partida...
+    m_Metadata:
+      m_Items: []
+  - m_Id: 380764164
+    m_Localized: Conectando con el host...
+    m_Metadata:
+      m_Items: []
+  - m_Id: 380764165
+    m_Localized: 'Host activo. Conexiones: {0} (incluido el host).'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 380764166
+    m_Localized: Conectado al host.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 380764167
+    m_Localized: Un cliente se ha desconectado.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 380764168
+    m_Localized: Host detenido.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 380764169
+    m_Localized: Desconectado. Puedes crear o unirte a otra partida.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 380764170
+    m_Localized: "No se recibi\xF3 respuesta del host. Puedes volver a intentarlo."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 380764171
+    m_Localized: "C\xF3digo incorrecto o partida cerrada. Comprueba el c\xF3digo
+      con el host."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 380764172
+    m_Localized: "Solicitud no v\xE1lida. Revisa el c\xF3digo e int\xE9ntalo de nuevo."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 380764173
+    m_Localized: "Relay no permite entrar: la sala puede estar llena o el acceso
+      no est\xE1 permitido."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 380764174
+    m_Localized: Demasiados intentos. Espera un momento y vuelve a intentarlo.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 380764175
+    m_Localized: "Relay no est\xE1 disponible. Comprueba internet y vuelve a intentarlo."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 380764176
+    m_Localized: "No se pudo completar la conexi\xF3n: {0}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 380764177
+    m_Localized: No se pudo iniciar el host.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 380764178
+    m_Localized: No se pudo iniciar el cliente.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 380764179
+    m_Localized: "Se perdi\xF3 la conexi\xF3n o el host cerr\xF3 la partida. Puedes
+      volver a unirte."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 380764180
+    m_Localized: "Conexi\xF3n cerrada: {0}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 380764181
+    m_Localized: "La conexi\xF3n Relay ha fallado. Puedes volver a intentarlo."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 380764182
+    m_Localized: Sala llena (4 conexiones).
+    m_Metadata:
+      m_Items: []
+  - m_Id: 380764183
+    m_Localized: Sala llena.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 380764184
+    m_Localized: La partida ya ha empezado.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 380764185
+    m_Localized: El host te ha sacado de la sala.
+    m_Metadata:
+      m_Items: []
+  references:
+    version: 2
+    RefIds: []

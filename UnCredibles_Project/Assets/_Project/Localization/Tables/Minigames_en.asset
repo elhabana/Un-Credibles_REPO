@@ -1,0 +1,103 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e9620f8c34305754d8cc9a7e49e852d9, type: 3}
+  m_Name: Minigames_en
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.StringTable
+  m_LocaleId:
+    m_Code: en
+  m_SharedData: {fileID: 11400000, guid: 169b9029a6299754cbc998d0122e2315, type: 2}
+  m_Metadata:
+    m_Items: []
+  m_TableData:
+  - m_Id: 326238208
+    m_Localized: Help Grandma
+    m_Metadata:
+      m_Items: []
+  - m_Id: 359792640
+    m_Localized: Calm the Kid
+    m_Metadata:
+      m_Items: []
+  - m_Id: 359792641
+    m_Localized: Mow the Lawn
+    m_Metadata:
+      m_Items: []
+  - m_Id: 359792642
+    m_Localized: Garage Mice
+    m_Metadata:
+      m_Items: []
+  - m_Id: 359792643
+    m_Localized: START!
+    m_Metadata:
+      m_Items: []
+  - m_Id: 359792644
+    m_Localized: GARAGE MICE
+    m_Metadata:
+      m_Items: []
+  - m_Id: 359792645
+    m_Localized: 'MOVE: STICK / WASD    SWING: A / SPACE'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 359792646
+    m_Localized: SWEEP!
+    m_Metadata:
+      m_Items: []
+  - m_Id: 359792647
+    m_Localized: RESULTS
+    m_Metadata:
+      m_Items: []
+  - m_Id: 359792648
+    m_Localized: Player {0}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 359792649
+    m_Localized: '{0} mice'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 359792650
+    m_Localized: Round {0} / {1}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 359792651
+    m_Localized: "ROUND 1\n<size=40%>SPACE / A: jump the churro  \xB7  CTRL / B:
+      duck under the balls</size>"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 359792652
+    m_Localized: ROUND {0}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 359792653
+    m_Localized: '{0} survives!'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 359792654
+    m_Localized: Everybody fell!
+    m_Metadata:
+      m_Items: []
+  - m_Id: 359792655
+    m_Localized: 'FINAL STRETCH!
+
+      <size=60%>Every grandma is worth x2</size>'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 359792656
+    m_Localized: "MOW!\n<size=50%>SPACE / A: TURBO  \xB7  ram with turbo to knock
+      bags off\nUnload the bags into your bin</size>"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 359792657
+    m_Localized: "FINAL FRENZY!\n<size=60%>The grass grows back \xB7 bags x2</size>"
+    m_Metadata:
+      m_Items: []
+  references:
+    version: 2
+    RefIds: []

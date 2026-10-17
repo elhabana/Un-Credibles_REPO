@@ -4,6 +4,7 @@ using UnCredibles.Networking;
 using UnCredibles.Players;
 using UnityEngine;
 using UnityEngine.UI;
+using UnCredibles.Localization;
 
 namespace UnCredibles.UI.PartyLobby
 {
@@ -52,8 +53,8 @@ namespace UnCredibles.UI.PartyLobby
         {
             bool occupied = info.Occupied;
             crown.SetActive(info.Host);
-            nameText.text = occupied ? info.Name : online ? "LIBRE" : "EMPTY";
-            inputText.text = !occupied ? string.Empty : mine ? "Tu" : InputLabel(info.Source);
+            nameText.text = occupied ? info.Name : online ? L10n.Get(L10n.UI, "lobby.slot_free") : L10n.Get(L10n.UI, "lobby.slot_empty");
+            inputText.text = !occupied ? string.Empty : mine ? L10n.Get(L10n.UI, "lobby.you") : InputLabel(info.Source);
             statusText.text = StatusLabel(info, canEdit, mine, online);
             background.color = !occupied ? emptyColor : info.IsAI ? aiColor : info.Ready ? readyColor : occupiedColor;
 
@@ -65,24 +66,24 @@ namespace UnCredibles.UI.PartyLobby
 
         private static string InputLabel(InputSourceType source) => source switch
         {
-            InputSourceType.Keyboard => "Keyboard",
-            InputSourceType.Gamepad => "Gamepad",
-            InputSourceType.PrestoPad => "BatPad",
-            InputSourceType.Network => "Online",
-            InputSourceType.AI => "AI",
+            InputSourceType.Keyboard => L10n.Get(L10n.UI, "lobby.input_keyboard"),
+            InputSourceType.Gamepad => L10n.Get(L10n.UI, "lobby.input_gamepad"),
+            InputSourceType.PrestoPad => L10n.Get(L10n.UI, "lobby.input_batpad"),
+            InputSourceType.Network => L10n.Get(L10n.UI, "lobby.input_online"),
+            InputSourceType.AI => L10n.Get(L10n.UI, "lobby.input_bot"),
             _ => string.Empty,
         };
 
         private static string StatusLabel(LobbySlotInfo info, bool canEdit, bool mine, bool online) => info.State switch
         {
-            SlotState.Empty => !online ? "Press SPACE / A to join" : canEdit ? "Esperando jugador" : "Libre",
-            SlotState.Inviting => "Inviting...",
-            SlotState.Connecting => "Connecting...",
-            SlotState.Disconnected => "Disconnected",
-            SlotState.AI => "READY",
-            _ => info.Ready ? "READY"
-                : !online || canEdit && info.Source != InputSourceType.Network || mine ? "Press SPACE / A when ready"
-                : "Not ready",
+            SlotState.Empty => !online ? L10n.Get(L10n.UI, "lobby.press_join") : canEdit ? L10n.Get(L10n.UI, "lobby.waiting_player") : L10n.Get(L10n.UI, "lobby.free"),
+            SlotState.Inviting => L10n.Get(L10n.UI, "lobby.inviting"),
+            SlotState.Connecting => L10n.Get(L10n.UI, "lobby.connecting"),
+            SlotState.Disconnected => L10n.Get(L10n.UI, "lobby.disconnected"),
+            SlotState.AI => L10n.Get(L10n.UI, "lobby.ready"),
+            _ => info.Ready ? L10n.Get(L10n.UI, "lobby.ready")
+                : !online || canEdit && info.Source != InputSourceType.Network || mine ? L10n.Get(L10n.UI, "lobby.press_ready")
+                : L10n.Get(L10n.UI, "lobby.not_ready"),
         };
 
         private void OnAddAI() => AddAIClicked?.Invoke(SlotIndex);

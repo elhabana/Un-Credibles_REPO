@@ -33,5 +33,7 @@ EditorBuildSettings:
     path: Assets/_Project/Networking/Scenes/SCN_NET_Test.unity
     guid: 3de56ab44ddf83d4e8e9a4bc4c175fca
   m_configObjects:
+    com.unity.addressableassets: {fileID: 11400000, guid: 895b79c94d8e499448b930bbe618468f, type: 2}
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
+    com.unity.localization.settings: {fileID: 11400000, guid: b57d42041062d214eb56b80723aee332, type: 2}
   m_UseUCBPForAssetBundles: 0

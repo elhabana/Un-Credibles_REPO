@@ -1,7 +1,7 @@
 {
     "name": "UnCredibles.Minigames.MowTheLawn",
     "rootNamespace": "",
-    "references": ["UnCredibles.Minigames", "UnCredibles.Player", "Unity.TextMeshPro"],
+    "references": ["UnCredibles.Minigames", "UnCredibles.Player", "Unity.TextMeshPro", "UnCredibles.Localization"],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

@@ -1,0 +1,199 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b11a58205ec3474ca216360e9fa74a8, type: 3}
+  m_Name: Minigames Shared Data
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.SharedTableData
+  m_TableCollectionName: Minigames
+  m_TableCollectionNameGuidString: 169b9029a6299754cbc998d0122e2315
+  m_Entries:
+  - m_Id: 326238208
+    m_Key: name.crossy_road
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540537
+  - m_Id: 359792640
+    m_Key: name.churro
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540538
+  - m_Id: 359792641
+    m_Key: name.mowthelawn
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540539
+  - m_Id: 359792642
+    m_Key: name.garage_mice
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540540
+  - m_Id: 359792643
+    m_Key: common.start
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540541
+  - m_Id: 359792644
+    m_Key: mice.title
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540542
+  - m_Id: 359792645
+    m_Key: mice.controls
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540543
+  - m_Id: 359792646
+    m_Key: mice.go
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540544
+  - m_Id: 359792647
+    m_Key: mice.results
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540545
+  - m_Id: 359792648
+    m_Key: mice.player_n
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540546
+  - m_Id: 359792649
+    m_Key: mice.count
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540547
+  - m_Id: 359792650
+    m_Key: churro.round
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540548
+  - m_Id: 359792651
+    m_Key: churro.round_intro
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540549
+  - m_Id: 359792652
+    m_Key: churro.round_n
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540550
+  - m_Id: 359792653
+    m_Key: churro.survives
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540551
+  - m_Id: 359792654
+    m_Key: churro.everybody_fell
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540552
+  - m_Id: 359792655
+    m_Key: crossy.final_rush
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540553
+  - m_Id: 359792656
+    m_Key: mow.start
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540554
+  - m_Id: 359792657
+    m_Key: mow.frenzy
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540555
+  m_Metadata:
+    m_Items: []
+  m_KeyGenerator:
+    rid: 889587772075540508
+  references:
+    version: 2
+    RefIds:
+    - rid: 889587772075540508
+      type: {class: DistributedUIDGenerator, ns: UnityEngine.Localization.Tables, asm: Unity.Localization}
+      data:
+        m_CustomEpoch: 1792259272453
+    - rid: 889587772075540537
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Minigame name (vote cards). Provisional
+    - rid: 889587772075540538
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Minigame name (vote cards). Provisional
+    - rid: 889587772075540539
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Minigame name (vote cards). Provisional
+    - rid: 889587772075540540
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Minigame name (vote cards). Provisional
+    - rid: 889587772075540541
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Countdown at 0
+    - rid: 889587772075540542
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Garage Mice HUD title
+    - rid: 889587772075540543
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Garage Mice controls
+    - rid: 889587772075540544
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Garage Mice countdown at 0
+    - rid: 889587772075540545
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Garage Mice results title
+    - rid: 889587772075540546
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Garage Mice results row
+    - rid: 889587772075540547
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Garage Mice results row
+    - rid: 889587772075540548
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Churro round counter
+    - rid: 889587772075540549
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: First round banner with controls
+    - rid: 889587772075540550
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Round banner
+    - rid: 889587772075540551
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: '{0} player name'
+    - rid: 889587772075540552
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Round end banner
+    - rid: 889587772075540553
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Crossy Road final rush banner
+    - rid: 889587772075540554
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Mow The Lawn start banner
+    - rid: 889587772075540555
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Mow The Lawn final frenzy banner

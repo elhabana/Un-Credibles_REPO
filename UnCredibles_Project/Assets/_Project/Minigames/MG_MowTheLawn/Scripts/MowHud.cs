@@ -1,5 +1,6 @@
 using TMPro;
 using UnityEngine;
+using UnCredibles.Localization;
 
 namespace UnCredibles.Minigames.MowTheLawn
 {
@@ -39,11 +40,11 @@ namespace UnCredibles.Minigames.MowTheLawn
         private void HandleStateChanged(MinigameState state)
         {
             if (state == MinigameState.Playing)
-                ShowBanner("¡A CORTAR!\n<size=50%>ESPACIO / A: TURBO  ·  choca con turbo para quitar bolsas\nDescarga las bolsas en tu contenedor</size>");
+                ShowBanner(L10n.Get(L10n.Minigames, "mow.start"));
         }
 
         private void HandleFrenzy() =>
-            ShowBanner("¡FRENESÍ FINAL!\n<size=60%>El césped vuelve a crecer · bolsas x2</size>");
+            ShowBanner(L10n.Get(L10n.Minigames, "mow.frenzy"));
 
         private void ShowBanner(string message)
         {

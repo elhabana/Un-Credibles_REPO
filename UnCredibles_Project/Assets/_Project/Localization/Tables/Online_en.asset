@@ -1,0 +1,133 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e9620f8c34305754d8cc9a7e49e852d9, type: 3}
+  m_Name: Online_en
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.StringTable
+  m_LocaleId:
+    m_Code: en
+  m_SharedData: {fileID: 11400000, guid: 5dc8942f704795f4c8aca3df222decb3, type: 2}
+  m_Metadata:
+    m_Items: []
+  m_TableData:
+  - m_Id: 347209728
+    m_Localized: Create a match or enter a code to join.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 380764160
+    m_Localized: Connecting to Unity Services...
+    m_Metadata:
+      m_Items: []
+  - m_Id: 380764161
+    m_Localized: Creating the Relay connection...
+    m_Metadata:
+      m_Items: []
+  - m_Id: 380764162
+    m_Localized: Host started. Code generated.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 380764163
+    m_Localized: Looking for the match...
+    m_Metadata:
+      m_Items: []
+  - m_Id: 380764164
+    m_Localized: Connecting to the host...
+    m_Metadata:
+      m_Items: []
+  - m_Id: 380764165
+    m_Localized: 'Host active. Connections: {0} (host included).'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 380764166
+    m_Localized: Connected to the host.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 380764167
+    m_Localized: A client disconnected.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 380764168
+    m_Localized: Host stopped.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 380764169
+    m_Localized: Disconnected. You can create or join another match.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 380764170
+    m_Localized: No response from the host. You can try again.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 380764171
+    m_Localized: Wrong code or closed match. Check the code with the host.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 380764172
+    m_Localized: Invalid request. Check the code and try again.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 380764173
+    m_Localized: 'Relay won''t let you in: the room may be full or access is not
+      allowed.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 380764174
+    m_Localized: Too many attempts. Wait a moment and try again.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 380764175
+    m_Localized: Relay is not available. Check your internet connection and try again.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 380764176
+    m_Localized: 'The connection could not be completed: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 380764177
+    m_Localized: The host could not start.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 380764178
+    m_Localized: The client could not start.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 380764179
+    m_Localized: The connection was lost or the host closed the match. You can join
+      again.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 380764180
+    m_Localized: 'Connection closed: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 380764181
+    m_Localized: The Relay connection failed. You can try again.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 380764182
+    m_Localized: Room full (4 connections).
+    m_Metadata:
+      m_Items: []
+  - m_Id: 380764183
+    m_Localized: Room full.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 380764184
+    m_Localized: The match has already started.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 380764185
+    m_Localized: The host removed you from the room.
+    m_Metadata:
+      m_Items: []
+  references:
+    version: 2
+    RefIds: []

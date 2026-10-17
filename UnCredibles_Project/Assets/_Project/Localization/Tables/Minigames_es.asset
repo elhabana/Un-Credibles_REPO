@@ -1,0 +1,102 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e9620f8c34305754d8cc9a7e49e852d9, type: 3}
+  m_Name: Minigames_es
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.StringTable
+  m_LocaleId:
+    m_Code: es
+  m_SharedData: {fileID: 11400000, guid: 169b9029a6299754cbc998d0122e2315, type: 2}
+  m_Metadata:
+    m_Items: []
+  m_TableData:
+  - m_Id: 326238208
+    m_Localized: Ayuda a la abuela
+    m_Metadata:
+      m_Items: []
+  - m_Id: 359792640
+    m_Localized: "Calma al ni\xF1o"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 359792641
+    m_Localized: "Corta el c\xE9sped"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 359792642
+    m_Localized: Ratones en el garaje
+    m_Metadata:
+      m_Items: []
+  - m_Id: 359792643
+    m_Localized: "\xA1YA!"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 359792644
+    m_Localized: RATONES EN EL GARAJE
+    m_Metadata:
+      m_Items: []
+  - m_Id: 359792645
+    m_Localized: 'MUEVE: STICK / WASD    ESCOBAZO: A / ESPACIO'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 359792646
+    m_Localized: "\xA1A BARRER!"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 359792647
+    m_Localized: RESULTADOS
+    m_Metadata:
+      m_Items: []
+  - m_Id: 359792648
+    m_Localized: Jugador {0}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 359792649
+    m_Localized: '{0} ratones'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 359792650
+    m_Localized: Ronda {0} / {1}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 359792651
+    m_Localized: "RONDA 1\n<size=40%>ESPACIO / A: salta el churro  \xB7  CTRL / B:
+      ag\xE1chate ante las pelotas</size>"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 359792652
+    m_Localized: RONDA {0}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 359792653
+    m_Localized: "\xA1{0} sobrevive!"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 359792654
+    m_Localized: "\xA1Han ca\xEDdo todos!"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 359792655
+    m_Localized: "\xA1RECTA FINAL!\n<size=60%>Cada abuela vale x2</size>"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 359792656
+    m_Localized: "\xA1A CORTAR!\n<size=50%>ESPACIO / A: TURBO  \xB7  choca con turbo
+      para quitar bolsas\nDescarga las bolsas en tu contenedor</size>"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 359792657
+    m_Localized: "\xA1FRENES\xCD FINAL!\n<size=60%>El c\xE9sped vuelve a crecer \xB7
+      bolsas x2</size>"
+    m_Metadata:
+      m_Items: []
+  references:
+    version: 2
+    RefIds: []

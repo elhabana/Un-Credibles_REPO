@@ -6,6 +6,7 @@ using UnCredibles.Minigames;
 using UnCredibles.Players;
 using UnityEngine;
 using UnityEngine.UI;
+using UnCredibles.Localization;
 
 namespace UnCredibles.UI.Voting
 {
@@ -93,7 +94,7 @@ namespace UnCredibles.UI.Voting
             var background = Panel("Fondo", root.transform, new Color(.035f, .065f, .10f, .98f));
             Stretch(background.rectTransform, Vector2.zero, Vector2.zero);
 
-            heading = Label("Titulo", root.transform, "EL MAPA DE LA PARTIDA", 68, TextAlignmentOptions.Center);
+            heading = Label("Titulo", root.transform, L10n.Get(L10n.UI, "vote.title"), 68, TextAlignmentOptions.Center);
             Place(heading.rectTransform, 0, 407, 1700, 90);
             heading.fontStyle = FontStyles.Bold;
             heading.color = new Color(1f, .79f, .35f);
@@ -109,7 +110,7 @@ namespace UnCredibles.UI.Voting
                 stops[i] = Label("Parada " + (i + 1), route.transform, "?", 29, TextAlignmentOptions.Center);
                 Place(stops[i].rectTransform, (i - 1) * 500, 0, 480, 100);
             }
-            hint = Label("Instrucciones", root.transform, "IZQUIERDA / DERECHA: ELEGIR     A / ESPACIO: VOTAR", 27,
+            hint = Label("Instrucciones", root.transform, L10n.Get(L10n.UI, "vote.hint"), 27,
                 TextAlignmentOptions.Center);
             Place(hint.rectTransform, 0, -436, 1700, 70);
             hint.color = new Color(.76f, .84f, .9f);
@@ -129,10 +130,10 @@ namespace UnCredibles.UI.Voting
             }
 
             int round = core.VotedMinigames.Count;
-            heading.text = round >= 3 ? "RUTA DECIDIDA" : $"VOTAD EL MINIJUEGO {round + 1} DE 3";
+            heading.text = round >= 3 ? L10n.Get(L10n.UI, "vote.route_decided") : L10n.Format(L10n.UI, "vote.round", round + 1, 3);
             for (int i = 0; i < stops.Length; i++)
             {
-                string name = i < round ? core.VotedMinigames[i].DisplayName : i == round ? "VOTANDO..." : "POR DECIDIR";
+                string name = i < round ? MinigameName(core.VotedMinigames[i]) : i == round ? L10n.Get(L10n.UI, "vote.voting") : L10n.Get(L10n.UI, "vote.undecided");
                 stops[i].text = $"{i + 1:00}   {name}";
                 stops[i].color = i < round ? new Color(.45f, .95f, .69f) : i == round ?
                     new Color(1f, .79f, .35f) : new Color(.58f, .67f, .73f);
@@ -159,12 +160,12 @@ namespace UnCredibles.UI.Voting
                 card.background.color = picked ? new Color(.10f, .15f, .17f) : selectors > 0 ?
                     new Color(.24f, .39f, .43f) : new Color(.13f, .22f, .28f);
                 card.title.color = picked ? new Color(.52f, .59f, .61f) : Color.white;
-                card.footer.text = picked ? "EN LA RUTA" :
-                    votes == 1 ? "1 voto" : votes > 1 ? $"{votes} votos" : "DISPONIBLE";
+                card.footer.text = picked ? L10n.Get(L10n.UI, "vote.in_route") :
+                    votes == 1 ? L10n.Get(L10n.UI, "vote.one_vote") : votes > 1 ? L10n.Format(L10n.UI, "vote.votes", votes) : L10n.Get(L10n.UI, "vote.available");
                 card.button.interactable = !picked && core.CanChangeVote;
             }
-            hint.text = round >= 3 ? "RUTA DECIDIDA" :
-                "IZQUIERDA / DERECHA: ELEGIR     A / ESPACIO: VOTAR O CAMBIAR     VOTOS CONFIRMADOS";
+            hint.text = round >= 3 ? L10n.Get(L10n.UI, "vote.route_decided") :
+                L10n.Get(L10n.UI, "vote.hint_full");
         }
 
         private bool IsLocalVoter(UnCredibles.Players.PlayerSlot slot)
@@ -204,10 +205,10 @@ namespace UnCredibles.UI.Voting
             card.thumbnail = Panel("Miniatura", card.background.transform, new Color(.18f, .28f, .32f));
             Place(card.thumbnail.rectTransform, 0, 73, width - 28, 208);
             if (data.Thumbnail != null) { card.thumbnail.sprite = data.Thumbnail; card.thumbnail.color = Color.white; }
-            card.title = Label("Nombre", card.background.transform, data.DisplayName, 31, TextAlignmentOptions.Center);
+            card.title = Label("Nombre", card.background.transform, MinigameName(data), 31, TextAlignmentOptions.Center);
             Place(card.title.rectTransform, 0, -80, width - 24, 60);
             card.title.fontStyle = FontStyles.Bold;
-            card.footer = Label("Votos", card.background.transform, "DISPONIBLE", 19, TextAlignmentOptions.Center);
+            card.footer = Label("Votos", card.background.transform, L10n.Get(L10n.UI, "vote.available"), 19, TextAlignmentOptions.Center);
             Place(card.footer.rectTransform, 0, -127, width - 24, 28);
             card.footer.color = new Color(1f, .79f, .35f);
             for (int slot = 0; slot < card.badges.Length; slot++)
@@ -253,6 +254,14 @@ namespace UnCredibles.UI.Voting
                 badge.background.rectTransform.anchoredPosition = new Vector2(x, BadgeY);
                 x += BadgeWidth + BadgeGap;
             }
+        }
+
+        // Name from the Minigames table by id; the asset's DisplayName if the table has no entry.
+        private static string MinigameName(MinigameData data)
+        {
+            string key = "name." + data.Id;
+            string text = L10n.Get(L10n.Minigames, key);
+            return text == key ? data.DisplayName : text;
         }
 
         private static Image Panel(string name, Transform parent, Color color)

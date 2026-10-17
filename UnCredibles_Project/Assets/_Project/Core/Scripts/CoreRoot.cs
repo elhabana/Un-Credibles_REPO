@@ -7,6 +7,7 @@ using UnCredibles.Players.Inputs;
 using UnCredibles.Networking;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnCredibles.Localization;
 
 namespace UnCredibles.Core
 {
@@ -259,7 +260,7 @@ namespace UnCredibles.Core
             IsConnectionLost = true;
             Time.timeScale = 0f;
             AudioListener.pause = true;
-            ConnectionLost.Invoke(wasOnlineHost ? "Conexion perdida" : "El host se ha desconectado", Online.Status);
+            ConnectionLost.Invoke(wasOnlineHost ? L10n.Get(L10n.UI, "overlay.connection_lost") : L10n.Get(L10n.UI, "overlay.host_left"), Online.Status);
         }
 
         private void HandleMinigameFinished(MinigameData data, IReadOnlyList<MinigameResult> results)

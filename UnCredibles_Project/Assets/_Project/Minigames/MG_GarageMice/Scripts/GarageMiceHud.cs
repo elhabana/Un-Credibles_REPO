@@ -3,6 +3,7 @@ using System.Text;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using UnCredibles.Localization;
 
 namespace UnCredibles.Minigames.GarageMice
 {
@@ -28,13 +29,13 @@ namespace UnCredibles.Minigames.GarageMice
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1920f, 1080f);
 
-            Text("Title", "RATONES EN EL GARAJE", new Vector2(0f, -40f), new Vector2(780f, 80f),
+            Text("Title", L10n.Get(L10n.Minigames, "mice.title"), new Vector2(0f, -40f), new Vector2(780f, 80f),
                 48f, TextAlignmentOptions.Center, new Vector2(.5f, 1f));
             timer = Text("Timer", "", new Vector2(-60f, -42f), new Vector2(280f, 70f),
                 40f, TextAlignmentOptions.Right, Vector2.one);
             scores = Text("Scores", "", new Vector2(40f, -45f), new Vector2(430f, 220f),
                 28f, TextAlignmentOptions.TopLeft, new Vector2(0f, 1f));
-            Text("Instructions", "MUEVE: STICK / WASD    ESCOBAZO: A / ESPACIO", new Vector2(0f, 32f),
+            Text("Instructions", L10n.Get(L10n.Minigames, "mice.controls"), new Vector2(0f, 32f),
                 new Vector2(1100f, 55f), 25f, TextAlignmentOptions.Center, new Vector2(.5f, 0f));
             center = Text("Countdown and results", "", Vector2.zero, new Vector2(900f, 430f),
                 70f, TextAlignmentOptions.Center, new Vector2(.5f, .5f));
@@ -80,7 +81,7 @@ namespace UnCredibles.Minigames.GarageMice
 
         private void ShowCountdown(int seconds)
         {
-            center.text = seconds > 0 ? seconds.ToString() : "¡A BARRER!";
+            center.text = seconds > 0 ? seconds.ToString() : L10n.Get(L10n.Minigames, "mice.go");
             center.gameObject.SetActive(true);
             if (seconds == 0) Invoke(nameof(HideCenter), 1f);
         }
@@ -88,14 +89,14 @@ namespace UnCredibles.Minigames.GarageMice
         private void ShowResults(IReadOnlyList<MinigameResult> results)
         {
             CancelInvoke(nameof(HideCenter));
-            builder.Clear().AppendLine("RESULTADOS");
+            builder.Clear().AppendLine(L10n.Get(L10n.Minigames, "mice.results"));
             foreach (var result in results)
             {
-                string name = $"Jugador {result.PlayerId + 1}";
+                string name = L10n.Format(L10n.Minigames, "mice.player_n", result.PlayerId + 1);
                 foreach (var player in controller.Players)
                     if (player.PlayerId == result.PlayerId) { name = player.PlayerName; break; }
                 builder.Append(result.Placement).Append(". ").Append(name).Append("  ")
-                    .Append(result.Score).AppendLine(" ratones");
+                    .AppendLine(L10n.Format(L10n.Minigames, "mice.count", result.Score));
             }
             center.text = builder.ToString();
             center.fontSize = 46f;

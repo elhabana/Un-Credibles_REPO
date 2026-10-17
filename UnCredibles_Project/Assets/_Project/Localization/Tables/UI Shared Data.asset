@@ -1,0 +1,739 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b11a58205ec3474ca216360e9fa74a8, type: 3}
+  m_Name: UI Shared Data
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.SharedTableData
+  m_TableCollectionName: UI
+  m_TableCollectionNameGuidString: 3ed821782d4011f42bb88053e8bef4ce
+  m_Entries:
+  - m_Id: 1580335104
+    m_Key: menu.play_local
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540556
+  - m_Id: 1651638272
+    m_Key: menu.multiplayer
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540557
+  - m_Id: 1655832576
+    m_Key: menu.settings
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540558
+  - m_Id: 1655832577
+    m_Key: menu.credits
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540559
+  - m_Id: 1655832578
+    m_Key: menu.gallery
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540560
+  - m_Id: 1655832579
+    m_Key: menu.back
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540561
+  - m_Id: 1655832580
+    m_Key: menu.create_room
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540562
+  - m_Id: 1655832581
+    m_Key: menu.join_room
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540563
+  - m_Id: 1655832582
+    m_Key: menu.room_code
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540564
+  - m_Id: 1655832583
+    m_Key: menu.leave_room
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540565
+  - m_Id: 1655832584
+    m_Key: menu.garage_prototype
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540566
+  - m_Id: 1655832585
+    m_Key: menu.credits_placeholder
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540567
+  - m_Id: 1655832586
+    m_Key: menu.gallery_placeholder
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540568
+  - m_Id: 1655832587
+    m_Key: settings.master
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540569
+  - m_Id: 1655832588
+    m_Key: settings.music
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540570
+  - m_Id: 1655832589
+    m_Key: settings.sfx
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540571
+  - m_Id: 1655832590
+    m_Key: settings.volume_hint
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540572
+  - m_Id: 1655832591
+    m_Key: lobby.add_bot
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540573
+  - m_Id: 1655832592
+    m_Key: lobby.remove
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540574
+  - m_Id: 1655832593
+    m_Key: lobby.host
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540575
+  - m_Id: 1655832594
+    m_Key: lobby.invite
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540576
+  - m_Id: 1655832595
+    m_Key: lobby.slot_empty
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540577
+  - m_Id: 1655832596
+    m_Key: lobby.slot_free
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540578
+  - m_Id: 1655832597
+    m_Key: lobby.you
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540579
+  - m_Id: 1655832598
+    m_Key: lobby.input_keyboard
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540580
+  - m_Id: 1655832599
+    m_Key: lobby.input_gamepad
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540581
+  - m_Id: 1655832600
+    m_Key: lobby.input_batpad
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540582
+  - m_Id: 1655832601
+    m_Key: lobby.input_online
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540583
+  - m_Id: 1655832602
+    m_Key: lobby.input_bot
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540584
+  - m_Id: 1655832603
+    m_Key: lobby.press_join
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540585
+  - m_Id: 1655832604
+    m_Key: lobby.waiting_player
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540586
+  - m_Id: 1655832605
+    m_Key: lobby.free
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540587
+  - m_Id: 1655832606
+    m_Key: lobby.inviting
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540588
+  - m_Id: 1655832607
+    m_Key: lobby.connecting
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540589
+  - m_Id: 1655832608
+    m_Key: lobby.disconnected
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540590
+  - m_Id: 1655832609
+    m_Key: lobby.ready
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540591
+  - m_Id: 1655832610
+    m_Key: lobby.press_ready
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540592
+  - m_Id: 1655832611
+    m_Key: lobby.not_ready
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540593
+  - m_Id: 1655832612
+    m_Key: lobby.hint_local
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540594
+  - m_Id: 1655832613
+    m_Key: lobby.hint_host
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540595
+  - m_Id: 1655832614
+    m_Key: lobby.hint_client
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540596
+  - m_Id: 1655832615
+    m_Key: lobby.batpad_scan
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540597
+  - m_Id: 1655832616
+    m_Key: lobby.batpad_connecting
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540598
+  - m_Id: 1655832617
+    m_Key: lobby.mode_multi
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540599
+  - m_Id: 1655832618
+    m_Key: lobby.mode_single
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540600
+  - m_Id: 1655832619
+    m_Key: lobby.start
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540601
+  - m_Id: 1655832620
+    m_Key: lobby.need_two
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540602
+  - m_Id: 1655832621
+    m_Key: lobby.start_failed
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540603
+  - m_Id: 1655832622
+    m_Key: vote.title
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540604
+  - m_Id: 1655832623
+    m_Key: vote.route_decided
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540605
+  - m_Id: 1655832624
+    m_Key: vote.round
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540606
+  - m_Id: 1655832625
+    m_Key: vote.voting
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540607
+  - m_Id: 1655832626
+    m_Key: vote.undecided
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540608
+  - m_Id: 1655832627
+    m_Key: vote.in_route
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540609
+  - m_Id: 1655832628
+    m_Key: vote.one_vote
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540610
+  - m_Id: 1655832629
+    m_Key: vote.votes
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540611
+  - m_Id: 1655832630
+    m_Key: vote.available
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540612
+  - m_Id: 1655832631
+    m_Key: vote.hint
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540613
+  - m_Id: 1655832632
+    m_Key: vote.hint_full
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540614
+  - m_Id: 1655832633
+    m_Key: results.title
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540615
+  - m_Id: 1655832634
+    m_Key: results.final_title
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540616
+  - m_Id: 1655832635
+    m_Key: results.round
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540617
+  - m_Id: 1655832636
+    m_Key: results.total_points
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540618
+  - m_Id: 1655832637
+    m_Key: results.waiting_host
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540619
+  - m_Id: 1655832638
+    m_Key: results.next_in
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540620
+  - m_Id: 1655832639
+    m_Key: results.col_player
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540621
+  - m_Id: 1655832640
+    m_Key: results.col_round
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540622
+  - m_Id: 1655832641
+    m_Key: results.col_total
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540623
+  - m_Id: 1655832642
+    m_Key: results.back_lobby
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540624
+  - m_Id: 1655832643
+    m_Key: results.main_menu
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540625
+  - m_Id: 1655832644
+    m_Key: results.player_n
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540626
+  - m_Id: 1655832645
+    m_Key: podium.points
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540627
+  - m_Id: 1655832646
+    m_Key: podium.place_1
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540628
+  - m_Id: 1655832647
+    m_Key: podium.place_2
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540629
+  - m_Id: 1655832648
+    m_Key: podium.place_3
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540630
+  - m_Id: 1655832649
+    m_Key: podium.place_4
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540631
+  - m_Id: 1655832650
+    m_Key: overlay.connection_lost
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540632
+  - m_Id: 1655832651
+    m_Key: overlay.host_left
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540633
+  - m_Id: 1655832652
+    m_Key: overlay.returning
+    m_Metadata:
+      m_Items:
+      - rid: 889587772075540634
+  m_Metadata:
+    m_Items: []
+  m_KeyGenerator:
+    rid: 889587772075540504
+  references:
+    version: 2
+    RefIds:
+    - rid: 889587772075540504
+      type: {class: DistributedUIDGenerator, ns: UnityEngine.Localization.Tables, asm: Unity.Localization}
+      data:
+        m_CustomEpoch: 1792259272057
+    - rid: 889587772075540556
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Main menu button
+    - rid: 889587772075540557
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Main menu button / panel title
+    - rid: 889587772075540558
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Main menu button / settings title
+    - rid: 889587772075540559
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Main menu button / credits title
+    - rid: 889587772075540560
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Main menu button / gallery title
+    - rid: 889587772075540561
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Back button
+    - rid: 889587772075540562
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: 'Multiplayer: host a room'
+    - rid: 889587772075540563
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: 'Multiplayer: join with a code'
+    - rid: 889587772075540564
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Placeholder of the room code field
+    - rid: 889587772075540565
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Lobby button
+    - rid: 889587772075540566
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Subtitle under the logo
+    - rid: 889587772075540567
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Credits panel placeholder
+    - rid: 889587772075540568
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Gallery panel placeholder
+    - rid: 889587772075540569
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Master volume label
+    - rid: 889587772075540570
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Music volume label
+    - rid: 889587772075540571
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Sound effects volume label
+    - rid: 889587772075540572
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Hint on the TV settings panel
+    - rid: 889587772075540573
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: 'Lobby card button: add a bot'
+    - rid: 889587772075540574
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: 'Lobby card button: remove player'
+    - rid: 889587772075540575
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Crown label of the room host
+    - rid: 889587772075540576
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Lobby card button (Steam, not active yet)
+    - rid: 889587772075540577
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Empty lobby card, local game
+    - rid: 889587772075540578
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Empty lobby card, online game
+    - rid: 889587772075540579
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Input label of your own card online
+    - rid: 889587772075540580
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Input source of a lobby card
+    - rid: 889587772075540581
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Input source of a lobby card
+    - rid: 889587772075540582
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: 'Input source: phone controller'
+    - rid: 889587772075540583
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: 'Input source: remote player'
+    - rid: 889587772075540584
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: 'Input source: bot'
+    - rid: 889587772075540585
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Empty card status, local game
+    - rid: 889587772075540586
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Empty card status, online host
+    - rid: 889587772075540587
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Empty card status, online client
+    - rid: 889587772075540588
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Card status
+    - rid: 889587772075540589
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Card status
+    - rid: 889587772075540590
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Card status
+    - rid: 889587772075540591
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Card status
+    - rid: 889587772075540592
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Card status
+    - rid: 889587772075540593
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Card status
+    - rid: 889587772075540594
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Lobby hint line, local game
+    - rid: 889587772075540595
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Lobby hint line, online host
+    - rid: 889587772075540596
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Lobby hint line, online client
+    - rid: 889587772075540597
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Under the BatPad QR
+    - rid: 889587772075540598
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: While the BatPad room opens
+    - rid: 889587772075540599
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: '{0} players in the room, {1} room code'
+    - rid: 889587772075540600
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Lobby mode title, local game
+    - rid: 889587772075540601
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Lobby countdown at 0
+    - rid: 889587772075540602
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Lobby notice
+    - rid: 889587772075540603
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Lobby notice
+    - rid: 889587772075540604
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Vote screen title before the first ballot
+    - rid: 889587772075540605
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Vote screen when the 3 minigames are chosen
+    - rid: 889587772075540606
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: '{0} ballot number, {1} total'
+    - rid: 889587772075540607
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Route stop being voted
+    - rid: 889587772075540608
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Route stop not voted yet
+    - rid: 889587772075540609
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Card footer of an already chosen minigame
+    - rid: 889587772075540610
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Card footer
+    - rid: 889587772075540611
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Card footer, {0} = votes
+    - rid: 889587772075540612
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Card footer without votes
+    - rid: 889587772075540613
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Vote hint before rendering
+    - rid: 889587772075540614
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Vote hint while voting
+    - rid: 889587772075540615
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Results screen title between rounds
+    - rid: 889587772075540616
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Results screen title at the end
+    - rid: 889587772075540617
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Results subtitle
+    - rid: 889587772075540618
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Final results subtitle
+    - rid: 889587772075540619
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Results hint, online client
+    - rid: 889587772075540620
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: '{0} seconds'
+    - rid: 889587772075540621
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Standings column header
+    - rid: 889587772075540622
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Standings column header
+    - rid: 889587772075540623
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Standings column header
+    - rid: 889587772075540624
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Final results button
+    - rid: 889587772075540625
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Final results button
+    - rid: 889587772075540626
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Fallback player name
+    - rid: 889587772075540627
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Points on the podium pedestal
+    - rid: 889587772075540628
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Podium place
+    - rid: 889587772075540629
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Podium place
+    - rid: 889587772075540630
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Podium place
+    - rid: 889587772075540631
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Podium place
+    - rid: 889587772075540632
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Overlay title
+    - rid: 889587772075540633
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: Overlay title
+    - rid: 889587772075540634
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: '{0} seconds'

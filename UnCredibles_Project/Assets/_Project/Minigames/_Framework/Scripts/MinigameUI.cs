@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using TMPro;
 using UnityEngine;
+using UnCredibles.Localization;
 
 namespace UnCredibles.Minigames
 {
@@ -61,7 +62,7 @@ namespace UnCredibles.Minigames
         protected virtual void ShowCountdown(int secondsLeft)
         {
             if (countdownText == null) return;
-            countdownText.text = secondsLeft > 0 ? secondsLeft.ToString() : "START!";
+            countdownText.text = secondsLeft > 0 ? secondsLeft.ToString() : L10n.Get(L10n.Minigames, "common.start");
             SetActive(countdownText, true);
             if (secondsLeft == 0) StartCoroutine(HideCountdown());
         }

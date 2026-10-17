@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnCredibles.Localization;
 
 namespace UnCredibles.Minigames.Churro
 {
@@ -32,15 +33,15 @@ namespace UnCredibles.Minigames.Churro
 
         private void HandleRoundStarted(int round, int total)
         {
-            roundText.text = $"Round {round} / {total}";
+            roundText.text = L10n.Format(L10n.Minigames, "churro.round", round, total);
             // The first round also reminds the two controls.
-            if (round == 1) Show("ROUND 1\n<size=40%>SPACE / A: salta el churro  ·  CTRL / B: agáchate ante las pelotas</size>", introVisibleSeconds + 1f);
-            else Show($"ROUND {round}", introVisibleSeconds);
+            if (round == 1) Show(L10n.Get(L10n.Minigames, "churro.round_intro"), introVisibleSeconds + 1f);
+            else Show(L10n.Format(L10n.Minigames, "churro.round_n", round), introVisibleSeconds);
         }
 
         private void HandleRoundEnded(int round, IReadOnlyList<ChurroPlayer> survivors)
         {
-            string message = survivors.Count == 1 ? $"{survivors[0].Slot.PlayerName} survives!" : "Everybody fell!";
+            string message = survivors.Count == 1 ? L10n.Format(L10n.Minigames, "churro.survives", survivors[0].Slot.PlayerName) : L10n.Get(L10n.Minigames, "churro.everybody_fell");
             Show(message, 0f);
         }
 

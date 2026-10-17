@@ -1,7 +1,7 @@
 {
     "name": "UnCredibles.Minigames",
     "rootNamespace": "",
-    "references": ["UnCredibles.Player", "Unity.InputSystem", "Unity.TextMeshPro"],
+    "references": ["UnCredibles.Player", "Unity.InputSystem", "Unity.TextMeshPro", "UnCredibles.Localization"],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

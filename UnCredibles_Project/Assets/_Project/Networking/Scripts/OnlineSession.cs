@@ -6,6 +6,7 @@ using UnCredibles.Players.Inputs;
 using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
+using UnCredibles.Localization;
 
 namespace UnCredibles.Networking
 {
@@ -236,8 +237,8 @@ namespace UnCredibles.Networking
 
         private string RejectReason()
         {
-            if (!AcceptingPlayers) return "La partida ya ha empezado.";
-            return players.OccupiedCount >= PlayerRegistry.MaxPlayers ? "Sala llena." : null;
+            if (!AcceptingPlayers) return L10n.Token(L10n.Online, "reason.match_started");
+            return players.OccupiedCount >= PlayerRegistry.MaxPlayers ? L10n.Token(L10n.Online, "reason.room_full") : null;
         }
 
         private void HandleSessionStarted()
@@ -298,7 +299,7 @@ namespace UnCredibles.Networking
             if (!AcceptingPlayers ||
                 !players.TryAddPlayer(PlayerType.OnlinePlayer, new NetworkInput(clientId), null, out var slot))
             {
-                connection.Kick(clientId, AcceptingPlayers ? "Sala llena." : "La partida ya ha empezado.");
+                connection.Kick(clientId, L10n.Token(L10n.Online, AcceptingPlayers ? "reason.room_full" : "reason.match_started"));
                 return;
             }
             // Map first: the snapshot sent by TryAddPlayer's event already ran, so send again with the owner.

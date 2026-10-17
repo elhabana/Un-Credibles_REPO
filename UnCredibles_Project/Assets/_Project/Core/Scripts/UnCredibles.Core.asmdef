@@ -1,7 +1,7 @@
 {
     "name": "UnCredibles.Core",
     "rootNamespace": "",
-    "references": ["UnCredibles.Networking", "UnCredibles.Player", "UnCredibles.Minigames", "UnCredibles.BatPad", "Unity.InputSystem"],
+    "references": ["UnCredibles.Networking", "UnCredibles.Player", "UnCredibles.Minigames", "UnCredibles.BatPad", "Unity.InputSystem", "UnCredibles.Localization"],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

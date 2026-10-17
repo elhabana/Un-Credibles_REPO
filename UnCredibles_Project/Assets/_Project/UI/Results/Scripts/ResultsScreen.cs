@@ -6,6 +6,7 @@ using UnCredibles.Players;
 using UnCredibles.Players.Inputs;
 using UnityEngine;
 using UnityEngine.UI;
+using UnCredibles.Localization;
 
 namespace UnCredibles.UI.Results
 {
@@ -71,8 +72,8 @@ namespace UnCredibles.UI.Results
 
         private void ShowHeader(int round, int totalRounds)
         {
-            titleText.text = isFinal ? "FINAL PODIUM" : "RESULTS";
-            roundText.text = isFinal ? "TOTAL POINTS" : $"Round {round} / {totalRounds}";
+            titleText.text = isFinal ? L10n.Get(L10n.UI, "results.final_title") : L10n.Get(L10n.UI, "results.title");
+            roundText.text = isFinal ? L10n.Get(L10n.UI, "results.total_points") : L10n.Format(L10n.UI, "results.round", round, totalRounds);
             finalButtons.SetActive(isFinal);
             hintText.gameObject.SetActive(!isFinal);
             listBackground.SetActive(!isFinal);
@@ -93,7 +94,7 @@ namespace UnCredibles.UI.Results
             isFinal = standings.IsFinal;
             ShowHeader(standings.Round, standings.TotalRounds);
             lobbyButton.gameObject.SetActive(false); // only the host takes everybody back to the lobby
-            hintText.text = "Waiting for the host...   SPACE / A to continue";
+            hintText.text = L10n.Get(L10n.UI, "results.waiting_host");
             var podiumEntries = new List<PodiumEntry>(standings.Rows.Count);
             for (int i = 0; i < rows.Length; i++)
             {
@@ -138,7 +139,7 @@ namespace UnCredibles.UI.Results
             int seconds = Mathf.CeilToInt(remaining);
             if (seconds == shownSeconds) return;
             shownSeconds = seconds;
-            hintText.text = $"Next minigame in {seconds}...   SPACE / A to continue";
+            hintText.text = L10n.Format(L10n.UI, "results.next_in", seconds);
         }
 
         private void RenderStandings()
@@ -169,7 +170,7 @@ namespace UnCredibles.UI.Results
         }
 
         private string PlayerName(int playerId) =>
-            core.Players.TryGetByPlayerId(playerId, out var slot) ? slot.PlayerName : $"Player {playerId + 1}";
+            core.Players.TryGetByPlayerId(playerId, out var slot) ? slot.PlayerName : L10n.Format(L10n.UI, "results.player_n", playerId + 1);
 
         private Color PlayerColor(int playerId, int fallbackIndex) =>
             core.Players.TryGetByPlayerId(playerId, out var slot)

@@ -10,6 +10,7 @@ using UnCredibles.UI.Garage;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Utilities;
+using UnCredibles.Localization;
 
 namespace UnCredibles.UI.PartyLobby
 {
@@ -168,7 +169,7 @@ namespace UnCredibles.UI.PartyLobby
             // A remote player is kicked; the online session frees the slot when they disconnect.
             if (IsOnline && room.IsRemoteSlot(slotIndex))
             {
-                room.Kick(slotIndex, "El Host te ha sacado de la sala.");
+                room.Kick(slotIndex, L10n.Token(L10n.Online, "reason.kicked"));
                 return true;
             }
 
@@ -368,7 +369,7 @@ namespace UnCredibles.UI.PartyLobby
             if (starting || !IsAuthority) return;
             bool everyoneReady = Players.AllPlayersReady && HasHuman();
             bool canStart = everyoneReady && Players.OccupiedCount >= MinPlayers;
-            if (everyoneReady && !canStart) Notice?.Invoke("Hacen falta al menos 2 jugadores. Puedes anadir una IA.");
+            if (everyoneReady && !canStart) Notice?.Invoke(L10n.Get(L10n.UI, "lobby.need_two"));
             if (canStart && countdown == null) countdown = StartCoroutine(CountdownRoutine());
             else if (!canStart) StopCountdown(true);
         }
@@ -394,7 +395,7 @@ namespace UnCredibles.UI.PartyLobby
             Tick(-1);
             CountdownCancelled?.Invoke();
             UnreadyHumans();
-            Notice?.Invoke("No se pudo empezar la partida.");
+            Notice?.Invoke(L10n.Get(L10n.UI, "lobby.start_failed"));
         }
 
         private void Tick(int secondsLeft)

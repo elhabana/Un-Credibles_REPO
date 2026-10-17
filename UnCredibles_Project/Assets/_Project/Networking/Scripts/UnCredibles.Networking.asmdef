@@ -8,6 +8,7 @@
         "Unity.Collections",
         "Unity.Services.Core",
         "Unity.Services.Authentication",
-        "Unity.Services.Multiplayer"
+        "Unity.Services.Multiplayer",
+        "UnCredibles.Localization"
     ]
 }

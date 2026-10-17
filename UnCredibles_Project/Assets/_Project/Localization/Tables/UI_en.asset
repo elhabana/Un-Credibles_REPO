@@ -1,0 +1,340 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e9620f8c34305754d8cc9a7e49e852d9, type: 3}
+  m_Name: UI_en
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.StringTable
+  m_LocaleId:
+    m_Code: en
+  m_SharedData: {fileID: 11400000, guid: 3ed821782d4011f42bb88053e8bef4ce, type: 2}
+  m_Metadata:
+    m_Items: []
+  m_TableData:
+  - m_Id: 1580335104
+    m_Localized: PLAY LOCAL
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1651638272
+    m_Localized: MULTIPLAYER
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832576
+    m_Localized: SETTINGS
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832577
+    m_Localized: CREDITS
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832578
+    m_Localized: GALLERY
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832579
+    m_Localized: BACK
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832580
+    m_Localized: CREATE ROOM
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832581
+    m_Localized: JOIN
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832582
+    m_Localized: ROOM CODE
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832583
+    m_Localized: LEAVE ROOM
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832584
+    m_Localized: GARAGE / PROTOTYPE
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832585
+    m_Localized: Space reserved for the team credits.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832586
+    m_Localized: Space reserved for concept art, models and art process.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832587
+    m_Localized: MASTER
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832588
+    m_Localized: MUSIC
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832589
+    m_Localized: EFFECTS
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832590
+    m_Localized: CLICK OR DRAG TO CHANGE THE VOLUME
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832591
+    m_Localized: + BOT
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832592
+    m_Localized: REMOVE
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832593
+    m_Localized: HOST
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832594
+    m_Localized: '[ Invite friend ]'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832595
+    m_Localized: EMPTY
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832596
+    m_Localized: FREE
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832597
+    m_Localized: You
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832598
+    m_Localized: Keyboard
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832599
+    m_Localized: Gamepad
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832600
+    m_Localized: BatPad
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832601
+    m_Localized: Online
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832602
+    m_Localized: BOT
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832603
+    m_Localized: Press SPACE / A to join
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832604
+    m_Localized: Waiting for player
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832605
+    m_Localized: Free
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832606
+    m_Localized: Inviting...
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832607
+    m_Localized: Connecting...
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832608
+    m_Localized: Disconnected
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832609
+    m_Localized: READY
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832610
+    m_Localized: Press SPACE / A when ready
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832611
+    m_Localized: Not ready
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832612
+    m_Localized: 'SPACE / A: join & ready     ESC / START: cancel & leave'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832613
+    m_Localized: 'Share the code to invite.   SPACE / A: ready'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832614
+    m_Localized: 'SPACE / A: ready     ESC / B: cancel'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832615
+    m_Localized: Scan to play with your phone
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832616
+    m_Localized: Connecting phone controller...
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832617
+    m_Localized: 'MULTIPLAYER {0}/4  |  CODE: {1}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832618
+    m_Localized: SINGLEPLAYER
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832619
+    m_Localized: START!
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832620
+    m_Localized: At least 2 players are needed. You can add a BOT.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832621
+    m_Localized: The match could not start.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832622
+    m_Localized: THE MATCH ROUTE
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832623
+    m_Localized: ROUTE DECIDED
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832624
+    m_Localized: VOTE FOR MINIGAME {0} OF {1}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832625
+    m_Localized: VOTING...
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832626
+    m_Localized: TO BE DECIDED
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832627
+    m_Localized: ON THE ROUTE
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832628
+    m_Localized: 1 vote
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832629
+    m_Localized: '{0} votes'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832630
+    m_Localized: AVAILABLE
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832631
+    m_Localized: 'LEFT / RIGHT: CHOOSE     A / SPACE: VOTE'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832632
+    m_Localized: 'LEFT / RIGHT: CHOOSE     A / SPACE: VOTE OR CHANGE     CONFIRMED
+      VOTES'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832633
+    m_Localized: RESULTS
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832634
+    m_Localized: FINAL PODIUM
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832635
+    m_Localized: Round {0} / {1}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832636
+    m_Localized: TOTAL POINTS
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832637
+    m_Localized: Waiting for the host...   SPACE / A to continue
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832638
+    m_Localized: Next minigame in {0}...   SPACE / A to continue
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832639
+    m_Localized: PLAYER
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832640
+    m_Localized: ROUND
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832641
+    m_Localized: TOTAL
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832642
+    m_Localized: Back to Lobby
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832643
+    m_Localized: Main Menu
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832644
+    m_Localized: Player {0}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832645
+    m_Localized: '{0} PTS'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832646
+    m_Localized: 1st
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832647
+    m_Localized: 2nd
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832648
+    m_Localized: 3rd
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832649
+    m_Localized: 4th
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832650
+    m_Localized: Connection lost
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832651
+    m_Localized: The host disconnected
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1655832652
+    m_Localized: Back to the menu in {0}...
+    m_Metadata:
+      m_Items: []
+  references:
+    version: 2
+    RefIds: []

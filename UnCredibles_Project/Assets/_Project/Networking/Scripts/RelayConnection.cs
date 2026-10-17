@@ -7,6 +7,7 @@ using Unity.Services.Core;
 using Unity.Services.Relay;
 using Unity.Services.Relay.Models;
 using UnityEngine;
+using UnCredibles.Localization;
 
 namespace UnCredibles.Networking
 {
@@ -17,7 +18,7 @@ namespace UnCredibles.Networking
         private UnityTransport transport;
         private bool busy;
         private bool destroyed;
-        private string status = "Crea una partida o introduce un codigo para unirte.";
+        private string status = string.Empty;
         private string joinCode = "";
 
         private bool connecting;
@@ -30,6 +31,7 @@ namespace UnCredibles.Networking
 
         private void Awake()
         {
+            status = L10n.Get(L10n.Online, "status.idle");
             transport = gameObject.AddComponent<UnityTransport>();
             manager = gameObject.AddComponent<NetworkManager>();
             manager.NetworkConfig = new NetworkConfig();
@@ -63,7 +65,7 @@ namespace UnCredibles.Networking
         {
             string reason = null;
             if (request.ClientNetworkId != NetworkManager.ServerClientId)
-                reason = manager.ConnectedClientsIds.Count >= MaxConnections ? "Sala llena (4 conexiones)." : RejectJoin?.Invoke();
+                reason = manager.ConnectedClientsIds.Count >= MaxConnections ? L10n.Token(L10n.Online, "reason.room_full_4") : RejectJoin?.Invoke();
             response.Approved = reason == null;
             response.CreatePlayerObject = false;
             response.Pending = false;
@@ -83,7 +85,7 @@ namespace UnCredibles.Networking
         {
             if (closing && !manager.IsListening && !manager.ShutdownInProgress) closing = false;
             if (connecting && Time.realtimeSinceStartup >= connectionDeadline)
-                StopConnection("No se recibio respuesta del Host. Puedes volver a intentarlo.");
+                StopConnection(L10n.Get(L10n.Online, "error.no_response"));
         }
 
         private void StopConnection(string message)
@@ -104,21 +106,21 @@ namespace UnCredibles.Networking
                     case RelayExceptionReason.JoinCodeNotFound:
                     case RelayExceptionReason.AllocationNotFound:
                     case RelayExceptionReason.EntityNotFound:
-                        return "Codigo incorrecto o partida cerrada. Comprueba el codigo con el Host.";
+                        return L10n.Get(L10n.Online, "error.wrong_code");
                     case RelayExceptionReason.InvalidArgument:
                     case RelayExceptionReason.InvalidRequest:
-                        return "Solicitud no valida. Revisa el codigo e intentalo de nuevo.";
+                        return L10n.Get(L10n.Online, "error.invalid_request");
                     case RelayExceptionReason.Forbidden:
                     case RelayExceptionReason.Conflict:
-                        return "Relay no permite entrar: la sala puede estar llena o el acceso no esta permitido.";
+                        return L10n.Get(L10n.Online, "error.forbidden");
                     case RelayExceptionReason.RateLimited:
-                        return "Demasiados intentos. Espera un momento y vuelve a intentarlo.";
+                        return L10n.Get(L10n.Online, "error.rate_limited");
                     case RelayExceptionReason.NetworkError:
                     case RelayExceptionReason.ServiceUnavailable:
-                        return "Relay no esta disponible. Comprueba internet y vuelve a intentarlo.";
+                        return L10n.Get(L10n.Online, "error.unavailable");
                 }
             }
-            return "No se pudo completar la conexion: " + exception.Message;
+            return L10n.Format(L10n.Online, "error.generic", exception.Message);
         }
 
         private async Task InitializeServices()
@@ -137,22 +139,22 @@ namespace UnCredibles.Networking
             if (!CanConnect) return;
             busy = true;
             joinCode = "";
-            status = "Conectando con Unity Services...";
+            status = L10n.Get(L10n.Online, "status.connecting_services");
             try
             {
                 await InitializeServices();
                 if (destroyed) return;
 
-                status = "Creando la conexion Relay...";
+                status = L10n.Get(L10n.Online, "status.creating_relay");
                 // Three remote connections plus the host: four players in total.
                 var allocation = await RelayService.Instance.CreateAllocationAsync(3);
                 if (destroyed) return;
                 var code = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
                 if (destroyed) return;
                 transport.SetRelayServerData(AllocationUtils.ToRelayServerData(allocation, "dtls"));
-                if (!manager.StartHost()) throw new InvalidOperationException("No se pudo iniciar el Host.");
+                if (!manager.StartHost()) throw new InvalidOperationException(L10n.Get(L10n.Online, "error.start_host"));
                 joinCode = code;
-                status = "Host iniciado. Codigo generado.";
+                status = L10n.Get(L10n.Online, "status.host_started");
             }
             catch (Exception exception)
             {
@@ -170,7 +172,7 @@ namespace UnCredibles.Networking
             if (string.IsNullOrEmpty(code)) return;
             busy = true;
             joinCode = "";
-            status = "Buscando la partida...";
+            status = L10n.Get(L10n.Online, "status.searching");
             try
             {
                 await InitializeServices();
@@ -181,8 +183,8 @@ namespace UnCredibles.Networking
                 transport.SetRelayServerData(AllocationUtils.ToRelayServerData(allocation, "dtls"));
                 connecting = true;
                 connectionDeadline = Time.realtimeSinceStartup + 20f;
-                status = "Conectando con el Host...";
-                if (!manager.StartClient()) throw new InvalidOperationException("No se pudo iniciar el cliente.");
+                status = L10n.Get(L10n.Online, "status.connecting_host");
+                if (!manager.StartClient()) throw new InvalidOperationException(L10n.Get(L10n.Online, "error.start_client"));
             }
             catch (Exception exception)
             {
@@ -197,13 +199,13 @@ namespace UnCredibles.Networking
         {
             if (manager.IsHost)
             {
-                status = $"Host activo. Conexiones: {manager.ConnectedClientsIds.Count} (incluido Host).";
+                status = L10n.Format(L10n.Online, "status.host_active", manager.ConnectedClientsIds.Count);
                 if (clientId != manager.LocalClientId) RemoteClientConnected?.Invoke(clientId);
             }
             else if (clientId == manager.LocalClientId)
             {
                 connecting = false;
-                status = "Conectado al Host.";
+                status = L10n.Get(L10n.Online, "status.connected");
             }
         }
 
@@ -212,27 +214,27 @@ namespace UnCredibles.Networking
             if (closing || destroyed) return;
             if (manager.IsHost)
             {
-                status = "Un cliente se ha desconectado.";
+                status = L10n.Get(L10n.Online, "status.client_left");
                 if (clientId != manager.LocalClientId) RemoteClientDisconnected?.Invoke(clientId);
             }
             else if (clientId == manager.LocalClientId)
             {
                 string reason = manager.DisconnectReason;
                 StopConnection(string.IsNullOrWhiteSpace(reason)
-                    ? "Se perdio la conexion o el Host cerro la partida. Puedes volver a unirte."
-                    : "Conexion cerrada: " + reason);
+                    ? L10n.Get(L10n.Online, "error.lost")
+                    : L10n.Format(L10n.Online, "error.closed_reason", L10n.Resolve(reason)));
             }
         }
 
         private void HandleTransportFailure()
         {
-            if (!closing) StopConnection("La conexion Relay ha fallado. Puedes volver a intentarlo.");
+            if (!closing) StopConnection(L10n.Get(L10n.Online, "error.transport"));
         }
 
         private void HandleServerStopped(bool wasHost)
         {
             joinCode = "";
-            if (!closing) status = "Host detenido.";
+            if (!closing) status = L10n.Get(L10n.Online, "status.host_stopped");
         }
 
         public string Status => status;
@@ -245,7 +247,7 @@ namespace UnCredibles.Networking
         {
             // Keep a useful failure reason when Core returns a disconnected client to the menu.
             if (manager.IsListening || connecting || busy)
-                StopConnection("Desconectado. Puedes crear o unirte a otra partida.");
+                StopConnection(L10n.Get(L10n.Online, "status.disconnected"));
         }
 
         private void OnDestroy()

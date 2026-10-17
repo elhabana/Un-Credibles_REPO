@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnCredibles.Localization;
 
 namespace UnCredibles.UI.Results
 {
@@ -85,21 +86,12 @@ namespace UnCredibles.UI.Results
                     new Color(1f, .72f, .13f));
 
             Label($"{Ordinal(entry.Placement)}  {entry.Name}", new Vector3(x, top + 2.02f, -.2f), 2.8f, 2.1f);
-            Label($"{entry.Points} PTS", new Vector3(x, FloorTop + height * .48f, -.71f), 3.2f, 1.7f);
+            Label(L10n.Format(L10n.UI, "podium.points", entry.Points), new Vector3(x, FloorTop + height * .48f, -.71f), 3.2f, 1.7f);
         }
 
-        private static string Ordinal(int place)
-        {
-            int lastTwo = place % 100;
-            if (lastTwo >= 11 && lastTwo <= 13) return place + "th";
-            switch (place % 10)
-            {
-                case 1: return place + "st";
-                case 2: return place + "nd";
-                case 3: return place + "rd";
-                default: return place + "th";
-            }
-        }
+        // There are at most 4 players; anything else falls back to the bare number.
+        private static string Ordinal(int place) =>
+            place >= 1 && place <= 4 ? L10n.Get(L10n.UI, "podium.place_" + place) : place.ToString();
 
         private void Primitive(string name, PrimitiveType type, Vector3 position, Vector3 scale, Material material)
         {

@@ -6,6 +6,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
+using UnCredibles.Localization;
 
 namespace UnCredibles.UI.Garage
 {
@@ -158,7 +159,7 @@ namespace UnCredibles.UI.Garage
             }
             var text = instruction.GetComponent<TextMeshProUGUI>();
             Place(text.rectTransform, new Vector2(0, -46), new Vector2(160, 8));
-            text.text = "CLIC O ARRASTRA PARA CAMBIAR EL VOLUMEN";
+            text.text = L10n.Get(L10n.UI, "settings.volume_hint");
             text.font = TMP_Settings.defaultFontAsset;
             text.fontSize = 4;
             text.alignment = TextAlignmentOptions.Center;
@@ -171,10 +172,20 @@ namespace UnCredibles.UI.Garage
             slider.GetComponent<Image>().color = new Color(.28f, .37f, .45f);
             slider.handleRect.GetComponent<Image>().color = new Color(.98f, .62f, .14f);
             var text = detailPanels[0].transform.Find("Text - " + label).GetComponent<TextMeshProUGUI>();
-            void ShowValue(float value) => text.text = label + "  " + Mathf.RoundToInt(value * 100f) + "%";
+            string shown = VolumeLabel(label);
+            void ShowValue(float value) => text.text = shown + "  " + Mathf.RoundToInt(value * 100f) + "%";
             slider.onValueChanged.AddListener(ShowValue);
             ShowValue(slider.value);
         }
+
+        // The label is also part of the scene object name ("Text - GENERAL"), so only the shown text is translated.
+        private static string VolumeLabel(string label) => label switch
+        {
+            "GENERAL" => L10n.Get(L10n.UI, "settings.master"),
+            "MUSICA" => L10n.Get(L10n.UI, "settings.music"),
+            "EFECTOS" => L10n.Get(L10n.UI, "settings.sfx"),
+            _ => label,
+        };
 
         private void PlaceVolume(Slider slider, string label, float y)
         {

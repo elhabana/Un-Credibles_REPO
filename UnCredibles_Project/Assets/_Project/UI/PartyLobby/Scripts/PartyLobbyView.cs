@@ -3,6 +3,7 @@ using UnCredibles.BatPad;
 using UnCredibles.Players;
 using UnityEngine;
 using UnityEngine.UI;
+using UnCredibles.Localization;
 
 namespace UnCredibles.UI.PartyLobby
 {
@@ -75,10 +76,10 @@ namespace UnCredibles.UI.PartyLobby
             if (controller.UsesPhones) controller.BatPad.RoomChanged += RenderBatPad;
             RenderBatPad();
             hintText.text = !controller.IsOnline
-                ? "SPACE / A: join & ready     ESC / START: cancel & leave"
+                ? L10n.Get(L10n.UI, "lobby.hint_local")
                 : controller.IsAuthority
-                    ? "Comparte el codigo para invitar.   SPACE / A: listo"
-                    : "SPACE / A: listo     ESC / B: cancelar";
+                    ? L10n.Get(L10n.UI, "lobby.hint_host")
+                    : L10n.Get(L10n.UI, "lobby.hint_client");
             RenderAll();
         }
 
@@ -96,7 +97,7 @@ namespace UnCredibles.UI.PartyLobby
             batPadQr.texture = batPadQrTexture;
             batPadQr.gameObject.SetActive(batPadQrTexture != null);
             batPadText.gameObject.SetActive(usesPhones);
-            batPadText.text = url != null ? "Scan to play with your phone" : "Connecting phone controller...";
+            batPadText.text = url != null ? L10n.Get(L10n.UI, "lobby.batpad_scan") : L10n.Get(L10n.UI, "lobby.batpad_connecting");
         }
 
         private void RenderAll()
@@ -114,14 +115,14 @@ namespace UnCredibles.UI.PartyLobby
 
             // Same code for friends online and for the BatPad room of the phones.
             modeText.text = controller.IsOnline
-                ? $"MULTIPLAYER {occupied}/4  |  CODIGO: {controller.RoomCode}"
-                : "SINGLEPLAYER";
+                ? L10n.Format(L10n.UI, "lobby.mode_multi", occupied, controller.RoomCode)
+                : L10n.Get(L10n.UI, "lobby.mode_single");
         }
 
         private void HandleCountdownTick(int secondsLeft)
         {
             countdownText.gameObject.SetActive(true);
-            countdownText.text = secondsLeft > 0 ? secondsLeft.ToString() : "START!";
+            countdownText.text = secondsLeft > 0 ? secondsLeft.ToString() : L10n.Get(L10n.UI, "lobby.start");
             if (secondsLeft == 0)
             {
                 // Match is starting: hide the edit buttons.
