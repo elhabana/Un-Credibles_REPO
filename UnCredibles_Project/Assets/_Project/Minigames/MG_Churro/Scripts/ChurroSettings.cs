@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace UnCredibles.Minigames.Churro
 {
-    [CreateAssetMenu(fileName = "CH_Settings", menuName = "UnCredibles/Churro/Settings")]
+    [CreateAssetMenu(fileName = "SO_CH_Settings", menuName = "UnCredibles/Churro/Settings")]
     public sealed class ChurroSettings : ScriptableObject
     {
         [Serializable]

@@ -5,7 +5,7 @@ namespace UnCredibles.Minigames.CrossyRoad
 {
     // Every tuning value of the minigame. Lanes, bottom to top:
     // 0 grandmas (pickup) | 1 player spawn | roads... | last = goal (drop-off).
-    [CreateAssetMenu(fileName = "CR_Settings", menuName = "UnCredibles/Crossy Road/Settings")]
+    [CreateAssetMenu(fileName = "SO_CR_Settings", menuName = "UnCredibles/Crossy Road/Settings")]
     public sealed class CrossyRoadSettings : ScriptableObject
     {
         [Serializable]

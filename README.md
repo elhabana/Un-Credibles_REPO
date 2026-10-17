@@ -10,7 +10,7 @@ Proyecto de Unity `6000.3.16f1`. Este documento resume el estado del repositorio
 4. Ratones en el garaje.
 5. Rescatar al gato.
 
-Los títulos visibles pueden estar en español. Los nombres técnicos se escriben en inglés, sin espacios ni tildes. «En el repositorio» indica que existe una escena y un `MinigameData` registrados en `01_Core`; no sustituye una prueba de juego completa.
+Los títulos visibles pueden estar en español. Los nombres técnicos se escriben en inglés, sin espacios ni tildes. «En el repositorio» indica que existe una escena y un `MinigameData` registrados en `SCN_Core`; no sustituye una prueba de juego completa.
 
 | Minijuego | Nombre técnico | Prefijo | Estado |
 |---|---|---|---|
@@ -48,7 +48,8 @@ _Project/
 │   ├── Overlays/
 │   ├── PartyLobby/
 │   ├── Results/
-│   └── Settings/
+│   ├── Settings/
+│   └── Voting/
 ├── Audio/
 ├── Shared/
 ├── Networking/
@@ -98,27 +99,31 @@ MG_Nombre/
 
 ## 4. Nomenclatura de escenas
 
-Las escenas generales son:
+Todas las escenas llevan el prefijo `SCN_`, sin numeración. El orden de carga lo define el perfil de compilación, no el nombre.
+
+Las escenas generales, en `Core/Scenes`, son:
 
 ```text
-00_Boot
-01_Core
-02_MainMenu
-04_Results
+SCN_Boot
+SCN_Core
+SCN_MainMenu
+SCN_Results
 ```
 
-El menú y el lobby son dos vistas del garaje en `02_MainMenu`. La escena antigua `03_PartyLobby` sigue en el proyecto, pero está desactivada en la lista de compilación. `04_Results` muestra la clasificación entre rondas y el podio al terminar la partida.
+El menú y el lobby son dos vistas del garaje en `SCN_MainMenu`. `SCN_Results` muestra la clasificación entre rondas y el podio al terminar la partida. Sus nombres se usan desde código a través de las constantes de `GameScenes`.
 
-Las escenas de minijuegos presentes siguen el formato `MG_<NombreTecnico>`:
+Las escenas de minijuegos siguen el formato `SCN_MG_<NombreTecnico>`:
 
 ```text
-MG_CrossyRoad
-MG_Churro
-MG_MowTheLawn
-MG_GarageMice
+SCN_MG_CrossyRoad
+SCN_MG_Churro
+SCN_MG_MowTheLawn
+SCN_MG_GarageMice
 ```
 
-El nombre debe coincidir exactamente con el campo `SceneName` del asset `MinigameData`. Cada escena nueva debe estar habilitada en el perfil de compilación y registrada en `MinigameManager`, dentro de `01_Core`.
+`SCN_MG_Template` (plantilla, fuera de la compilación) y `SCN_NET_Test` (prueba manual de Relay, desactivada en la compilación) completan la lista.
+
+El nombre debe coincidir exactamente con el campo `SceneName` del asset `MinigameData`, porque las escenas se cargan por nombre. Cada escena nueva debe estar habilitada en el perfil de compilación y registrada en `MinigameManager`, dentro de `SCN_Core`.
 
 ## 5. Nomenclatura de scripts
 
@@ -184,24 +189,42 @@ Los minijuegos utilizan sistemas compartidos del framework y evitan depender dir
 
 ## 7. Nomenclatura de recursos
 
-Para los recursos nuevos se propone:
+Formato general: `PREFIJO_Ambito_Nombre_Variante`.
 
-| Recurso | Ejemplo |
-|---|---|
-| Prefab | `MW_Mower.prefab` |
-| Datos del minijuego | `MG_MowTheLawn_Data.asset` |
-| Ajustes | `MW_Settings.asset` |
-| Material | `MW_Grass_M.mat` |
-| Textura nueva | `TEX_MW_Grass_BaseColor.png` |
-| Sprite nuevo | `SPR_MW_Icon.png` |
-| Efecto de sonido nuevo | `SFX_MW_CutGrass.wav` |
-| Música nueva | `MUS_MW_Main.ogg` |
-| Animación nueva | `ANIM_MW_Mower_Run.anim` |
-| Animator Controller nuevo | `AC_MW_Mower.controller` |
+- `PREFIJO`: tipo de recurso, según la tabla.
+- `Ambito`: prefijo del minijuego (`CR`, `CH`, `MW`, `GM`, `CT`), `Shared` para recursos compartidos o el área de interfaz (`Garage`…). Se mantiene siempre: evita choques como `M_CH_Player` frente a `M_CR_Player`.
+- `Nombre` y `Variante` en PascalCase. No se añaden números si no hay variantes reales, ni sufijos que repitan el tipo (`_M`, `_Mat`).
 
-Los recursos compartidos pueden usar `Shared`, por ejemplo `MAT_Shared_Player`.
+| Tipo | Prefijo | Ejemplo |
+|---|---|---|
+| Escena | `SCN_` | `SCN_MG_MowTheLawn.unity` |
+| Prefab | `PF_` | `PF_MW_Mower.prefab` |
+| Static Mesh | `SM_` | `SM_MW_Mower.fbx` |
+| Skeletal Mesh | `SK_` | `SK_Shared_Hero.fbx` |
+| Textura | `T_` | `T_MW_Grass_BaseColor.png` |
+| Material | `M_` | `M_MW_Grass.mat` |
+| Animation Clip | `AN_` | `AN_MW_Mower_Run.anim` |
+| Animator Controller | `AC_` | `AC_MW_Mower.controller` |
+| Avatar Mask | `AV_` | `AV_Shared_UpperBody.mask` |
+| ScriptableObject | `SO_` | `SO_MW_Settings.asset`, `SO_MG_MowTheLawn_Data.asset` |
+| Sprite | `SPR_` | `SPR_MW_Icon.png` |
+| Sprite Atlas | `ATLAS_` | `ATLAS_UI_Garage.spriteatlas` |
+| Fuente | `FONT_` | `FONT_Shared_Title.ttf` |
+| Efecto de sonido | `SFX_` | `SFX_MW_CutGrass.wav` |
+| Música | `MUS_` | `MUS_MW_Main.ogg` |
+| Audio Mixer | `MIXER_` | `MIXER_Main.mixer` |
+| Shader Graph | `SH_` | `SH_Shared_Toon.shadergraph` |
+| Shader programado | `SHADER_` | `SHADER_MW_GrassBlade.shader` |
+| Efecto visual | `FX_` | `FX_GM_Poof.prefab` |
+| Physic Material | `PM_` | `PM_CR_Oil.physicMaterial` |
+| Cubemap | `CUBEMAP_` | `CUBEMAP_Shared_Sky.cubemap` |
+| Render Texture | `RT_` | `RT_UI_Podium.renderTexture` |
+| Timeline | `TIMELINE_` | `TIMELINE_Garage_Intro.playable` |
+| Preset | `PRESET_` | `PRESET_Shared_TextureUI.preset` |
 
-Los nombres existentes se conservan hasta acordar una reorganización.
+No llevan prefijo: los scripts C# (el archivo se llama como su clase), los `.asmdef`, los `.inputactions` y los recursos de configuración del motor en `Assets/Settings`. Los recursos de `Assets/ThirdParty` y de los paquetes conservan sus nombres originales.
+
+Los IDs de la lista de animaciones del equipo (`ANI_PJ_…`) son identificadores de producción; al importar cada clip, su archivo se nombra con `AN_`.
 
 ### Identificadores internos
 
@@ -227,10 +250,11 @@ UI/
 ├── Overlays/
 ├── PartyLobby/
 ├── Results/
-└── Settings/
+├── Settings/
+└── Voting/
 ```
 
-`Garage` coordina las vistas del menú, lobby, ajustes, créditos y galería dentro de `02_MainMenu`. `Results` contiene la clasificación entre rondas y el podio final. Los elementos exclusivos de un minijuego permanecen dentro de su carpeta.
+`Garage` coordina las vistas del menú, lobby, ajustes, créditos y galería dentro de `SCN_MainMenu`. `Results` contiene la clasificación entre rondas y el podio final. Los elementos exclusivos de un minijuego permanecen dentro de su carpeta.
 
 Para objetos nuevos de interfaz se propone:
 
@@ -246,13 +270,13 @@ Image_PlayerIcon
 ## 9. Incorporación de un nuevo minijuego
 
 1. Duplicar `_Template` desde Unity.
-2. Renombrar carpeta, escena, scripts, namespace y ensamblado.
-3. Crear su `MinigameData` con ID único, reglas y número de jugadores.
+2. Renombrar carpeta, escena (`SCN_MG_<NombreTecnico>`), scripts, namespace y ensamblado.
+3. Crear su `MinigameData` (`SO_MG_<NombreTecnico>_Data`) con ID único, reglas y número de jugadores.
 4. Implementar el controlador heredando de `MinigameController`.
 5. Leer los controles mediante `IPlayerInput`.
 6. Utilizar los sistemas compartidos de puntuación, tiempo y aparición cuando corresponda.
 7. Finalizar mediante `EndGame`.
-8. Registrar sus datos en `MinigameManager`, dentro de `01_Core`.
+8. Registrar sus datos en `MinigameManager`, dentro de `SCN_Core`.
 9. Añadir la escena al perfil de compilación.
 10. Probarlo de forma aislada y dentro de una partida completa.
 

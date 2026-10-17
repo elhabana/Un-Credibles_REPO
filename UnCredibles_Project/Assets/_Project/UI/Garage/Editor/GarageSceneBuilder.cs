@@ -172,7 +172,7 @@ namespace UnCredibles.UI.Garage.Editor
             tvCanvas.SetActive(false);
             lobbyRoot.SetActive(false); setup.SetActive(false);
             foreach(var avatar in avatars) avatar.SetActive(false);
-            EditorSceneManager.SaveScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene(),"Assets/_Project/Core/Scenes/02_MainMenu.unity");
+            EditorSceneManager.SaveScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene(),"Assets/_Project/Core/Scenes/SCN_MainMenu.unity");
             EditorBuildSettings.scenes=EditorBuildSettings.scenes.Select(s=>new EditorBuildSettingsScene(s.path,s.enabled && !s.path.EndsWith("03_PartyLobby.unity"))).ToArray();
             AssetDatabase.SaveAssets();
             Debug.Log("GARAGE_BUILD_OK: shared scene, five viewpoints, local/online lobby and volume settings.");
@@ -222,7 +222,7 @@ namespace UnCredibles.UI.Garage.Editor
         {
             const string folder="Assets/_Project/UI/Garage/Materials";
             if(!AssetDatabase.IsValidFolder(folder)) AssetDatabase.CreateFolder("Assets/_Project/UI/Garage","Materials");
-            string path=folder+"/"+name+".mat"; var mat=AssetDatabase.LoadAssetAtPath<Material>(path);
+            string path=folder+"/M_Garage_"+name+".mat"; var mat=AssetDatabase.LoadAssetAtPath<Material>(path);
             if(mat==null) { mat=new Material(Shader.Find("Universal Render Pipeline/Lit")); AssetDatabase.CreateAsset(mat,path); }
             mat.color=color; EditorUtility.SetDirty(mat); return mat;
         }

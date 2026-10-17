@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace UnCredibles.Minigames.MowTheLawn
 {
-    [CreateAssetMenu(fileName = "MW_Settings", menuName = "UnCredibles/Mow The Lawn/Settings")]
+    [CreateAssetMenu(fileName = "SO_MW_Settings", menuName = "UnCredibles/Mow The Lawn/Settings")]
     public sealed class MowTheLawnSettings : ScriptableObject
     {
         [Header("Lawn")]

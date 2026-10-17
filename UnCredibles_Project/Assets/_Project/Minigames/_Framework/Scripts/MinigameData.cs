@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace UnCredibles.Minigames
 {
-    [CreateAssetMenu(fileName = "MG_NewMinigame_Data", menuName = "UnCredibles/Minigame Data")]
+    [CreateAssetMenu(fileName = "SO_MG_NewMinigame_Data", menuName = "UnCredibles/Minigame Data")]
     public sealed class MinigameData : ScriptableObject
     {
         [SerializeField] private string id;

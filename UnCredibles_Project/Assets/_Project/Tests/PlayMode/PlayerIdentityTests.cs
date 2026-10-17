@@ -25,7 +25,7 @@ public sealed class PlayerIdentityTests
         MinigameHost.Register(initialize);
         try
         {
-            foreach (string scene in new [] { "MG_Churro", "MG_CrossyRoad", "MG_MowTheLawn" })
+            foreach (string scene in new [] { "SCN_MG_Churro", "SCN_MG_CrossyRoad", "SCN_MG_MowTheLawn" })
             {
                 yield return SceneManager.LoadSceneAsync(scene, LoadSceneMode.Single);
                 // Reproduce the host waiting for remote clients before initialization.
