@@ -87,6 +87,8 @@ namespace UnCredibles.Core
             Online = new GameObject("Online Connection").AddComponent<RelayConnection>();
 
             GameFlow = new GameFlowManager();
+            PlayerRegistry.DefaultNameProvider = (index, isAI) =>
+                isAI ? "BOT" : L10n.Format(L10n.UI, "results.player_n", index + 1);
             Players = new PlayerRegistry();
             Match = new MatchManager(pointsByPlacement);
             Settings = new SettingsManager();
@@ -144,6 +146,7 @@ namespace UnCredibles.Core
             Match.CancelMatch();
             ClearVote();
             Players.Clear();
+            batPad.SendByeToAll(); // phones show "thanks for playing"
             batPad.ClearSlots(); // phones stay connected but have to join again from the lobby
             sceneFlow.LoadContent(GameScenes.MainMenu, () => GameFlow.ChangeState(GameState.MainMenu));
         }
@@ -264,7 +267,31 @@ namespace UnCredibles.Core
                     return;
             }
             batPad.SetHint(hint);
+            if (current == GameState.FinalResults) SendPhoneResults();
         }
+
+        // Every phone in a slot learns who won the match and where its own player finished.
+        private void SendPhoneResults()
+        {
+            var standings = Match.GetStandings();
+            if (standings.Length == 0) return;
+            var winners = new List<string>();
+            foreach (var standing in standings)
+                if (standing.Placement == 1) winners.Add(PlayerNameOf(standing.PlayerId));
+            string winner = string.Join(" / ", winners);
+
+            foreach (var phone in batPad.Phones)
+            {
+                if (phone.SlotIndex == BatPadInput.NoSlot) continue;
+                var slot = Players.Slots[phone.SlotIndex];
+                foreach (var standing in standings)
+                    if (standing.PlayerId == slot.PlayerId)
+                        batPad.SendResult(phone, winner, standing.Placement, standing.Placement == 1);
+            }
+        }
+
+        private string PlayerNameOf(int playerId) =>
+            Players.TryGetByPlayerId(playerId, out var slot) ? slot.PlayerName : L10n.Format(L10n.UI, "results.player_n", playerId + 1);
 
         // Each minigame has its own lines in the Minigames table: "phone.<id>" for the instruction and
         // "phone.<id>.a" / ".b" for the buttons (missing = that button does nothing there).
@@ -589,7 +616,7 @@ namespace UnCredibles.Core
                 standings.Rows.Add(new OnlineStandings.Row
                 {
                     PlayerId = standing.PlayerId,
-                    Name = Players.TryGetByPlayerId(standing.PlayerId, out var slot) ? slot.PlayerName : $"Player {standing.PlayerId + 1}",
+                    Name = Players.TryGetByPlayerId(standing.PlayerId, out var slot) ? slot.PlayerName : L10n.Format(L10n.UI, "results.player_n", standing.PlayerId + 1),
                     Placement = standing.Placement,
                     Gained = gained,
                     Total = standing.Score,

@@ -24,6 +24,7 @@ namespace UnCredibles.BatPad
         // The BatPad server drops messages over 256 characters; the JSON wrapper needs the rest.
         private const int MaxHintLength = 110;
         private const int MaxLabelLength = 20;
+        private const int MaxWinnerLength = 60;
         private PhoneHint hint;
         private bool hasHint;
 
@@ -129,6 +130,26 @@ namespace UnCredibles.BatPad
                          $"\"a\":{JsonString(Clip(hint.A, MaxLabelLength))},\"b\":{JsonString(Clip(hint.B, MaxLabelLength))}," +
                          $"\"x\":{(hint.ShowExit ? 1 : 0)},\"p\":{(hint.Pulse ? 1 : 0)}}}";
             Send($"{{\"t\":\"send\",\"player\":{phone.PhoneId},\"msg\":{msg}}}");
+        }
+
+        // End of the match on one phone: who won (names joined on a tie) and where this player finished.
+        public void SendResult(BatPadInput phone, string winner, int place, bool won)
+        {
+            if (!phone.IsConnected) return;
+            string msg = $"{{\"t\":\"result\",\"w\":{JsonString(Clip(winner, MaxWinnerLength))},\"place\":{place},\"won\":{(won ? 1 : 0)}}}";
+            Send($"{{\"t\":\"send\",\"player\":{phone.PhoneId},\"msg\":{msg}}}");
+        }
+
+        // "Thanks for playing" screen: the host went back to the menu or this player left the lobby.
+        public void SendBye(BatPadInput phone)
+        {
+            if (!phone.IsConnected) return;
+            Send($"{{\"t\":\"send\",\"player\":{phone.PhoneId},\"msg\":{{\"t\":\"bye\"}}}}");
+        }
+
+        public void SendByeToAll()
+        {
+            foreach (var phone in phones) SendBye(phone);
         }
 
         private static string Clip(string text, int max) =>

@@ -155,7 +155,11 @@ namespace UnCredibles.UI.PartyLobby
                     // The phone shows Pause as an exit button: it leaves at once.
                     // Keyboard and gamepad keep the two steps (un-ready first, then leave).
                     if (slot.IsReady && !(slot.Input is BatPadInput)) Players.SetReady(slot.SlotIndex, false);
-                    else RemovePlayer(slot.SlotIndex);
+                    else
+                    {
+                        if (slot.Input is BatPadInput leaving) batPad.SendBye(leaving); // "thanks for playing" on the phone
+                        RemovePlayer(slot.SlotIndex);
+                    }
                 }
             }
         }

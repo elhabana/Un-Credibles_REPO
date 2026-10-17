@@ -223,7 +223,12 @@ namespace UnCredibles.Players
             for (int i = 0; i < MaxPlayers; i++) RemovePlayer(i);
         }
 
-        private static string DefaultName(int index, bool isAI) => isAI ? "BOT" : $"Player {index + 1}";
+        // Name for players who join without one. Core plugs in the translated "Player N" so this
+        // assembly stays free of the localization package; the English text is only the fallback.
+        public static Func<int, bool, string> DefaultNameProvider;
+
+        private static string DefaultName(int index, bool isAI) =>
+            DefaultNameProvider?.Invoke(index, isAI) ?? (isAI ? "BOT" : $"Player {index + 1}");
         private static bool IsValidIndex(int index) => index >= 0 && index < MaxPlayers;
         private bool IsOccupied(int index) => IsValidIndex(index) && slots[index].IsOccupied;
     }
