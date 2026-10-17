@@ -39,6 +39,7 @@ namespace UnCredibles.UI.Garage
             masterVolume.onValueChanged.AddListener(SetVolume);
             musicVolume.onValueChanged.AddListener(SetVolume);
             sfxVolume.onValueChanged.AddListener(SetVolume);
+            L10n.LanguageChanged += HandleLanguageChanged;
             StateChanged(core.GameFlow.State, core.GameFlow.State);
         }
 
@@ -46,6 +47,15 @@ namespace UnCredibles.UI.Garage
         {
             if (core != null) core.GameFlow.StateChanged -= StateChanged;
             if (menu != null) menu.SettingsRequested -= ShowSettings;
+            L10n.LanguageChanged -= HandleLanguageChanged;
+        }
+
+        private void HandleLanguageChanged()
+        {
+            ShowVolume(masterVolume, "GENERAL", masterVolume.value);
+            ShowVolume(musicVolume, "MUSICA", musicVolume.value);
+            ShowVolume(sfxVolume, "EFECTOS", sfxVolume.value);
+            AddInstruction(detailPanels[0].transform);
         }
 
         private void Update()
@@ -171,11 +181,14 @@ namespace UnCredibles.UI.Garage
         {
             slider.GetComponent<Image>().color = new Color(.28f, .37f, .45f);
             slider.handleRect.GetComponent<Image>().color = new Color(.98f, .62f, .14f);
+            slider.onValueChanged.AddListener(value => ShowVolume(slider, label, value));
+            ShowVolume(slider, label, slider.value);
+        }
+
+        private void ShowVolume(Slider slider, string label, float value)
+        {
             var text = detailPanels[0].transform.Find("Text - " + label).GetComponent<TextMeshProUGUI>();
-            string shown = VolumeLabel(label);
-            void ShowValue(float value) => text.text = shown + "  " + Mathf.RoundToInt(value * 100f) + "%";
-            slider.onValueChanged.AddListener(ShowValue);
-            ShowValue(slider.value);
+            text.text = VolumeLabel(label) + "  " + Mathf.RoundToInt(value * 100f) + "%";
         }
 
         // The label is also part of the scene object name ("Text - GENERAL"), so only the shown text is translated.

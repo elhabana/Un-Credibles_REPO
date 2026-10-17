@@ -375,6 +375,10 @@ MonoBehaviour:
     m_Localized: Continuar
     m_Metadata:
       m_Items: []
+  - m_Id: 30479012200448
+    m_Localized: "\xBFOtro jugador? Conecta un mando o escanea el QR con el m\xF3vil"
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

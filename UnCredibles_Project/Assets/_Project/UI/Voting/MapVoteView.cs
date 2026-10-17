@@ -53,6 +53,7 @@ namespace UnCredibles.UI.Voting
             Build();
             core.GameFlow.StateChanged += OnStateChanged;
             core.VoteChanged += Render;
+            L10n.LanguageChanged += HandleLanguageChanged;
             OnStateChanged(core.GameFlow.State, core.GameFlow.State);
         }
 
@@ -63,6 +64,14 @@ namespace UnCredibles.UI.Voting
                 core.GameFlow.StateChanged -= OnStateChanged;
                 core.VoteChanged -= Render;
             }
+            L10n.LanguageChanged -= HandleLanguageChanged;
+        }
+
+        // Cards carry their names from when they were built, so they are rebuilt in the new language.
+        private void HandleLanguageChanged()
+        {
+            renderedCandidateCount = -1;
+            Render();
         }
 
         private void Update()

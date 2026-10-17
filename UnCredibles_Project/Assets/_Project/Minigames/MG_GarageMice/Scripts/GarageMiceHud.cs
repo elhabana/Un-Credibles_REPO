@@ -16,6 +16,8 @@ namespace UnCredibles.Minigames.GarageMice
         private TMP_Text timer;
         private TMP_Text scores;
         private TMP_Text center;
+        private TMP_Text title;
+        private TMP_Text instructions;
 
         public void Setup(GarageMiceController game)
         {
@@ -29,13 +31,13 @@ namespace UnCredibles.Minigames.GarageMice
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1920f, 1080f);
 
-            Text("Title", L10n.Get(L10n.Minigames, "mice.title"), new Vector2(0f, -40f), new Vector2(780f, 80f),
+            title = Text("Title", L10n.Get(L10n.Minigames, "mice.title"), new Vector2(0f, -40f), new Vector2(780f, 80f),
                 48f, TextAlignmentOptions.Center, new Vector2(.5f, 1f));
             timer = Text("Timer", "", new Vector2(-60f, -42f), new Vector2(280f, 70f),
                 40f, TextAlignmentOptions.Right, Vector2.one);
             scores = Text("Scores", "", new Vector2(40f, -45f), new Vector2(430f, 220f),
                 28f, TextAlignmentOptions.TopLeft, new Vector2(0f, 1f));
-            Text("Instructions", L10n.Get(L10n.Minigames, "mice.controls"), new Vector2(0f, 32f),
+            instructions = Text("Instructions", L10n.Get(L10n.Minigames, "mice.controls"), new Vector2(0f, 32f),
                 new Vector2(1100f, 55f), 25f, TextAlignmentOptions.Center, new Vector2(.5f, 0f));
             center = Text("Countdown and results", "", Vector2.zero, new Vector2(900f, 430f),
                 70f, TextAlignmentOptions.Center, new Vector2(.5f, .5f));
@@ -45,7 +47,14 @@ namespace UnCredibles.Minigames.GarageMice
             controller.Timer.SecondChanged += ShowTime;
             controller.Score.ScoreChanged += ShowScores;
             controller.Finished += ShowResults;
+            L10n.LanguageChanged += ShowFixedTexts;
             ShowScores(0, 0);
+        }
+
+        private void ShowFixedTexts()
+        {
+            title.text = L10n.Get(L10n.Minigames, "mice.title");
+            instructions.text = L10n.Get(L10n.Minigames, "mice.controls");
         }
 
         private TMP_Text Text(string name, string value, Vector2 position, Vector2 size,
@@ -114,6 +123,7 @@ namespace UnCredibles.Minigames.GarageMice
                 controller.Score.ScoreChanged -= ShowScores;
                 controller.Finished -= ShowResults;
             }
+            L10n.LanguageChanged -= ShowFixedTexts;
             if (root != null) Destroy(root);
         }
     }

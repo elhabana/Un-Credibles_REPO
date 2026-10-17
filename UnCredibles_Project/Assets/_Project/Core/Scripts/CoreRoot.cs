@@ -106,6 +106,7 @@ namespace UnCredibles.Core
             batPad.PhoneDisconnected += HandlePhoneDisconnected;
             batPad.PhoneReconnected += HandlePhoneReconnected;
             GameFlow.StateChanged += UpdatePhoneHint;
+            L10n.LanguageChanged += ResendPhoneHint;
         }
 
         private IEnumerator Start()
@@ -214,6 +215,7 @@ namespace UnCredibles.Core
             batPad.PhoneDisconnected -= HandlePhoneDisconnected;
             batPad.PhoneReconnected -= HandlePhoneReconnected;
             GameFlow.StateChanged -= UpdatePhoneHint;
+            L10n.LanguageChanged -= ResendPhoneHint;
             Players.Clear();
             Instance = null;
         }
@@ -267,8 +269,11 @@ namespace UnCredibles.Core
                     return;
             }
             batPad.SetHint(hint);
-            if (current == GameState.FinalResults) SendPhoneResults();
+            if (current == GameState.FinalResults && previous != current) SendPhoneResults();
         }
+
+        // Same moment, new language: the phones get the instruction again (not the result screen).
+        private void ResendPhoneHint() => UpdatePhoneHint(GameFlow.State, GameFlow.State);
 
         // Every phone in a slot learns who won the match and where its own player finished.
         private void SendPhoneResults()

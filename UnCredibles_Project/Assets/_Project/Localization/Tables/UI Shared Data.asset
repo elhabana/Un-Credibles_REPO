@@ -460,6 +460,11 @@ MonoBehaviour:
     m_Metadata:
       m_Items:
       - rid: 889587773146660871
+  - m_Id: 30479012200448
+    m_Key: lobby.add_player
+    m_Metadata:
+      m_Items:
+      - rid: 889587773980803072
   m_Metadata:
     m_Items: []
   m_KeyGenerator:
@@ -827,3 +832,7 @@ MonoBehaviour:
       type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
       data:
         m_CommentText: 'Phone: name under button A on the results screen'
+    - rid: 889587773980803072
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: 'Lobby: blinking callout above the BatPad QR (shown in capitals)'

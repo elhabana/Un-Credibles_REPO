@@ -14,12 +14,15 @@ namespace UnCredibles.Minigames.Churro
         [SerializeField, Min(0f)] private float introVisibleSeconds = 1.2f;
 
         private float hideTimer;
+        private int shownRound;
+        private int shownTotal;
 
         // Subscribed in Awake: the component toggles itself on/off, so OnEnable would subscribe twice.
         private void Awake()
         {
             controller.RoundStarted += HandleRoundStarted;
             controller.RoundEnded += HandleRoundEnded;
+            L10n.LanguageChanged += ShowRound;
             bannerText.gameObject.SetActive(false);
             roundText.text = string.Empty;
             enabled = false; // Update only runs while a banner is visible
@@ -29,11 +32,20 @@ namespace UnCredibles.Minigames.Churro
         {
             controller.RoundStarted -= HandleRoundStarted;
             controller.RoundEnded -= HandleRoundEnded;
+            L10n.LanguageChanged -= ShowRound;
+        }
+
+        // The round counter stays on screen, so it follows a language change; the banners are short-lived.
+        private void ShowRound()
+        {
+            if (shownRound > 0) roundText.text = L10n.Format(L10n.Minigames, "churro.round", shownRound, shownTotal);
         }
 
         private void HandleRoundStarted(int round, int total)
         {
-            roundText.text = L10n.Format(L10n.Minigames, "churro.round", round, total);
+            shownRound = round;
+            shownTotal = total;
+            ShowRound();
             // The first round also reminds the two controls.
             if (round == 1) Show(L10n.Get(L10n.Minigames, "churro.round_intro"), introVisibleSeconds + 1f);
             else Show(L10n.Format(L10n.Minigames, "churro.round_n", round), introVisibleSeconds);

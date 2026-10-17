@@ -21,14 +21,48 @@ namespace UnCredibles.UI.PartyLobby
         [SerializeField] private RawImage batPadQr;
         [SerializeField] private TMP_Text batPadText;
 
+        private const float CalloutBlinkSpeed = 2.5f;
+
         private bool locked;
         private Texture2D batPadQrTexture;
+        private TMP_Text addPlayerCallout; // blinking "another player? gamepad or QR" above the QR
 
         private void Awake()
         {
             for (int i = 0; i < slotViews.Length; i++) slotViews[i].Setup(i);
             countdownText.gameObject.SetActive(false);
+            CreateAddPlayerCallout();
             RenderBatPad();
+        }
+
+        private void Update()
+        {
+            if (!addPlayerCallout.gameObject.activeSelf) return;
+            addPlayerCallout.alpha = Mathf.Lerp(0.35f, 1f, Mathf.PingPong(Time.unscaledTime * CalloutBlinkSpeed, 1f));
+        }
+
+        // Built from the QR caption at runtime so the shared lobby scene does not need a new object.
+        private void CreateAddPlayerCallout()
+        {
+            addPlayerCallout = Instantiate(batPadText, batPadText.transform.parent);
+            addPlayerCallout.name = "Add Player Callout";
+            var qrRect = (RectTransform)batPadQr.transform;
+            var rect = addPlayerCallout.rectTransform;
+            rect.anchorMin = rect.anchorMax = qrRect.anchorMin;
+            rect.sizeDelta = new Vector2(Mathf.Max(qrRect.sizeDelta.x * 2.4f, rect.sizeDelta.x), rect.sizeDelta.y * 1.4f);
+            rect.anchoredPosition = qrRect.anchoredPosition + new Vector2(0f, (qrRect.sizeDelta.y + rect.sizeDelta.y) * 0.5f + 10f);
+            addPlayerCallout.fontSize = batPadText.fontSize * 1.3f;
+            addPlayerCallout.fontStyle = FontStyles.Bold | FontStyles.UpperCase;
+            addPlayerCallout.alignment = TextAlignmentOptions.Center;
+            addPlayerCallout.text = L10n.Get(L10n.UI, "lobby.add_player");
+            addPlayerCallout.gameObject.SetActive(false);
+        }
+
+        // Only while someone can still join here: the QR is up, a slot is free and the match is not starting.
+        private void RenderAddPlayerCallout(int occupied)
+        {
+            bool show = batPadQr.gameObject.activeSelf && !locked && occupied < PlayerRegistry.MaxPlayers;
+            addPlayerCallout.gameObject.SetActive(show);
         }
 
         private void OnDestroy()
@@ -43,6 +77,7 @@ namespace UnCredibles.UI.PartyLobby
             controller.CountdownTick += HandleCountdownTick;
             controller.CountdownCancelled += HandleCountdownCancelled;
             controller.Notice += ShowNotice;
+            L10n.LanguageChanged += HandleLanguageChanged;
             backButton.onClick.AddListener(controller.BackToMainMenu);
             foreach (var view in slotViews)
             {
@@ -59,6 +94,7 @@ namespace UnCredibles.UI.PartyLobby
             controller.CountdownTick -= HandleCountdownTick;
             controller.CountdownCancelled -= HandleCountdownCancelled;
             controller.Notice -= ShowNotice;
+            L10n.LanguageChanged -= HandleLanguageChanged;
             backButton.onClick.RemoveListener(controller.BackToMainMenu);
             if (controller.BatPad != null) controller.BatPad.RoomChanged -= RenderBatPad;
             foreach (var view in slotViews)
@@ -75,12 +111,25 @@ namespace UnCredibles.UI.PartyLobby
             countdownText.gameObject.SetActive(false);
             if (controller.UsesPhones) controller.BatPad.RoomChanged += RenderBatPad;
             RenderBatPad();
+            ShowHint();
+            RenderAll();
+        }
+
+        private void ShowHint()
+        {
             hintText.text = !controller.IsOnline
                 ? L10n.Get(L10n.UI, "lobby.hint_local")
                 : controller.IsAuthority
                     ? L10n.Get(L10n.UI, "lobby.hint_host")
                     : L10n.Get(L10n.UI, "lobby.hint_client");
-            RenderAll();
+        }
+
+        // Slots, QR caption and callout are redrawn by RenderBatPad; the bottom hint is set again.
+        private void HandleLanguageChanged()
+        {
+            addPlayerCallout.text = L10n.Get(L10n.UI, "lobby.add_player");
+            RenderBatPad();
+            if (controller.Players != null) ShowHint();
         }
 
         // QR of the phone controller once the room is open; a status text meanwhile.
@@ -98,6 +147,7 @@ namespace UnCredibles.UI.PartyLobby
             batPadQr.gameObject.SetActive(batPadQrTexture != null);
             batPadText.gameObject.SetActive(usesPhones);
             batPadText.text = url != null ? L10n.Get(L10n.UI, "lobby.batpad_scan") : L10n.Get(L10n.UI, "lobby.batpad_connecting");
+            if (initialized) RenderAll();
         }
 
         private void RenderAll()
@@ -112,6 +162,7 @@ namespace UnCredibles.UI.PartyLobby
                 bool mine = controller.IsOnline && !controller.IsAuthority && info.Owner == controller.LocalClientId;
                 slotViews[i].Render(info, controller.CanEditSlots, locked, mine, controller.IsOnline);
             }
+            RenderAddPlayerCallout(occupied);
 
             // Same code for friends online and for the BatPad room of the phones.
             modeText.text = controller.IsOnline

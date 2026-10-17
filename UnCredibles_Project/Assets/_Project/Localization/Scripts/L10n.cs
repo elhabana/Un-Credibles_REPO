@@ -15,6 +15,22 @@ namespace UnCredibles.Localization
 
         private const char TokenPrefix = '@';
 
+        // Raised when the selected language changes. UI that writes its text from code listens and
+        // redraws, since only scene texts with LocalizeStringEvent update on their own.
+        public static event Action LanguageChanged;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics() => LanguageChanged = null; // survives Play without domain reload
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        private static void ListenForLanguage()
+        {
+            LocalizationSettings.SelectedLocaleChanged -= RaiseLanguageChanged;
+            LocalizationSettings.SelectedLocaleChanged += RaiseLanguageChanged;
+        }
+
+        private static void RaiseLanguageChanged(UnityEngine.Localization.Locale _) => LanguageChanged?.Invoke();
+
         public static string Get(string table, string key)
         {
             try

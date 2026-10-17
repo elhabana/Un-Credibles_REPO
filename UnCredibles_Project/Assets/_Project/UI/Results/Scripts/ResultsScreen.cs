@@ -50,6 +50,7 @@ namespace UnCredibles.UI.Results
             while (CoreRoot.Instance == null) yield return null;
             core = CoreRoot.Instance;
             isOnlineClient = core.GameFlow.Session == SessionMode.Online && !core.Online.IsHost;
+            L10n.LanguageChanged += HandleLanguageChanged;
 
             if (isOnlineClient)
             {
@@ -67,7 +68,20 @@ namespace UnCredibles.UI.Results
         private void OnDestroy()
         {
             if (core != null) core.Room.StandingsReceived -= RenderOnlineStandings;
+            L10n.LanguageChanged -= HandleLanguageChanged;
             podium?.Clear();
+        }
+
+        private void HandleLanguageChanged()
+        {
+            if (isOnlineClient)
+            {
+                RenderOnlineStandings();
+                return;
+            }
+            ShowHeader(core.Match.CurrentRound, core.Match.TotalRounds);
+            shownSeconds = -1; // Update rewrites the countdown hint in the new language
+            RenderStandings();
         }
 
         private void ShowHeader(int round, int totalRounds)
