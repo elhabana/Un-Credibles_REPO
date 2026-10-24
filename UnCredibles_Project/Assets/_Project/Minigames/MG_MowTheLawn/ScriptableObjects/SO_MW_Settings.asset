@@ -35,11 +35,6 @@ MonoBehaviour:
   mowerRadius: 0.55
   bladeRadius: 0.75
   bladeOffset: 0.25
-  playerColors:
-  - {r: 0.9, g: 0.25, b: 0.25, a: 1}
-  - {r: 0.25, g: 0.5, b: 0.95, a: 1}
-  - {r: 0.95, g: 0.55, b: 0.15, a: 1}
-  - {r: 0.75, g: 0.3, b: 0.85, a: 1}
   cellsPerBag: 180
   bagSpacing: 0.8
   bagRadius: 0.32
@@ -66,3 +61,8 @@ MonoBehaviour:
   aiThinkInterval: 0.35
   aiLooseBagRange: 6
   aiAttackRange: 5
+  playerPrefabs:
+  - {fileID: 1230469411051169273, guid: 338c9c05065ccf84ebd321ef1102ea81, type: 3}
+  - {fileID: 3579630681584448036, guid: 16910149cfc1fcb4b8c97f229b04c390, type: 3}
+  - {fileID: 933435598639670620, guid: e3b5efc5e8af1b648bcd9498edd7cf5e, type: 3}
+  - {fileID: 1844089717777996829, guid: aa6d264689709934a864629a072d6f0c, type: 3}

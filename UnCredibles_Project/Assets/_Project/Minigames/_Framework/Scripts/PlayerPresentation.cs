@@ -5,19 +5,17 @@ using UnityEngine;
 
 namespace UnCredibles.Minigames
 {
-    // Local presentation of the registered slot; no additional network object is needed.
+    // Local label of the registered slot; the body colour comes from the slot's prefab.
+    // No additional network object is needed.
     public sealed class PlayerPresentation : MonoBehaviour
     {
         private PlayerSlot slot;
         private Renderer[] bodies = new Renderer[0];
-        private MaterialPropertyBlock block;
         private TextMeshPro label;
         private Material labelMaterial;
         private Camera viewCamera;
         private bool wasAI;
         private float headHeight = 1.5f;
-        private static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
-        private static readonly int ColorProperty = Shader.PropertyToID("_Color");
 
         public static PlayerPresentation Attach(Component avatar, PlayerSlot player, Renderer[] bodyRenderers = null)
         {
@@ -33,14 +31,13 @@ namespace UnCredibles.Minigames
                 presentation.headHeight = Mathf.Max(.5f, top - avatar.transform.position.y) + .25f;
             }
             presentation.EnsureLabel();
-            presentation.RefreshColor();
+            presentation.RefreshLabel();
             return presentation;
         }
 
         private void EnsureLabel()
         {
             if (label != null) return;
-            block = new MaterialPropertyBlock();
             var go = new GameObject("Player label");
             go.transform.SetParent(transform, false);
             label = go.AddComponent<TextMeshPro>();
@@ -57,29 +54,20 @@ namespace UnCredibles.Minigames
             if (labelMaterial != null) labelMaterial.EnableKeyword("OUTLINE_ON");
             label.raycastTarget = false;
             label.GetComponent<MeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            L10n.LanguageChanged += RefreshColor; // "P1" / "J1"
+            L10n.LanguageChanged += RefreshLabel; // "P1" / "J1"
         }
 
-        private void RefreshColor()
+        private void RefreshLabel()
         {
             wasAI = slot.IsAI;
-            Color color = PlayerIdentity.ColorFor(slot.SlotIndex, slot.IsAI);
             label.text = PlayerIdentity.LabelFor(slot.SlotIndex, slot.IsAI);
-            label.color = color;
-            foreach (var body in bodies)
-            {
-                if (body == null) continue;
-                body.GetPropertyBlock(block);
-                block.SetColor(BaseColor, color);
-                block.SetColor(ColorProperty, color);
-                body.SetPropertyBlock(block);
-            }
+            label.color = PlayerIdentity.ColorFor(slot.SlotIndex, slot.IsAI);
         }
 
         private void LateUpdate()
         {
             if (slot == null || label == null) return;
-            if (wasAI != slot.IsAI) RefreshColor();
+            if (wasAI != slot.IsAI) RefreshLabel();
             if (viewCamera == null || !viewCamera.isActiveAndEnabled) viewCamera = Camera.main;
             if (viewCamera == null) return;
             float top = transform.position.y;
@@ -102,7 +90,7 @@ namespace UnCredibles.Minigames
 
         private void OnDestroy()
         {
-            L10n.LanguageChanged -= RefreshColor;
+            L10n.LanguageChanged -= RefreshLabel;
             if (labelMaterial != null) Destroy(labelMaterial);
         }
     }

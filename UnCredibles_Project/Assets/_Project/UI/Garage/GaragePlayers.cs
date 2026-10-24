@@ -11,8 +11,9 @@ namespace UnCredibles.UI.Garage
     {
         public const float DepartureSeconds = 2.6f;
         public PartyLobbyController lobby;
+        // One spot per slot (with its accessory anchors); the slot's figure is placed inside it.
         public GameObject[] avatars;
-        private Renderer[][] avatarRenderers;
+        public PlayerFigureSet figures;
         private Vector3[] avatarStarts;
         private Quaternion[] avatarRotations;
         private readonly List<Transform> doorPieces = new List<Transform>();
@@ -20,19 +21,16 @@ namespace UnCredibles.UI.Garage
         private Coroutine departure;
         private GameObject outsideGlow;
         private Material outsideMaterial;
-        private MaterialPropertyBlock colors;
-        private static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
-        private static readonly int ColorProperty = Shader.PropertyToID("_Color");
 
         private void Awake()
         {
-            colors = new MaterialPropertyBlock();
-            avatarRenderers = new Renderer[avatars.Length][];
             var positions = new Vector3[avatars.Length];
             for (int i = 0; i < avatars.Length; i++)
             {
                 positions[i] = avatars[i].transform.position;
-                avatarRenderers[i] = avatars[i].GetComponentsInChildren<Renderer>(true);
+                // Figures face +Z; turn them to the lobby camera, on the side of the mask anchor.
+                var figure = Instantiate(figures.For(i), avatars[i].transform, false);
+                figure.transform.localRotation = Quaternion.Euler(0f, 90f, 0f);
             }
             // The lobby camera faces west: increasing Z runs from screen left to right.
             System.Array.Sort(positions, (a, b) => a.z.CompareTo(b.z));
@@ -124,8 +122,9 @@ namespace UnCredibles.UI.Garage
                     var start = avatarStarts[i];
                     avatars[i].transform.position = new Vector3(start.x - 1.9f * run,
                         Mathf.Sin(run * Mathf.PI * 12f) * .08f, start.z);
+                    // The face is on the spot's +X (mask anchor); turn it to the door, west.
                     avatars[i].transform.rotation = Quaternion.Slerp(avatarRotations[i],
-                        Quaternion.Euler(0f, -90f, 0f), Mathf.Clamp01(run * 4f));
+                        Quaternion.Euler(0f, 180f, 0f), Mathf.Clamp01(run * 4f));
                 }
                 yield return null;
             }
@@ -176,20 +175,7 @@ namespace UnCredibles.UI.Garage
         private void Refresh()
         {
             for (int i = 0; i < avatars.Length; i++)
-            {
-                bool occupied = lobby.Players != null && lobby.Slots[i].Occupied;
-                avatars[i].SetActive(occupied);
-                if (!occupied) continue;
-                Color color = PlayerIdentity.ColorFor(i, lobby.Slots[i].IsAI);
-                foreach (var renderer in avatarRenderers[i])
-                {
-                    // Tint each figure without changing the shared garage materials.
-                    renderer.GetPropertyBlock(colors);
-                    colors.SetColor(BaseColor, color);
-                    colors.SetColor(ColorProperty, color);
-                    renderer.SetPropertyBlock(colors);
-                }
-            }
+                avatars[i].SetActive(lobby.Players != null && lobby.Slots[i].Occupied);
         }
     }
 }

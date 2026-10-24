@@ -28,7 +28,6 @@ namespace UnCredibles.Minigames.Churro
         [SerializeField] private ChurroSpinner spinner;
         [SerializeField] private ChurroBalls balls;
         [SerializeField] private ChurroCannonball cannonball;
-        [SerializeField] private ChurroPlayer playerPrefab;
         [SerializeField] private Transform playersParent;
 
         private readonly List<ChurroPlayer> avatars = new List<ChurroPlayer>(PlayerRegistry.MaxPlayers);
@@ -56,7 +55,7 @@ namespace UnCredibles.Minigames.Churro
             float floatDistance = 0f;
             foreach (var player in Players)
             {
-                var avatar = Spawns.Spawn(playerPrefab, player, playersParent);
+                var avatar = Spawns.Spawn(settings.PlayerPrefabFor(player.SlotIndex), player, playersParent);
                 avatar.Setup(player, settings, spinner.Center);
                 avatars.Add(avatar);
                 floatDistance = Vector3.Distance(ChurroAngles.Flat(avatar.transform.position), ChurroAngles.Flat(spinner.Center));

@@ -21,6 +21,7 @@ namespace UnCredibles.UI.Results
         [SerializeField] private Button lobbyButton;
         [SerializeField] private Button mainMenuButton;
         [SerializeField, Min(1f)] private float autoContinueSeconds = 6f;
+        [SerializeField] private PlayerFigureSet figures;
 
         private CoreRoot core;
         private bool isOnlineClient; // shows the host's standings and waits for the host
@@ -41,7 +42,7 @@ namespace UnCredibles.UI.Results
             listHeader = canvas.transform.Find("Header").gameObject;
             listRows = rows[0].transform.parent.gameObject;
             resultsCamera = Camera.main;
-            podium = new ResultsPodium(transform);
+            podium = new ResultsPodium(transform, figures);
         }
 
         private IEnumerator Start()
@@ -120,7 +121,7 @@ namespace UnCredibles.UI.Results
                 var row = standings.Rows[i];
                 rows[i].Render(row.Placement, row.Name, row.Gained, row.Total, isFinal && row.Placement == 1);
                 if (isFinal) podiumEntries.Add(new PodiumEntry(row.Placement, row.Name, row.Total,
-                    PlayerColor(row.PlayerId, i)));
+                    PlayerSlotIndex(row.PlayerId, i)));
             }
             if (isFinal) podium.Render(podiumEntries);
         }
@@ -178,7 +179,7 @@ namespace UnCredibles.UI.Results
                 rows[i].Render(standing.Placement, PlayerName(standing.PlayerId), gained, standing.Score,
                     isFinal && standing.Placement == 1);
                 if (isFinal) podiumEntries.Add(new PodiumEntry(standing.Placement, PlayerName(standing.PlayerId),
-                    standing.Score, PlayerColor(standing.PlayerId, i)));
+                    standing.Score, PlayerSlotIndex(standing.PlayerId, i)));
             }
             if (isFinal) podium.Render(podiumEntries);
         }
@@ -186,10 +187,8 @@ namespace UnCredibles.UI.Results
         private string PlayerName(int playerId) =>
             core.Players.TryGetByPlayerId(playerId, out var slot) ? slot.PlayerName : L10n.Format(L10n.UI, "results.player_n", playerId + 1);
 
-        private Color PlayerColor(int playerId, int fallbackIndex) =>
-            core.Players.TryGetByPlayerId(playerId, out var slot)
-                ? PlayerIdentity.ColorFor(slot.SlotIndex, slot.IsAI)
-                : PlayerIdentity.ColorFor(fallbackIndex);
+        private int PlayerSlotIndex(int playerId, int fallbackIndex) =>
+            core.Players.TryGetByPlayerId(playerId, out var slot) ? slot.SlotIndex : fallbackIndex;
 
         private bool AnyHumanPressed(PlayerAction action)
         {

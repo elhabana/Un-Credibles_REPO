@@ -22,7 +22,6 @@ namespace UnCredibles.Minigames.MowTheLawn
         [SerializeField] private MowLawn lawn;
         [SerializeField] private MowBags bags;
         [SerializeField] private MowFx fx;
-        [SerializeField] private MowerPlayer mowerPrefab;
         [SerializeField] private MowBin binPrefab;
         [SerializeField] private Transform playersParent;
 
@@ -49,7 +48,7 @@ namespace UnCredibles.Minigames.MowTheLawn
                 bin.Setup(player.SlotIndex, PlayerIdentity.ColorFor(player.SlotIndex, player.IsAI));
                 bins.Add(bin);
 
-                var mower = Spawns.Spawn(mowerPrefab, player, playersParent);
+                var mower = Spawns.Spawn(settings.PlayerPrefabFor(player.SlotIndex), player, playersParent);
                 // Start facing the middle of the garden.
                 var toCenter = lawn.Center - mower.transform.position;
                 toCenter.y = 0f;

@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnCredibles.Localization;
+using UnCredibles.Players;
 
 namespace UnCredibles.UI.Results
 {
@@ -10,14 +11,14 @@ namespace UnCredibles.UI.Results
         public readonly int Placement;
         public readonly string Name;
         public readonly int Points;
-        public readonly Color CharacterColor;
+        public readonly int SlotIndex; // picks the figure in the slot's colour
 
-        public PodiumEntry(int placement, string name, int points, Color characterColor)
+        public PodiumEntry(int placement, string name, int points, int slotIndex)
         {
             Placement = placement;
             Name = name;
             Points = points;
-            CharacterColor = characterColor;
+            SlotIndex = slotIndex;
         }
     }
 
@@ -25,11 +26,17 @@ namespace UnCredibles.UI.Results
     internal sealed class ResultsPodium
     {
         private const float FloorTop = -2.5f;
+        private const float FigureScale = .65f;
         private readonly Transform parent;
+        private readonly PlayerFigureSet figures;
         private readonly List<Material> materials = new List<Material>();
         private GameObject root;
 
-        public ResultsPodium(Transform parent) => this.parent = parent;
+        public ResultsPodium(Transform parent, PlayerFigureSet figures)
+        {
+            this.parent = parent;
+            this.figures = figures;
+        }
 
         public void SetVisible(bool visible)
         {
@@ -71,16 +78,11 @@ namespace UnCredibles.UI.Results
             Box("Pedestal rim", new Vector3(x, top - .06f, 0f), new Vector3(1.95f, .12f, 1.45f),
                 Color.Lerp(metal, Color.white, .24f));
 
-            var bodyMaterial = MakeMaterial(entry.CharacterColor);
-            var eyeMaterial = MakeMaterial(new Color(.025f, .03f, .04f));
-            Primitive("Body", PrimitiveType.Capsule, new Vector3(x, top + .58f, -.02f),
-                new Vector3(.46f, .57f, .37f), bodyMaterial);
-            Primitive("Head", PrimitiveType.Sphere, new Vector3(x, top + 1.34f, -.08f),
-                new Vector3(.58f, .58f, .55f), bodyMaterial);
-            Primitive("Left eye", PrimitiveType.Sphere, new Vector3(x - .13f, top + 1.4f, -.345f),
-                Vector3.one * .065f, eyeMaterial);
-            Primitive("Right eye", PrimitiveType.Sphere, new Vector3(x + .13f, top + 1.4f, -.345f),
-                Vector3.one * .065f, eyeMaterial);
+            var figure = Object.Instantiate(figures.For(entry.SlotIndex), root.transform, false);
+            figure.name = $"Place {entry.Placement} figure";
+            figure.transform.localPosition = new Vector3(x, top, -.02f);
+            figure.transform.localRotation = Quaternion.Euler(0f, 180f, 0f); // face the camera
+            figure.transform.localScale = Vector3.one * FigureScale;
             if (entry.Placement == 1)
                 Box("Winner crown", new Vector3(x, top + 1.69f, -.08f), new Vector3(.55f, .14f, .42f),
                     new Color(1f, .72f, .13f));

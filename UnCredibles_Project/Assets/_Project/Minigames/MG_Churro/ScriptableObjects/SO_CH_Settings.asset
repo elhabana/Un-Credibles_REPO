@@ -67,10 +67,10 @@ MonoBehaviour:
   gravity: 20
   playerRadius: 0.35
   knockoutSpeed: 7
-  playerColors:
-  - {r: 0.9, g: 0.25, b: 0.25, a: 1}
-  - {r: 0.25, g: 0.5, b: 0.95, a: 1}
-  - {r: 0.3, g: 0.8, b: 0.35, a: 1}
-  - {r: 0.95, g: 0.8, b: 0.2, a: 1}
   aiMinLead: 0.05
   aiMaxLead: 0.45
+  playerPrefabs:
+  - {fileID: 6534437299053844092, guid: 888bb9e035856414ea07d1a0fa8c209b, type: 3}
+  - {fileID: 4848956376163396439, guid: 371d4b56e4e9b02458edc311ca595578, type: 3}
+  - {fileID: 7563587487271717693, guid: 28f5daef69cdd58408d43017e832e561, type: 3}
+  - {fileID: 6729620242494093422, guid: a4af0d3dff66c0e42b2ade11852cf092, type: 3}
