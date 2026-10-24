@@ -22,7 +22,6 @@ namespace UnCredibles.Minigames.CrossyRoad
         [SerializeField] private CrossyRoadGrandmas grandmas;
         [SerializeField] private CrossyRoadOil oil;
         [SerializeField] private CrossyRoadScorePopups popups;
-        [SerializeField] private CrossyRoadPlayer playerPrefab;
         [SerializeField] private Transform playersParent;
 
         private readonly List<CrossyRoadPlayer> avatars = new List<CrossyRoadPlayer>(PlayerRegistry.MaxPlayers);
@@ -46,7 +45,7 @@ namespace UnCredibles.Minigames.CrossyRoad
 
             foreach (var player in Players)
             {
-                var avatar = Spawns.Spawn(playerPrefab, player, playersParent);
+                var avatar = Spawns.Spawn(Settings.PlayerPrefabFor(player.SlotIndex), player, playersParent);
                 var spawnPoint = Spawns.GetSpawnPoint(player.SlotIndex).position;
                 var preferred = new Vector3(spawnPoint.x, board.transform.position.y, board.LaneToZ(CrossyRoadBoard.SpawnLane));
                 avatar.Setup(player, board, FindFreeSpawn(preferred, null), Settings.GrandmaColor);

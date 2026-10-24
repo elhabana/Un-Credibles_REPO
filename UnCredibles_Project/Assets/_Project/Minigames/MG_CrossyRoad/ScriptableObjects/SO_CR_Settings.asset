@@ -54,11 +54,6 @@ MonoBehaviour:
   walkBobFrequency: 12
   respawnDelay: 1
   invulnerableTime: 1.5
-  playerColors:
-  - {r: 0.9, g: 0.25, b: 0.25, a: 1}
-  - {r: 0.25, g: 0.5, b: 0.95, a: 1}
-  - {r: 0.3, g: 0.8, b: 0.35, a: 1}
-  - {r: 0.95, g: 0.8, b: 0.2, a: 1}
   squashWidth: 1.6
   squashHeight: 0.08
   squashDuration: 0.08
@@ -103,3 +98,8 @@ MonoBehaviour:
   spawnLaneColor: {r: 0.45, g: 0.65, b: 0.4, a: 1}
   roadColor: {r: 0.22, g: 0.22, b: 0.25, a: 1}
   goalLaneColor: {r: 0.95, g: 0.85, b: 0.45, a: 1}
+  playerPrefabs:
+  - {fileID: 1227499254454188631, guid: a6a63f4247a3f70469480f9a3dfc8d39, type: 3}
+  - {fileID: 961549831250769308, guid: 48567cda79e08374abc1b76079bef779, type: 3}
+  - {fileID: 6173742884838963368, guid: f65bd9b8e9f64254fb882f35ca0493f1, type: 3}
+  - {fileID: 8395011585729413270, guid: dc5f4451e3ffe0b40a13d3f91ffff323, type: 3}

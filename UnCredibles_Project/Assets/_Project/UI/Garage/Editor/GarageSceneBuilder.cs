@@ -2,6 +2,7 @@
 using System.Linq;
 using TMPro;
 using UnCredibles.Core;
+using UnCredibles.Players;
 using UnCredibles.UI.MainMenu;
 using UnCredibles.UI.PartyLobby;
 using UnityEditor;
@@ -133,6 +134,7 @@ namespace UnCredibles.UI.Garage.Editor
             for(int i=0;i<4;i++) slots.GetArrayElementAtIndex(i).objectReferenceValue=cards[i];
             serialized.ApplyModifiedPropertiesWithoutUndo();
             var players=lobbyRoot.AddComponent<GaragePlayers>(); players.lobby=controller; players.avatars=avatars;
+            players.figures=AssetDatabase.LoadAssetAtPath<PlayerFigureSet>("Assets/_Project/Player/ScriptableObjects/SO_PlayerFigures.asset");
             front.detailPanels=new GameObject[3];
             var tvCanvas=new GameObject("Settings on TV",typeof(RectTransform),typeof(Canvas),typeof(GraphicRaycaster));
             tvCanvas.transform.SetParent(environment,false);
@@ -241,12 +243,7 @@ namespace UnCredibles.UI.Garage.Editor
         private static GameObject Avatar(int slot,Vector3 pos)
         {
             var root=new GameObject("Player "+(slot+1)+" - accessory anchors"); root.transform.SetParent(environment); root.transform.position=pos;
-            var body=GameObject.CreatePrimitive(PrimitiveType.Capsule); body.transform.SetParent(root.transform,false);
-            body.transform.localPosition=new Vector3(0,1,0); body.transform.localScale=new Vector3(.7f,1,.7f);
-            body.GetComponent<Renderer>().sharedMaterial=slot%2==0?accent:sofa;
-            var head=GameObject.CreatePrimitive(PrimitiveType.Sphere); head.transform.SetParent(root.transform,false);
-            head.transform.localPosition=new Vector3(0,2.2f,0); head.transform.localScale=Vector3.one*.65f;
-            head.GetComponent<Renderer>().sharedMaterial=concrete;
+            // GaragePlayers places the slot's figure (PlayerFigureSet) here at runtime.
             var mask=new GameObject("Mask anchor").transform; mask.SetParent(root.transform,false); mask.localPosition=new Vector3(.35f,2.2f,0);
             var clothes=new GameObject("Clothing anchor").transform; clothes.SetParent(root.transform,false); clothes.localPosition=Vector3.up;
             return root;

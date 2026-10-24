@@ -44,20 +44,20 @@ public sealed class PlayerIdentityTests
                     Assert.IsTrue(text.text == PlayerIdentity.LabelFor(index));
                     Assert.IsTrue(text.color == PlayerIdentity.ColorFor(index), scene + " changed the slot color.");
                     Assert.IsTrue((Color)text.outlineColor == Color.white && text.outlineWidth > 0f);
-                    Assert.IsTrue(HasBodyColor(view, text.color), scene + " body and label must match.");
+                    Assert.IsTrue(HasSlotVariant(view, text.color), scene + " must spawn the slot's prefab, matching its label.");
                     Assert.IsTrue(Quaternion.Angle(text.transform.rotation, Camera.main.transform.rotation) < .1f);
                 }
                 Capture(scene);
             }
             // Online disconnects can replace a human with AI without respawning the avatar.
             var bot = UnityEngine.Object.FindObjectsByType<PlayerPresentation>(FindObjectsSortMode.None)
-                .Single(v => v.GetComponentInChildren<TextMeshPro>().text == "P3");
+                .Single(v => v.GetComponentInChildren<TextMeshPro>().text == PlayerIdentity.LabelFor(2));
             Assert.IsTrue(registry.ReplaceWithAI(2, new AIInput()));
             yield return null;
             yield return null;
             Assert.IsTrue(bot.GetComponentInChildren<TextMeshPro>().text == "BOT");
             Assert.IsTrue(bot.GetComponentInChildren<TextMeshPro>().color == PlayerIdentity.ColorFor(2));
-            Assert.IsTrue(HasBodyColor(bot, PlayerIdentity.ColorFor(2)));
+            Assert.IsTrue(HasSlotVariant(bot, PlayerIdentity.ColorFor(2)));
         }
         finally
         {
@@ -66,14 +66,18 @@ public sealed class PlayerIdentityTests
         }
     }
 
-    private static bool HasBodyColor(PlayerPresentation view, Color expected)
+    // The colour comes from the slot's prefab variant (its material), not from a tint over it.
+    private static bool HasSlotVariant(PlayerPresentation view, Color expected)
     {
         var block = new MaterialPropertyBlock();
         return view.GetComponentsInChildren<Renderer>().Any(r =>
         {
-            if (r.GetComponent<TMP_Text>() != null) return false;
+            if (r.GetComponent<TMP_Text>() != null || r.sharedMaterial == null) return false;
             r.GetPropertyBlock(block);
-            return block.GetColor("_BaseColor") == expected;
+            if (block.HasColor("_BaseColor")) return false;
+            var color = r.sharedMaterial.GetColor("_BaseColor");
+            return Mathf.Approximately(color.r, expected.r) && Mathf.Approximately(color.g, expected.g)
+                && Mathf.Approximately(color.b, expected.b);
         });
     }
 
