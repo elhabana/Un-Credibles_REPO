@@ -1,5 +1,4 @@
 using System.Collections;
-using System.Collections.Generic;
 using UnCredibles.UI.PartyLobby;
 using UnCredibles.Players;
 using UnityEngine;
@@ -14,10 +13,11 @@ namespace UnCredibles.UI.Garage
         // One spot per slot (with its accessory anchors); the slot's figure is placed inside it.
         public GameObject[] avatars;
         public PlayerFigureSet figures;
+        // The garage door and its slats: they rise together when the players leave.
+        public Transform[] doorPieces;
         private Vector3[] avatarStarts;
         private Quaternion[] avatarRotations;
-        private readonly List<Transform> doorPieces = new List<Transform>();
-        private readonly List<Vector3> doorStarts = new List<Vector3>();
+        private Vector3[] doorStarts;
         private Coroutine departure;
         private GameObject outsideGlow;
         private Material outsideMaterial;
@@ -41,43 +41,10 @@ namespace UnCredibles.UI.Garage
                 avatars[i].transform.position = positions[i];
                 avatarRotations[i] = avatars[i].transform.rotation;
             }
-            var environment = GameObject.Find("Garage - provisional geometry");
-            if (environment == null) return;
-            SplitWallBehindDoor(environment.transform);
-            foreach (Transform child in environment.transform)
-            {
-                if (child.name != "Garage door" && child.name != "Door slat") continue;
-                doorPieces.Add(child);
-                doorStarts.Add(child.localPosition);
-            }
+            doorStarts = new Vector3[doorPieces.Length];
+            for (int i = 0; i < doorPieces.Length; i++) doorStarts[i] = doorPieces[i].localPosition;
         }
 
-        private static void SplitWallBehindDoor(Transform environment)
-        {
-            var wall = environment.Find("West wall");
-            if (wall == null) return; // Newer authored scenes already contain the opening.
-            var source = wall.GetComponent<Renderer>();
-            var material = source.sharedMaterial;
-            source.enabled = false;
-            var collider = wall.GetComponent<Collider>();
-            if (collider != null) collider.enabled = false;
-            WallSection("Garage door left jamb", new Vector3(-7f, 2.5f, -5.95f),
-                new Vector3(.3f, 5f, 2.1f), material, environment);
-            WallSection("Garage door right jamb", new Vector3(-7f, 2.5f, 5.95f),
-                new Vector3(.3f, 5f, 2.1f), material, environment);
-            WallSection("Garage door header", new Vector3(-7f, 4.5f, 0f),
-                new Vector3(.3f, 1f, 9.8f), material, environment);
-        }
-
-        private static void WallSection(string name, Vector3 position, Vector3 size, Material material, Transform parent)
-        {
-            var section = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            section.name = name;
-            section.transform.SetParent(parent, false);
-            section.transform.localPosition = position;
-            section.transform.localScale = size;
-            section.GetComponent<Renderer>().sharedMaterial = material;
-        }
         private void OnEnable()
         {
             lobby.Initialized += Refresh;
@@ -112,7 +79,7 @@ namespace UnCredibles.UI.Garage
             {
                 elapsed += Time.deltaTime;
                 float open = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / .95f));
-                for (int i = 0; i < doorPieces.Count; i++)
+                for (int i = 0; i < doorPieces.Length; i++)
                     doorPieces[i].localPosition = doorStarts[i] + Vector3.up * (open * 4.2f);
 
                 float run = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((elapsed - .45f) / 1.8f));
@@ -160,7 +127,7 @@ namespace UnCredibles.UI.Garage
         {
             if (departure != null) StopCoroutine(departure);
             departure = null;
-            for (int i = 0; i < doorPieces.Count; i++) doorPieces[i].localPosition = doorStarts[i];
+            for (int i = 0; i < doorPieces.Length; i++) doorPieces[i].localPosition = doorStarts[i];
             for (int i = 0; i < avatars.Length; i++)
             {
                 if (avatars[i] == null) continue;

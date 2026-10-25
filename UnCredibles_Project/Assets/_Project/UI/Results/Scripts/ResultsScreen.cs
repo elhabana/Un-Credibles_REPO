@@ -14,6 +14,8 @@ namespace UnCredibles.UI.Results
     public sealed class ResultsScreen : MonoBehaviour
     {
         [SerializeField] private ResultRowView[] rows = new ResultRowView[PlayerRegistry.MaxPlayers];
+        [SerializeField, Tooltip("Hidden with the standings list on the final screen.")] private GameObject listBackground;
+        [SerializeField] private GameObject listHeader;
         [SerializeField] private TMP_Text titleText;
         [SerializeField] private TMP_Text roundText;
         [SerializeField] private TMP_Text hintText;
@@ -30,17 +32,12 @@ namespace UnCredibles.UI.Results
         private bool leaving;
         private float remaining;
         private int shownSeconds = -1;
-        private GameObject listBackground;
-        private GameObject listHeader;
         private GameObject listRows;
         private Camera resultsCamera;
         private ResultsPodium podium;
 
         private void Awake()
         {
-            var canvas = titleText.GetComponentInParent<Canvas>();
-            listBackground = canvas.transform.Find("Background").gameObject;
-            listHeader = canvas.transform.Find("Header").gameObject;
             listRows = rows[0].transform.parent.gameObject;
             resultsCamera = Camera.main;
             podium = new ResultsPodium(transform, figures, podiumPrefabs);

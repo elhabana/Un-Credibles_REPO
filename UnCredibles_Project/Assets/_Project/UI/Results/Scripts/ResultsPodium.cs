@@ -27,8 +27,8 @@ namespace UnCredibles.UI.Results
     public sealed class PodiumPrefabs
     {
         [Tooltip("Floor under the pedestals; its pivot is at the top of the floor.")] public Transform stage;
-        [Tooltip("1st to 4th. Pivot on the floor, with a child \"Figure spot\" where the figure stands.")]
-        public Transform[] pedestals = new Transform[4];
+        [Tooltip("1st to 4th. Pivot on the floor.")]
+        public PodiumPedestal[] pedestals = new PodiumPedestal[4];
         [Tooltip("Placed on the winner's head.")] public Transform crown;
     }
 
@@ -81,8 +81,8 @@ namespace UnCredibles.UI.Results
             var pedestal = UnityEngine.Object.Instantiate(prefabs.pedestals[Mathf.Clamp(entry.Placement, 1, 4) - 1],
                 root.transform, false);
             pedestal.name = $"Place {entry.Placement} pedestal";
-            pedestal.localPosition = new Vector3(x, FloorTop, 0f);
-            var spot = pedestal.Find("Figure spot");
+            pedestal.transform.localPosition = new Vector3(x, FloorTop, 0f);
+            var spot = pedestal.FigureSpot;
             float height = spot.localPosition.y;
             float top = FloorTop + height;
 

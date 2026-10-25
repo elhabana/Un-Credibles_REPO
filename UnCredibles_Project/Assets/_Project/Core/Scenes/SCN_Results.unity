@@ -169,6 +169,8 @@ MonoBehaviour:
   - {fileID: 5096}
   - {fileID: 4996}
   - {fileID: 4896}
+  listBackground: {fileID: 3100}
+  listHeader: {fileID: 3450}
   titleText: {fileID: 3203}
   roundText: {fileID: 3303}
   hintText: {fileID: 3503}
@@ -180,10 +182,10 @@ MonoBehaviour:
   podiumPrefabs:
     stage: {fileID: 6975810623720783903, guid: 0a1e746312f03eb48a822637011e05b6, type: 3}
     pedestals:
-    - {fileID: 9088932780405021733, guid: 34f9c8577cf37ab4597d2e12f4216eea, type: 3}
-    - {fileID: 4635622697085097948, guid: 0802201a66fc5d14eb3e61e7ec9b0f57, type: 3}
-    - {fileID: 7331170830698605259, guid: 7f10d68b7207daa4ab43aa70196f2b16, type: 3}
-    - {fileID: 1266471245692032558, guid: ce0f941864bf6fc4fb59a50e5d393221, type: 3}
+    - {fileID: 1728879248476044256, guid: 34f9c8577cf37ab4597d2e12f4216eea, type: 3}
+    - {fileID: 2887886448719529062, guid: 0802201a66fc5d14eb3e61e7ec9b0f57, type: 3}
+    - {fileID: 6653001295653964127, guid: 7f10d68b7207daa4ab43aa70196f2b16, type: 3}
+    - {fileID: 3236465073563857269, guid: ce0f941864bf6fc4fb59a50e5d393221, type: 3}
     crown: {fileID: 3077997232478588052, guid: c5bde6aad2648504781fe79185bdac76, type: 3}
 --- !u!114 &2003
 MonoBehaviour:

@@ -63,8 +63,7 @@ public sealed class GarageFlowTests
         float originalVolume = core.Settings.MasterVolume;
         frontend.masterVolume.value = .37f;
         Assert.IsTrue(Mathf.Abs(core.Settings.MasterVolume - .37f) < .001f);
-        Assert.IsTrue(frontend.detailPanels[0].transform.Find("Text - GENERAL")
-            .GetComponent<TMPro.TextMeshProUGUI>().text.Contains("37%"));
+        Assert.IsTrue(frontend.masterLabel.text.Contains("37%"));
         frontend.masterVolume.value = originalVolume;
         frontend.ShowHome();
         core.OpenPartyLobby(SessionMode.Local);

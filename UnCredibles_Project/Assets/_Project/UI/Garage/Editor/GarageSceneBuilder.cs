@@ -41,8 +41,9 @@ namespace UnCredibles.UI.Garage.Editor
             Box("Garage door right jamb", new Vector3(-7,2.5f,5.95f), new Vector3(.3f,5,2.1f), concrete);
             Box("Garage door header", new Vector3(-7,4.5f,0), new Vector3(.3f,1,9.8f), concrete);
             Box("East wall", new Vector3(7,2.5f,0), new Vector3(.3f,5,14), concrete);
-            Box("Garage door", new Vector3(-6.8f,2,0), new Vector3(.1f,3.8f,10), metal);
-            for(int i=0;i<7;i++) Box("Door slat",new Vector3(-6.72f,.4f+i*.5f,0),new Vector3(.05f,.04f,10),concrete);
+            var doorPieces=new Transform[8];
+            doorPieces[0]=Box("Garage door", new Vector3(-6.8f,2,0), new Vector3(.1f,3.8f,10), metal).transform;
+            for(int i=0;i<7;i++) doorPieces[i+1]=Box("Door slat",new Vector3(-6.72f,.4f+i*.5f,0),new Vector3(.05f,.04f,10),concrete).transform;
             Box("Sofa seat",new Vector3(-2.8f,.55f,5),new Vector3(4,1,1.5f),sofa);
             Box("Sofa back",new Vector3(-2.8f,1.2f,5.65f),new Vector3(4,1.5f,.4f),sofa);
             Box("TV stand",new Vector3(3,.65f,5),new Vector3(2,1.3f,1),metal);
@@ -133,7 +134,7 @@ namespace UnCredibles.UI.Garage.Editor
             var serialized=new SerializedObject(view); var slots=serialized.FindProperty("slotViews"); slots.arraySize=4;
             for(int i=0;i<4;i++) slots.GetArrayElementAtIndex(i).objectReferenceValue=cards[i];
             serialized.ApplyModifiedPropertiesWithoutUndo();
-            var players=lobbyRoot.AddComponent<GaragePlayers>(); players.lobby=controller; players.avatars=avatars;
+            var players=lobbyRoot.AddComponent<GaragePlayers>(); players.lobby=controller; players.avatars=avatars; players.doorPieces=doorPieces;
             players.figures=AssetDatabase.LoadAssetAtPath<PlayerFigureSet>("Assets/_Project/Player/ScriptableObjects/SO_PlayerFigures.asset");
             front.detailPanels=new GameObject[3];
             var tvCanvas=new GameObject("Settings on TV",typeof(RectTransform),typeof(Canvas),typeof(GraphicRaycaster));
@@ -148,17 +149,17 @@ namespace UnCredibles.UI.Garage.Editor
                 if(i==0)
                 {
                     front.detailPanels[i]=tvCanvas;
-                    Text(tvCanvas.transform,"AJUSTES",new Vector2(-15,38),new Vector2(115,14),9);
+                    front.settingsTitle=(TextMeshProUGUI)Text(tvCanvas.transform,"AJUSTES",new Vector2(-15,38),new Vector2(115,14),9);
                     var tvBack=Panel(tvCanvas.transform,new Vector2(62,38),new Vector2(38,15));
-                    tvBack.name="VOLVER";
+                    tvBack.name="VOLVER"; front.settingsBack=(RectTransform)tvBack.transform;
                     var tvBackButton=tvBack.AddComponent<Button>(); tvBackButton.targetGraphic=tvBack.GetComponent<Image>();
                     Text(tvBack.transform,"VOLVER",Vector2.zero,new Vector2(36,14),5);
                     UnityEventTools.AddPersistentListener(tvBackButton.onClick,front.ShowHome);
-                    front.masterVolume=TvVolume(tvCanvas.transform,"GENERAL",21);
-                    front.musicVolume=TvVolume(tvCanvas.transform,"MUSICA",-2);
-                    front.sfxVolume=TvVolume(tvCanvas.transform,"EFECTOS",-25);
+                    front.masterVolume=TvVolume(tvCanvas.transform,"GENERAL",21,out front.masterLabel);
+                    front.musicVolume=TvVolume(tvCanvas.transform,"MUSICA",-2,out front.musicLabel);
+                    front.sfxVolume=TvVolume(tvCanvas.transform,"EFECTOS",-25,out front.sfxLabel);
                     var tvInstruction=Text(tvCanvas.transform,"CLIC O ARRASTRA PARA CAMBIAR EL VOLUMEN",new Vector2(0,-46),new Vector2(160,8),4);
-                    tvInstruction.gameObject.name="TV instruction";
+                    tvInstruction.gameObject.name="TV instruction"; front.tvInstruction=(TextMeshProUGUI)tvInstruction;
                 }
                 else
                 {
@@ -208,9 +209,9 @@ namespace UnCredibles.UI.Garage.Editor
             button.targetGraphic=go.GetComponent<Image>(); Text(go.transform,label,Vector2.zero,new Vector2(420,70),28);
             if(action!=null) UnityEventTools.AddPersistentListener(button.onClick,action); return button;
         }
-        private static Slider TvVolume(Transform parent,string label,float y)
+        private static Slider TvVolume(Transform parent,string label,float y,out TextMeshProUGUI text)
         {
-            Text(parent,label,new Vector2(0,y),new Vector2(120,10),6);
+            text=(TextMeshProUGUI)Text(parent,label,new Vector2(0,y),new Vector2(120,10),6);
             var track=Panel(parent,new Vector2(0,y-10),new Vector2(125,5)); track.GetComponent<Image>().color=new Color(.28f,.37f,.45f);
             var slider=track.AddComponent<Slider>();
             var handle=Panel(track.transform,Vector2.zero,new Vector2(6,8)); handle.GetComponent<Image>().color=new Color(.95f,.65f,.2f);
