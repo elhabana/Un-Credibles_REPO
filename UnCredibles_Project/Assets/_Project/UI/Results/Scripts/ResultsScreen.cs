@@ -22,6 +22,7 @@ namespace UnCredibles.UI.Results
         [SerializeField] private Button mainMenuButton;
         [SerializeField, Min(1f)] private float autoContinueSeconds = 6f;
         [SerializeField] private PlayerFigureSet figures;
+        [SerializeField] private PodiumPrefabs podiumPrefabs;
 
         private CoreRoot core;
         private bool isOnlineClient; // shows the host's standings and waits for the host
@@ -42,7 +43,7 @@ namespace UnCredibles.UI.Results
             listHeader = canvas.transform.Find("Header").gameObject;
             listRows = rows[0].transform.parent.gameObject;
             resultsCamera = Camera.main;
-            podium = new ResultsPodium(transform, figures);
+            podium = new ResultsPodium(transform, figures, podiumPrefabs);
         }
 
         private IEnumerator Start()

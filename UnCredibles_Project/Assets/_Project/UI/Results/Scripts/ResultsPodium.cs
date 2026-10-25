@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -22,6 +23,15 @@ namespace UnCredibles.UI.Results
         }
     }
 
+    [Serializable]
+    public sealed class PodiumPrefabs
+    {
+        [Tooltip("Floor under the pedestals; its pivot is at the top of the floor.")] public Transform stage;
+        [Tooltip("1st to 4th. Pivot on the floor, with a child \"Figure spot\" where the figure stands.")]
+        public Transform[] pedestals = new Transform[4];
+        [Tooltip("Placed on the winner's head.")] public Transform crown;
+    }
+
     // The final standings are represented by the same simple figures used in the garage lobby.
     internal sealed class ResultsPodium
     {
@@ -29,13 +39,14 @@ namespace UnCredibles.UI.Results
         private const float FigureScale = .65f;
         private readonly Transform parent;
         private readonly PlayerFigureSet figures;
-        private readonly List<Material> materials = new List<Material>();
+        private readonly PodiumPrefabs prefabs;
         private GameObject root;
 
-        public ResultsPodium(Transform parent, PlayerFigureSet figures)
+        public ResultsPodium(Transform parent, PlayerFigureSet figures, PodiumPrefabs prefabs)
         {
             this.parent = parent;
             this.figures = figures;
+            this.prefabs = prefabs;
         }
 
         public void SetVisible(bool visible)
@@ -49,10 +60,8 @@ namespace UnCredibles.UI.Results
             root = new GameObject("Final podium");
             root.transform.SetParent(parent, false);
 
-            Box("Stage", new Vector3(0f, FloorTop - .15f, .35f), new Vector3(11f, .3f, 3.2f),
-                new Color(.08f, .11f, .17f));
-            Box("Stage edge", new Vector3(0f, FloorTop - .02f, -1.27f), new Vector3(11f, .09f, .08f),
-                new Color(.94f, .57f, .16f));
+            var stage = UnityEngine.Object.Instantiate(prefabs.stage, root.transform, false);
+            stage.localPosition = new Vector3(0f, FloorTop, 0f);
 
             int count = Mathf.Min(entries.Count, 4);
             for (int i = 0; i < count; i++)
@@ -61,31 +70,32 @@ namespace UnCredibles.UI.Results
 
         public void Clear()
         {
-            if (root != null) Object.Destroy(root);
+            if (root != null) UnityEngine.Object.Destroy(root);
             root = null;
-            foreach (var material in materials) Object.Destroy(material);
-            materials.Clear();
         }
 
         private void CreatePlace(int index, int count, PodiumEntry entry)
         {
             float x = Position(index, count);
-            float height = Height(entry.Placement);
+            // Ties share a placement, so it is always 1 to 4.
+            var pedestal = UnityEngine.Object.Instantiate(prefabs.pedestals[Mathf.Clamp(entry.Placement, 1, 4) - 1],
+                root.transform, false);
+            pedestal.name = $"Place {entry.Placement} pedestal";
+            pedestal.localPosition = new Vector3(x, FloorTop, 0f);
+            var spot = pedestal.Find("Figure spot");
+            float height = spot.localPosition.y;
             float top = FloorTop + height;
-            Color metal = MetalColor(entry.Placement);
-            Box($"Place {entry.Placement} pedestal", new Vector3(x, FloorTop + height * .5f, 0f),
-                new Vector3(1.85f, height, 1.35f), metal);
-            Box("Pedestal rim", new Vector3(x, top - .06f, 0f), new Vector3(1.95f, .12f, 1.45f),
-                Color.Lerp(metal, Color.white, .24f));
 
-            var figure = Object.Instantiate(figures.For(entry.SlotIndex), root.transform, false);
+            var figure = UnityEngine.Object.Instantiate(figures.For(entry.SlotIndex), root.transform, false);
             figure.name = $"Place {entry.Placement} figure";
-            figure.transform.localPosition = new Vector3(x, top, -.02f);
+            figure.transform.position = spot.position;
             figure.transform.localRotation = Quaternion.Euler(0f, 180f, 0f); // face the camera
             figure.transform.localScale = Vector3.one * FigureScale;
             if (entry.Placement == 1)
-                Box("Winner crown", new Vector3(x, top + 1.69f, -.08f), new Vector3(.55f, .14f, .42f),
-                    new Color(1f, .72f, .13f));
+            {
+                var crown = UnityEngine.Object.Instantiate(prefabs.crown, root.transform, false);
+                crown.localPosition = new Vector3(x, top + 1.69f, -.08f);
+            }
 
             Label($"{Ordinal(entry.Placement)}  {entry.Name}", new Vector3(x, top + 2.02f, -.2f), 2.8f, 2.1f);
             Label(L10n.Format(L10n.UI, "podium.points", entry.Points), new Vector3(x, FloorTop + height * .48f, -.71f), 3.2f, 1.7f);
@@ -94,20 +104,6 @@ namespace UnCredibles.UI.Results
         // There are at most 4 players; anything else falls back to the bare number.
         private static string Ordinal(int place) =>
             place >= 1 && place <= 4 ? L10n.Get(L10n.UI, "podium.place_" + place) : place.ToString();
-
-        private void Primitive(string name, PrimitiveType type, Vector3 position, Vector3 scale, Material material)
-        {
-            var go = GameObject.CreatePrimitive(type);
-            go.name = name;
-            go.transform.SetParent(root.transform, false);
-            go.transform.localPosition = position;
-            go.transform.localScale = scale;
-            go.GetComponent<Renderer>().sharedMaterial = material;
-            Object.Destroy(go.GetComponent<Collider>());
-        }
-
-        private void Box(string name, Vector3 position, Vector3 scale, Color color) =>
-            Primitive(name, PrimitiveType.Cube, position, scale, MakeMaterial(color));
 
         private void Label(string value, Vector3 position, float fontSize, float width)
         {
@@ -127,15 +123,6 @@ namespace UnCredibles.UI.Results
             text.raycastTarget = false;
         }
 
-        private Material MakeMaterial(Color color)
-        {
-            var shader = Shader.Find("Universal Render Pipeline/Lit");
-            if (shader == null) shader = Shader.Find("Standard");
-            var material = new Material(shader) { color = color };
-            materials.Add(material);
-            return material;
-        }
-
         private static float Position(int index, int count)
         {
             if (count == 1) return 0f;
@@ -143,12 +130,5 @@ namespace UnCredibles.UI.Results
             if (count == 3) return index == 0 ? 0f : index == 1 ? -2.2f : 2.2f;
             return index == 0 ? -1.1f : index == 1 ? -3.3f : index == 2 ? 1.1f : 3.3f;
         }
-
-        private static float Height(int placement) => placement == 1 ? 1.85f :
-            placement == 2 ? 1.3f : placement == 3 ? .9f : .6f;
-
-        private static Color MetalColor(int placement) => placement == 1 ? new Color(.82f, .55f, .12f) :
-            placement == 2 ? new Color(.48f, .57f, .67f) :
-            placement == 3 ? new Color(.56f, .31f, .18f) : new Color(.22f, .3f, .37f);
     }
 }

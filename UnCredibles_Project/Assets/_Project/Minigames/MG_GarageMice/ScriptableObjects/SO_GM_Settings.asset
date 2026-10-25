@@ -1,0 +1,64 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6f39419bb63e5441bc723a99757c606, type: 3}
+  m_Name: SO_GM_Settings
+  m_EditorClassIdentifier: UnCredibles.Minigames.GarageMice::UnCredibles.Minigames.GarageMice.GarageMiceSettings
+  halfWidth: 10
+  halfDepth: 6
+  shelves:
+  - center: {x: -6.6, y: -2.1}
+    halfSize: {x: 1.2, y: 0.55}
+  - center: {x: -6.6, y: 2.1}
+    halfSize: {x: 1.2, y: 0.55}
+  - center: {x: 6.6, y: -2.1}
+    halfSize: {x: 1.2, y: 0.55}
+  - center: {x: 6.6, y: 2.1}
+    halfSize: {x: 1.2, y: 0.55}
+  - center: {x: -3.9, y: 0.5}
+    halfSize: {x: 1.05, y: 0.55}
+  - center: {x: 3.9, y: 0.5}
+    halfSize: {x: 1.05, y: 0.55}
+  holes:
+  - {x: -9.7, y: 0}
+  - {x: 9.7, y: 0}
+  - {x: -3, y: 5.7}
+  - {x: 3, y: 5.7}
+  - {x: -3, y: -5.7}
+  - {x: 3, y: -5.7}
+  playerRadius: 0.38
+  moveSpeed: 4.4
+  swingReach: 1.5
+  swingHalfAngle: 65
+  swingCooldown: 0.55
+  swingVisualSeconds: 0.22
+  stunSeconds: 1.25
+  stunImmunitySeconds: 1.8
+  playerPrefabs:
+  - {fileID: 9081827394291780430, guid: c48239da2fc6b474f8b851ee12c21f03, type: 3}
+  - {fileID: 4198626495357598678, guid: 1c005b001c5434c4ebfca5dac18643d0, type: 3}
+  - {fileID: 8373642448663418155, guid: 2353ec1b325f6cb4abf1cf2dd76e44cb, type: 3}
+  - {fileID: 5604989434593552518, guid: 5df09d425366776408a8ff0c71111aa7, type: 3}
+  mouseCount: 26
+  mouseRadius: 0.2
+  mouseSpeed: 2.1
+  mouseFleeSpeed: 3.2
+  mouseFleeRadius: 3
+  mouseRespawnSeconds: 2
+  shelterSeconds: 2.5
+  shelterCooldownSeconds: 4
+  holeCooldownSeconds: 3
+  shelterSeekRadius: 3.5
+  holeEnterDistance: 0.45
+  goldenSpeed: 2.6
+  goldenFleeSpeed: 3.8
+  goldenPoints: 5
+  goldenRespawnSeconds: 20
