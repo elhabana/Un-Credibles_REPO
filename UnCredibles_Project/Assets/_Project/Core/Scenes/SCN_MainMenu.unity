@@ -12023,6 +12023,7 @@ MonoBehaviour:
   - {fileID: 1192365180}
   - {fileID: 598709039}
   - {fileID: 1315316209}
+  outsideMaterial: {fileID: 2100000, guid: 7fd54f1370451b546b3b20c2d63835a4, type: 2}
 --- !u!114 &1332349834
 MonoBehaviour:
   m_ObjectHideFlags: 0

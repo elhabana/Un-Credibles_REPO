@@ -15,12 +15,13 @@ namespace UnCredibles.UI.Garage
         public PlayerFigureSet figures;
         // The garage door and its slats: they rise together when the players leave.
         public Transform[] doorPieces;
+        // Bright exterior seen through the open door (color and emission are set on the material).
+        public Material outsideMaterial;
         private Vector3[] avatarStarts;
         private Quaternion[] avatarRotations;
         private Vector3[] doorStarts;
         private Coroutine departure;
         private GameObject outsideGlow;
-        private Material outsideMaterial;
 
         private void Awake()
         {
@@ -106,12 +107,6 @@ namespace UnCredibles.UI.Garage
             outsideGlow.transform.position = new Vector3(-7.18f, 2f, 0f);
             outsideGlow.transform.localScale = new Vector3(.12f, 4.3f, 9.8f);
             Destroy(outsideGlow.GetComponent<Collider>());
-            var shader = Shader.Find("Universal Render Pipeline/Unlit");
-            if (shader == null) shader = Shader.Find("Unlit/Color");
-            if (shader == null) shader = Shader.Find("Standard");
-            outsideMaterial = new Material(shader) { color = new Color(1f, .97f, .78f) };
-            outsideMaterial.EnableKeyword("_EMISSION");
-            outsideMaterial.SetColor("_EmissionColor", new Color(2.5f, 2.2f, 1.5f));
             var renderer = outsideGlow.GetComponent<Renderer>();
             renderer.sharedMaterial = outsideMaterial;
             renderer.shadowCastingMode = ShadowCastingMode.Off;
@@ -135,9 +130,7 @@ namespace UnCredibles.UI.Garage
                 avatars[i].transform.rotation = avatarRotations[i];
             }
             if (outsideGlow != null) Destroy(outsideGlow);
-            if (outsideMaterial != null) Destroy(outsideMaterial);
             outsideGlow = null;
-            outsideMaterial = null;
         }
         private void Refresh()
         {
