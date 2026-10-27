@@ -2,7 +2,6 @@ using System.Collections;
 using UnCredibles.UI.PartyLobby;
 using UnCredibles.Players;
 using UnityEngine;
-using UnityEngine.Rendering;
 
 namespace UnCredibles.UI.Garage
 {
@@ -15,13 +14,10 @@ namespace UnCredibles.UI.Garage
         public PlayerFigureSet figures;
         // The garage door and its slats: they rise together when the players leave.
         public Transform[] doorPieces;
-        // Bright exterior seen through the open door (color and emission are set on the material).
-        public Material outsideMaterial;
         private Vector3[] avatarStarts;
         private Quaternion[] avatarRotations;
         private Vector3[] doorStarts;
         private Coroutine departure;
-        private GameObject outsideGlow;
 
         private void Awake()
         {
@@ -74,7 +70,6 @@ namespace UnCredibles.UI.Garage
 
         private IEnumerator PlayDeparture()
         {
-            CreateOutsideGlow();
             float elapsed = 0f;
             while (elapsed < DepartureSeconds)
             {
@@ -99,25 +94,6 @@ namespace UnCredibles.UI.Garage
             departure = null;
         }
 
-        private void CreateOutsideGlow()
-        {
-            if (outsideGlow != null) return;
-            outsideGlow = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            outsideGlow.name = "Bright exterior beyond garage door";
-            outsideGlow.transform.position = new Vector3(-7.18f, 2f, 0f);
-            outsideGlow.transform.localScale = new Vector3(.12f, 4.3f, 9.8f);
-            Destroy(outsideGlow.GetComponent<Collider>());
-            var renderer = outsideGlow.GetComponent<Renderer>();
-            renderer.sharedMaterial = outsideMaterial;
-            renderer.shadowCastingMode = ShadowCastingMode.Off;
-            var light = new GameObject("Entrance light").AddComponent<Light>();
-            light.transform.SetParent(outsideGlow.transform, false);
-            light.type = LightType.Point;
-            light.range = 10f;
-            light.intensity = 4f;
-            light.color = new Color(1f, .94f, .72f);
-        }
-
         private void ResetDeparture()
         {
             if (departure != null) StopCoroutine(departure);
@@ -129,8 +105,6 @@ namespace UnCredibles.UI.Garage
                 avatars[i].transform.position = avatarStarts[i];
                 avatars[i].transform.rotation = avatarRotations[i];
             }
-            if (outsideGlow != null) Destroy(outsideGlow);
-            outsideGlow = null;
         }
         private void Refresh()
         {

@@ -136,7 +136,6 @@ namespace UnCredibles.UI.Garage.Editor
             serialized.ApplyModifiedPropertiesWithoutUndo();
             var players=lobbyRoot.AddComponent<GaragePlayers>(); players.lobby=controller; players.avatars=avatars; players.doorPieces=doorPieces;
             players.figures=AssetDatabase.LoadAssetAtPath<PlayerFigureSet>("Assets/_Project/Player/ScriptableObjects/SO_PlayerFigures.asset");
-            players.outsideMaterial=AssetDatabase.LoadAssetAtPath<Material>("Assets/_Project/UI/Garage/Materials/M_Garage_OutsideGlow.mat");
             front.detailPanels=new GameObject[3];
             var tvCanvas=new GameObject("Settings on TV",typeof(RectTransform),typeof(Canvas),typeof(GraphicRaycaster));
             tvCanvas.transform.SetParent(environment,false);

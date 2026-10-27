@@ -29,7 +29,23 @@ namespace UnCredibles.UI.Garage
         public TextMeshProUGUI musicLabel;
         public TextMeshProUGUI sfxLabel;
         public TextMeshProUGUI tvInstruction;
+        [Tooltip("TV screen mesh (faces its local +Z). The settings canvas and the TV camera are fitted to it.")]
+        public MeshFilter tvScreen;
+        [Tooltip("Unlit material that shows the settings texture on the TV screen mesh.")]
+        public Material tvScreenMaterial;
+        [Tooltip("Layer seen only by the camera that renders the settings into the TV screen.")]
+        public LayerMask tvScreenLayer;
+        // Settings layout size in canvas units; the canvas grows to the screen's aspect around it.
+        private static readonly Vector2 SettingsLayout = new Vector2(170f, 100f);
+        private const int TvTextureWidth = 1024;
+        // Part of the glass left uncovered by the TV frame and its rounded corners; the content stays inside it.
+        private const float TvSafeArea = .78f;
         private CoreRoot core;
+        private Renderer tvRenderer;
+        private Material tvOffMaterial;
+        private Material tvOnMaterial;
+        private Mesh tvMesh;
+        private Camera tvCamera;
         private TextMeshProUGUI languageLabel;
         private TextMeshProUGUI languageValue;
         private Button previousLanguage;
@@ -64,6 +80,13 @@ namespace UnCredibles.UI.Garage
             if (core != null) core.GameFlow.StateChanged -= StateChanged;
             if (menu != null) menu.SettingsRequested -= ShowSettings;
             L10n.LanguageChanged -= HandleLanguageChanged;
+            if (tvCamera != null)
+            {
+                tvCamera.targetTexture.Release();
+                Destroy(tvCamera.targetTexture);
+            }
+            Destroy(tvOnMaterial);
+            Destroy(tvMesh);
         }
 
         private void HandleLanguageChanged()
@@ -123,6 +146,7 @@ namespace UnCredibles.UI.Garage
             lobbyRoot.SetActive(view == GarageView.Lobby);
             for (int i = 0; i < detailPanels.Length; i++)
                 detailPanels[i].SetActive((int)view == i + 2);
+            ShowOnTv(view == GarageView.Settings);
             cameras.Show(view);
             if (view == GarageView.Home) menu.FocusMain();
             else if ((int)view >= 2)
@@ -142,10 +166,6 @@ namespace UnCredibles.UI.Garage
         // Existing scenes contain the original screen-space settings panel. Move it onto the TV at runtime.
         private void PlaceSettingsOnTv()
         {
-            var tvView = cameras.viewpoints[(int)GarageView.Settings];
-            var cameraPosition = new Vector3(3f, 1.9f, 3.45f);
-            tvView.SetPositionAndRotation(cameraPosition,
-                Quaternion.LookRotation(new Vector3(3f, 1.9f, 4.75f) - cameraPosition));
             var settings = detailPanels[0];
             var root = (RectTransform)settings.transform;
             if (settings.GetComponent<Canvas>() == null)
@@ -161,9 +181,7 @@ namespace UnCredibles.UI.Garage
                 if (settingsScreenPanel != null) settingsScreenPanel.SetActive(false);
             }
 
-            Place(root, Vector2.zero, new Vector2(170, 100));
-            root.SetPositionAndRotation(new Vector3(3f, 1.9f, 4.72f), Quaternion.identity);
-            root.localScale = Vector3.one * .01f;
+            FitSettingsToScreen(root);
             settings.GetComponent<Canvas>().worldCamera = cameras.output;
             Place(settingsTitle.rectTransform, new Vector2(-15, 38), new Vector2(115, 14));
             settingsTitle.fontSize = 9;
@@ -179,6 +197,94 @@ namespace UnCredibles.UI.Garage
             PlaceVolume(sfxVolume, sfxLabel, -4);
             AddLanguageSelector(settings.transform, settingsBack);
             ShowInstruction();
+            // After the language selector: its copies must land on the TV layer too.
+            int layer = 0;
+            while (layer < 31 && (tvScreenLayer.value & (1 << layer)) == 0) layer++;
+            foreach (var child in root.GetComponentsInChildren<Transform>(true)) child.gameObject.layer = layer;
+            cameras.output.cullingMask &= ~(1 << layer);
+            tvCamera.cullingMask = 1 << layer;
+        }
+
+        // The player never sees the flat canvas: it only takes the clicks. A camera renders it into a
+        // texture mapped on the curved screen mesh, so the image follows the glass and the TV frame crops it.
+        // The canvas is sized to the screen's edges as seen from the TV camera and the mesh UVs use that
+        // same projection, so a click lands on what is drawn under it. One uniform scale keeps the content undistorted.
+        private void FitSettingsToScreen(RectTransform root)
+        {
+            var tvView = cameras.viewpoints[(int)GarageView.Settings];
+            var screen = tvScreen.transform;
+            var mesh = tvScreen.sharedMesh;
+            var bounds = mesh.bounds;
+            var normal = screen.forward;
+            var rotation = Quaternion.LookRotation(-normal, screen.up);
+            float width = bounds.size.x * screen.lossyScale.x;
+            float height = bounds.size.y * screen.lossyScale.y;
+
+            var camera = cameras.output;
+            float tan = Mathf.Tan(camera.fieldOfView * .5f * Mathf.Deg2Rad);
+            // The screen takes about 70% of the view, leaving some of the TV around it.
+            float distance = Mathf.Max(height * .5f / tan, width * .5f / (tan * camera.aspect)) / .7f;
+            var front = screen.TransformPoint(new Vector3(bounds.center.x, bounds.center.y, bounds.max.z)) + normal * .005f;
+            var cameraPosition = front + normal * distance;
+            tvView.SetPositionAndRotation(cameraPosition, rotation);
+
+            // Each vertex projected onto the canvas plane, in canvas axes. The vertices along the middle
+            // of each edge give the visible edge of the glass, not the bounding box of its curved back.
+            var vertices = mesh.vertices;
+            var projected = new Vector2[vertices.Length];
+            var right = rotation * Vector3.right;
+            var up = rotation * Vector3.up;
+            var half = Vector2.zero;
+            for (int i = 0; i < vertices.Length; i++)
+            {
+                var ray = screen.TransformPoint(vertices[i]) - cameraPosition;
+                var offset = cameraPosition + ray * (Vector3.Dot(front - cameraPosition, normal) / Vector3.Dot(ray, normal)) - front;
+                projected[i] = new Vector2(Vector3.Dot(offset, right), Vector3.Dot(offset, up));
+                if (Mathf.Abs(vertices[i].y - bounds.center.y) <= bounds.size.y * .15f)
+                    half.x = Mathf.Max(half.x, Mathf.Abs(projected[i].x));
+                if (Mathf.Abs(vertices[i].x - bounds.center.x) <= bounds.size.x * .15f)
+                    half.y = Mathf.Max(half.y, Mathf.Abs(projected[i].y));
+            }
+            var size = half * 2f;
+            float unit = TvSafeArea * Mathf.Min(size.x / SettingsLayout.x, size.y / SettingsLayout.y);
+            Place(root, Vector2.zero, size / unit);
+            root.SetPositionAndRotation(front, rotation);
+            root.localScale = Vector3.one * unit;
+
+            var uvs = new Vector2[vertices.Length];
+            for (int i = 0; i < vertices.Length; i++)
+                uvs[i] = new Vector2(.5f + projected[i].x / size.x, .5f + projected[i].y / size.y);
+            tvMesh = Instantiate(mesh);
+            tvMesh.uv = uvs;
+            tvScreen.sharedMesh = tvMesh;
+
+            var texture = new RenderTexture(TvTextureWidth, Mathf.RoundToInt(TvTextureWidth * size.y / size.x), 24)
+            {
+                name = "TV settings",
+                antiAliasing = 4,
+                wrapMode = TextureWrapMode.Clamp
+            };
+            tvCamera = new GameObject("TV settings camera").AddComponent<Camera>();
+            tvCamera.transform.SetPositionAndRotation(front + normal * .1f, rotation);
+            tvCamera.orthographic = true;
+            tvCamera.orthographicSize = size.y * .5f;
+            tvCamera.nearClipPlane = .01f;
+            tvCamera.farClipPlane = .2f;
+            tvCamera.clearFlags = CameraClearFlags.SolidColor;
+            tvCamera.backgroundColor = new Color(.05f, .08f, .12f);
+            tvCamera.targetTexture = texture;
+            tvCamera.enabled = false;
+
+            tvRenderer = tvScreen.GetComponent<Renderer>();
+            tvOffMaterial = tvRenderer.sharedMaterial;
+            tvOnMaterial = new Material(tvScreenMaterial) { mainTexture = texture };
+        }
+
+        private void ShowOnTv(bool on)
+        {
+            if (tvCamera == null) return;
+            tvCamera.enabled = on;
+            tvRenderer.sharedMaterial = on ? tvOnMaterial : tvOffMaterial;
         }
 
         // "<  ESPAÑOL  >" built from the scene's own label and VOLVER button, so it looks like the rest of the TV.
