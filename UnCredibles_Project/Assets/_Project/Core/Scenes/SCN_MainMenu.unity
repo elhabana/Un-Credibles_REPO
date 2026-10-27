@@ -14243,6 +14243,7 @@ MonoBehaviour:
   tvScreenLayer:
     serializedVersion: 2
     m_Bits: 256
+  tvMenuSkin: {fileID: 11400000, guid: bbaf7fb1a78c0f141a8ece4cfd556648, type: 2}
 --- !u!4 &1549363184
 Transform:
   m_ObjectHideFlags: 0
