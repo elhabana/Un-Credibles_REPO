@@ -12,6 +12,7 @@
   <Project Path="UnCredibles.BatPad.csproj" />
   <Project Path="UnCredibles.Minigames.Template.csproj" />
   <Project Path="UnCredibles.Tests.PlayMode.csproj" />
+  <Project Path="Assembly-CSharp-Editor.csproj" />
   <Project Path="UnCredibles.Localization.csproj" />
   <Project Path="UnCredibles.Tests.EditMode.csproj" />
 </Solution>

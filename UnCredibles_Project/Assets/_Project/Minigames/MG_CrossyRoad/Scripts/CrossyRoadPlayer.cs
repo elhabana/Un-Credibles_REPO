@@ -15,6 +15,8 @@ namespace UnCredibles.Minigames.CrossyRoad
         [SerializeField] private Transform visual;
         [SerializeField] private Renderer[] bodyRenderers = new Renderer[0];
         [SerializeField] private GameObject carriedGrandma;
+        [SerializeField, Tooltip("Animated character inside Visual (Idle / Run). Without it the old walking bob is used.")]
+        private PlayerCharacterAnimator character;
 
         private CrossyRoadBoard board;
         private CrossyRoadSettings settings;
@@ -30,6 +32,7 @@ namespace UnCredibles.Minigames.CrossyRoad
         private float remoteHeight;
         private bool remoteSlipping;
         private bool hasRemote;
+        private bool remoteRunning;
 
         public PlayerSlot Slot { get; private set; }
         public Vector3 SpawnPosition { get; private set; }
@@ -106,6 +109,9 @@ namespace UnCredibles.Minigames.CrossyRoad
                 transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(direction), settings.TurnSpeed * deltaTime);
 
             AnimateVisual(deltaTime, hasInput);
+            // Run only while actually advancing: blocked by a car or sliding on oil shows the idle.
+            if (character != null)
+                character.SetRunning(hasInput && !IsSlipping && velocity.sqrMagnitude > .01f);
         }
 
         // Ice physics: the stick only pushes, almost nothing slows you down, and you can
@@ -121,7 +127,7 @@ namespace UnCredibles.Minigames.CrossyRoad
         private void AnimateVisual(float deltaTime, bool walking)
         {
             float height = 0f;
-            if (walking && !IsSlipping)
+            if (walking && !IsSlipping && character == null)
             {
                 bobTime += deltaTime * settings.WalkBobFrequency;
                 height = Mathf.Abs(Mathf.Sin(bobTime)) * settings.WalkBobHeight;
@@ -156,6 +162,7 @@ namespace UnCredibles.Minigames.CrossyRoad
             invulnerableTimer = 0f;
             visual.localPosition = Vector3.zero;
             visual.gameObject.SetActive(true);
+            if (character != null) character.SetRunning(false);
         }
 
         public void TickDead(float deltaTime)
@@ -190,6 +197,7 @@ namespace UnCredibles.Minigames.CrossyRoad
             wasOnOil = false;
             invulnerableTimer = invulnerableSeconds;
             visual.gameObject.SetActive(true);
+            if (character != null) character.SetRunning(false);
         }
 
         // ---------- Online ----------
@@ -238,9 +246,19 @@ namespace UnCredibles.Minigames.CrossyRoad
         {
             if (!hasRemote) return;
             float blend = Mathf.Min(1f, 15f * deltaTime);
+            var before = transform.position;
             transform.SetPositionAndRotation(
-                Vector3.Lerp(transform.position, remotePosition, blend),
+                Vector3.Lerp(before, remotePosition, blend),
                 Quaternion.Slerp(transform.rotation, remoteRotation, blend));
+
+            if (character != null)
+            {
+                // The host does not send the animation: run while the avatar is visibly moving
+                // (two thresholds so it does not flicker between Idle and Run).
+                float speed = (transform.position - before).magnitude / Mathf.Max(deltaTime, .0001f);
+                remoteRunning = remoteRunning ? speed > .35f : speed > .8f;
+                character.SetRunning(IsAlive && !remoteSlipping && remoteRunning);
+            }
 
             wobbleTime = remoteSlipping ? wobbleTime + deltaTime : 0f;
             visual.localPosition = new Vector3(0f, Mathf.Lerp(visual.localPosition.y, remoteHeight, blend), 0f);
