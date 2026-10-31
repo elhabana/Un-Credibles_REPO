@@ -66,7 +66,7 @@ namespace UnCredibles.UI.Garage
         private IEnumerator Start()
         {
             PlaceSettingsOnTv();
-            CreditsCrawl.Build((RectTransform)detailPanels[(int)GarageView.Credits - 2].transform, tvMenuSkin.titleFont);
+            CreditsCrawl.Build((RectTransform)detailPanels[(int)GarageView.Credits - 2].transform, tvMenuSkin.Font);
             // On the canvas that holds every garage menu (Garage UI).
             menuRoot.transform.parent.gameObject.AddComponent<SelectionHighlight>().Init(detailPanels[0].transform, selectSound);
             while (CoreRoot.Instance == null) yield return null;

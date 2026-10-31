@@ -12,19 +12,23 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b8f681d4222f2d64886211d38e871ffa, type: 3}
   m_Name: SO_TvMenuSkin
   m_EditorClassIdentifier: UnCredibles.UI::UnCredibles.UI.Garage.TvMenuSkin
-  titleFont: {fileID: 11400000, guid: 0f4999180db1cd14f8de3280d6998060, type: 2}
-  round: {fileID: 21300000, guid: 157ab1dac8240b349af3a1c04cf8ee38, type: 3}
-  roundOutline: {fileID: 21300000, guid: 8b93284dec29c504dbf0c7f18a267a6a, type: 3}
-  tile: {fileID: 21300000, guid: aa02a45890298a1449558627ed52bb8c, type: 3}
-  fill: {fileID: 21300000, guid: 760a848cea202a44c8ef3382661e5585, type: 3}
-  knob: {fileID: 21300000, guid: d71487f4fb24a6942a9776ad208bdf87, type: 3}
-  brush: {fileID: 21300000, guid: 741ad1eef4b416244a99f44bfc95c2c6, type: 3}
-  general: {fileID: 21300000, guid: afa7e1ecfe8a18c47a1ed9772c8a2c64, type: 3}
-  music: {fileID: 21300000, guid: 3c15191a28769314abe4f5ec6abb3b8d, type: 3}
-  effects: {fileID: 21300000, guid: 73073d33e765d544eba5b94778590bcd, type: 3}
-  language: {fileID: 21300000, guid: d5d0fff08263660428d957404f78e3ad, type: 3}
-  back: {fileID: 21300000, guid: 08ef3afa8d62d56429e47dd67e429a48, type: 3}
-  previous: {fileID: 21300000, guid: d418f2f8a4d04b742b540da58ee7386a, type: 3}
-  next: {fileID: 21300000, guid: 9044e78de9d309d41b71b155e79d9438, type: 3}
-  crown: {fileID: 21300000, guid: c7f2a3d796bb80c4494c2f618aa1fba6, type: 3}
-  star: {fileID: 21300000, guid: 37aa9bc0d0b93054a92e88f1109e3489, type: 3}
+  pixelFont: {fileID: 12800000, guid: ca1206d4198f4001977d8eca739dfed1, type: 3}
+  panel: {fileID: 21300000, guid: 19ed752231ae43ceb164973dcdc23e1f, type: 3}
+  tile: {fileID: 21300000, guid: 67ae89008a02483fb279d6ff604826fd, type: 3}
+  select: {fileID: 21300000, guid: acab6903a16a48a7984af7b0370e0c3b, type: 3}
+  track: {fileID: 21300000, guid: 75d65bcfe3624d0ca46d71001e3e7a38, type: 3}
+  fill: {fileID: 21300000, guid: f091781f15b342b99fd02b5ea2ec08f1, type: 3}
+  well: {fileID: 21300000, guid: 12a9771b3d0b42559e3bba3fdf7fec9b, type: 3}
+  knob: {fileID: 21300000, guid: 4c9d8351259f40ffa1f5d60dbb2760ee, type: 3}
+  general: {fileID: 21300000, guid: 314ec2390e9a41ec83696ac8c7ccf77a, type: 3}
+  music: {fileID: 21300000, guid: 6ac0873c36d047d980d6b8ae545b3b32, type: 3}
+  effects: {fileID: 21300000, guid: be43431094804f1daeae37f2a5d40209, type: 3}
+  language: {fileID: 21300000, guid: b29af790c8c54630996b57f7e9f4a82f, type: 3}
+  back: {fileID: 21300000, guid: 0150171f049d4f8db8e019488d1052f5, type: 3}
+  previous: {fileID: 21300000, guid: 9dbe1a4d30c444f38d226b67d2c2a321, type: 3}
+  next: {fileID: 21300000, guid: 82736626c45842d9a0546cf4a613978c, type: 3}
+  cloud: {fileID: 21300000, guid: 8ab2a152439e494487cea74f6b1a7802, type: 3}
+  hill: {fileID: 21300000, guid: c0d33da5c1ba4c008d50390823a8b76a, type: 3}
+  bush: {fileID: 21300000, guid: c247572dc55c4659aa2319652215fe0c, type: 3}
+  ground: {fileID: 21300000, guid: fb81e938dde04994b2543314c7bb0e66, type: 3}
+  mouse: {fileID: 21300000, guid: 75f4ed9457d7435ebb4c033e32f9af00, type: 3}

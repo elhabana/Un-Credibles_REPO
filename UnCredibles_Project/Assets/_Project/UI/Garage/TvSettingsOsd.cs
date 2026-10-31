@@ -4,29 +4,25 @@ using UnityEngine.UI;
 
 namespace UnCredibles.UI.Garage
 {
-    // Look of the settings on the garage TV: a cartoon title with doodles, one rounded row per setting
-    // with a coloured icon tile, pink sliders and a brush-stroke VOLVER. Lays out the scene's settings
-    // widgets in canvas units (170 x 100) and outlines the selected row in pink.
+    // Look of the settings on the garage TV: a retro pixel-art screen with a sky, clouds, hills, a grass
+    // ground and a mouse running about; one orange row per setting with an icon tile, red volume bars and
+    // a language picker. Lays out the scene's settings widgets in canvas units (170 x 100) and frames
+    // the selected row or button in yellow.
     public sealed class TvSettingsOsd
     {
-        public static readonly Color Background = new Color(.15f, .07f, .17f);
-        private static readonly Color Cream = new Color(1f, .96f, .9f);
-        private static readonly Color Pink = new Color(1f, .42f, .82f);
-        private static readonly Color DeepPurple = new Color(.3f, .12f, .55f);
-        private static readonly Color Lilac = new Color(.8f, .7f, 1f);
-        private static readonly Color Ink = new Color(.18f, .1f, .38f);
-        private static readonly Color RowFill = new Color(1f, 1f, 1f, .05f);
-        private static readonly Color RowOutline = new Color(.62f, .5f, 1f, .28f);
-        private static readonly Color Selected = new Color(1f, .45f, .85f, .95f);
-        private static readonly Color Well = new Color(.04f, .02f, .12f, .65f);
-        private static readonly Color Doodle = new Color(.62f, .5f, 1f, .6f);
-        private static readonly Color Hint = new Color(.66f, .58f, .98f);
-        private static readonly Color[] TileColors =
-        {
-            new Color(.42f, .3f, .9f), new Color(.95f, .27f, .43f), new Color(.47f, .36f, .95f), new Color(.22f, .48f, 1f)
-        };
-        private const float RowHeight = 12.5f;
-        private const float RowWidth = 148f;
+        public static readonly Color Background = new Color(.31f, .53f, .97f);
+        private static readonly Color TextColor = Color.white;
+        private static readonly Color Ink = new Color(.16f, .07f, .03f);
+        private static readonly Color Hint = new Color(.9f, .95f, 1f);
+        private static readonly Color ButtonIdle = new Color(.88f, .88f, .88f);
+        // Canvas units per art pixel: interface sprites, then the scenery (drawn a little bigger).
+        private const float Pixel = .75f;
+        private const float ScenePixel = 1f;
+        private const float RowHeight = 10.5f;
+        private const float RowWidth = 134f;
+        private const float RowX = 1f;
+        private const float GroundTop = -38f;
+        private const float MouseSpeed = 9f;
 
         private readonly TvMenuSkin skin;
         private readonly Slider[] sliders;
@@ -35,9 +31,12 @@ namespace UnCredibles.UI.Garage
         private readonly TextMeshProUGUI backLabel;
         private readonly TextMeshProUGUI languageLabel;
         private readonly Button[] languageArrows;
-        private readonly Image[] rowOutlines = new Image[4];
+        private readonly Image[] rowFrames = new Image[4];
+        private Image backFrame;
+        private Image[] arrowFrames;
         private TextMeshProUGUI title;
-        private TextMeshProUGUI[] titleShadows;
+        private TextMeshProUGUI titleShadow;
+        private RectTransform mouse;
 
         public TvSettingsOsd(TvMenuSkin skin, Slider[] sliders, TextMeshProUGUI[] volumeLabels, RectTransform back,
             TextMeshProUGUI languageLabel, Button[] languageArrows)
@@ -54,54 +53,61 @@ namespace UnCredibles.UI.Garage
         public void Build(RectTransform root, TextMeshProUGUI title, TextMeshProUGUI languageValue, TextMeshProUGUI instruction)
         {
             root.GetComponent<Image>().color = Background;
+            BuildScenery(root);
             BuildTitle(root, title);
             BuildBack();
 
             var icons = new[] { skin.general, skin.music, skin.effects, skin.language };
             for (int i = 0; i < icons.Length; i++)
             {
-                float y = 24f - i * 17f;
-                bool languageRow = i == icons.Length - 1;
-                // The language row stops after its "next" arrow.
-                rowOutlines[i] = Row(root, y, languageRow ? 132f : RowWidth, languageRow ? -8f : 0f);
-                var tile = AddImage(root, "Icon tile", skin.tile, TileColors[i], new Vector2(-66f, y), new Vector2(9.5f, 9.5f), 2.4f);
-                AddImage(tile.transform, "Icon", icons[i], Color.white, Vector2.zero, new Vector2(6f, 6f));
+                float y = RowY(i);
+                var row = AddImage(root, "Row", skin.panel, Color.white, new Vector2(RowX, y), new Vector2(RowWidth, RowHeight));
+                Sliced(row);
+                var tile = AddImage(root, "Icon tile", skin.tile, Color.white, new Vector2(RowX - RowWidth * .5f + 1f, y), new Vector2(12f, 12f));
+                Sliced(tile);
+                AddImage(tile.transform, "Icon", icons[i], Color.white, Vector2.zero, Size(icons[i], .6f));
             }
+            // Over the rows and their icon tiles, which stick out on the left.
+            for (int i = 0; i < icons.Length; i++)
+                rowFrames[i] = Frame(root, new Vector2(RowX - 2.5f, RowY(i)), new Vector2(RowWidth + 5f, 12f));
 
             for (int i = 0; i < sliders.Length; i++)
             {
-                float y = 24f - i * 17f;
+                float y = RowY(i);
                 // Name on the left, value right-aligned at the row's end (see VolumeText).
-                Style(volumeLabels[i], 5.5f, Cream, TextAlignmentOptions.Left, FontStyles.Bold);
-                Place(volumeLabels[i].rectTransform, new Vector2(7f, y), new Vector2(126f, 8f));
+                // The scene's labels come before the rows made here: bring them in front.
+                volumeLabels[i].transform.SetAsLastSibling();
+                Style(volumeLabels[i], 5.5f, TextColor, TextAlignmentOptions.Left);
+                Place(volumeLabels[i].rectTransform, new Vector2(6f, y), new Vector2(112f, 8f));
                 StyleSlider(sliders[i], y);
             }
 
-            float languageY = -27f;
-            Style(languageLabel, 5.5f, Cream, TextAlignmentOptions.Left, FontStyles.Bold);
-            Place(languageLabel.rectTransform, new Vector2(-36f, languageY), new Vector2(40f, 8f));
-            AddImage(root, "Language well", skin.round, Well, new Vector2(22f, languageY), new Vector2(40f, 8f), 2.4f);
+            float languageY = RowY(3);
+            languageLabel.transform.SetAsLastSibling();
+            Style(languageLabel, 5.5f, TextColor, TextAlignmentOptions.Left);
+            Place(languageLabel.rectTransform, new Vector2(-30f, languageY), new Vector2(40f, 8f));
+            var well = AddImage(root, "Language well", skin.well, Color.white, new Vector2(22f, languageY), new Vector2(48f, 8f));
+            Sliced(well);
             languageValue.transform.SetAsLastSibling();
-            Style(languageValue, 5.5f, Cream, TextAlignmentOptions.Center, FontStyles.Bold);
-            Place(languageValue.rectTransform, new Vector2(22f, languageY), new Vector2(40f, 8f));
+            Style(languageValue, 5.5f, TextColor, TextAlignmentOptions.Center);
+            Place(languageValue.rectTransform, new Vector2(22f, languageY), new Vector2(48f, 8f));
+            arrowFrames = new Image[languageArrows.Length];
             for (int i = 0; i < languageArrows.Length; i++)
             {
                 var arrow = languageArrows[i];
                 arrow.transform.SetAsLastSibling();
-                Sliced(arrow.GetComponent<Image>(), skin.round, 2.4f).color = new Color(1f, 1f, 1f, .08f);
+                var image = arrow.GetComponent<Image>();
+                image.sprite = skin.tile;
+                Sliced(image);
                 arrow.GetComponentInChildren<TextMeshProUGUI>(true).text = string.Empty;
-                Place((RectTransform)arrow.transform, new Vector2(i == 0 ? -6f : 50f, languageY), new Vector2(9f, 8f));
-                AddImage(arrow.transform, "Icon", i == 0 ? skin.previous : skin.next, Cream, Vector2.zero, new Vector2(4.5f, 4.5f));
+                Place((RectTransform)arrow.transform, new Vector2(i == 0 ? -8f : 52f, languageY), new Vector2(9f, 9f));
+                var icon = i == 0 ? skin.previous : skin.next;
+                AddImage(arrow.transform, "Icon", icon, Color.white, Vector2.zero, Size(icon, .6f));
+                arrowFrames[i] = Frame(arrow.transform, Vector2.zero, new Vector2(9f, 9f));
             }
 
-            AddImage(root, "Divider", skin.round, new Color(.62f, .5f, 1f, .3f), new Vector2(0f, -38f), new Vector2(90f, .5f), .25f);
-            Style(instruction, 4f, Hint, TextAlignmentOptions.Center, FontStyles.Bold);
-            Place(instruction.rectTransform, new Vector2(0f, -44f), new Vector2(RowWidth, 7f));
-
-            AddImage(root, "Star doodle", skin.star, Doodle, new Vector2(-72f, -43f), new Vector2(11f, 11f)).transform.localEulerAngles = new Vector3(0f, 0f, 12f);
-            AddImage(root, "Crown doodle", skin.crown, Doodle, new Vector2(70f, -42f), new Vector2(12f, 9f)).transform.localEulerAngles = new Vector3(0f, 0f, -10f);
-            Dash(root, new Vector2(64f, -33f), 70f, Doodle);
-            Dash(root, new Vector2(75f, -35f), 40f, Doodle);
+            Style(instruction, 4f, Hint, TextAlignmentOptions.Center);
+            Place(instruction.rectTransform, new Vector2(0f, -25f), new Vector2(RowWidth, 7f));
             LinkNavigation();
         }
 
@@ -109,87 +115,112 @@ namespace UnCredibles.UI.Garage
         public void Tick(GameObject selected)
         {
             for (int i = 0; i < sliders.Length; i++)
-                rowOutlines[i].color = selected == sliders[i].gameObject ? Selected : RowOutline;
+                rowFrames[i].enabled = selected == sliders[i].gameObject;
+            bool language = false;
             for (int i = 0; i < languageArrows.Length; i++)
-                languageArrows[i].targetGraphic.color = selected == languageArrows[i].gameObject
-                    ? new Color(Pink.r, Pink.g, Pink.b, .45f) : new Color(1f, 1f, 1f, .08f);
-            bool language = selected == languageArrows[0].gameObject || selected == languageArrows[1].gameObject;
-            rowOutlines[rowOutlines.Length - 1].color = language ? Selected : RowOutline;
-            back.targetGraphic.color = selected == back.gameObject ? Pink : Lilac;
+            {
+                bool on = selected == languageArrows[i].gameObject;
+                arrowFrames[i].enabled = on;
+                languageArrows[i].targetGraphic.color = on ? Color.white : ButtonIdle;
+                language |= on;
+            }
+            rowFrames[rowFrames.Length - 1].enabled = language;
+            backFrame.enabled = selected == back.gameObject;
+            back.targetGraphic.color = backFrame.enabled ? Color.white : ButtonIdle;
 
-            // The shadows copy the title, which the scene localizes.
-            foreach (var shadow in titleShadows)
-                if (shadow.text != title.text) shadow.text = title.text;
+            // The shadow copies the title, which the scene localizes.
+            if (titleShadow.text != title.text) titleShadow.text = title.text;
+
+            // The mouse runs back and forth along the ground, facing where it goes.
+            float run = Mathf.PingPong(Time.unscaledTime * MouseSpeed, 150f);
+            bool right = Mathf.Repeat(Time.unscaledTime * MouseSpeed, 300f) < 150f;
+            mouse.anchoredPosition = new Vector2(-75f + run, mouse.anchoredPosition.y);
+            mouse.localScale = new Vector3(right ? 1f : -1f, 1f, 1f);
         }
 
         // Name on the left and the value right-aligned on the same line.
         public static string VolumeText(string label, float value) =>
             label + "<line-height=0>\n<align=right>" + Mathf.RoundToInt(value * 100f) + "%";
 
+        private static float RowY(int row) => 22f - row * 12f;
+
+        private void BuildScenery(RectTransform root)
+        {
+            // Behind everything else, back to front: clouds, hills, bush, ground and the mouse on it.
+            int order = 0;
+            Behind(AddImage(root, "Cloud", skin.cloud, Color.white, new Vector2(-80f, 22f), Size(skin.cloud, ScenePixel)), ref order);
+            Behind(AddImage(root, "Cloud", skin.cloud, Color.white, new Vector2(10f, 44f), Size(skin.cloud, Pixel)), ref order);
+            Behind(AddImage(root, "Cloud", skin.cloud, Color.white, new Vector2(80f, 8f), Size(skin.cloud, Pixel)), ref order);
+            Behind(OnGround(root, "Hill", skin.hill, -62f, ScenePixel), ref order);
+            Behind(OnGround(root, "Hill", skin.hill, 52f, .8f), ref order);
+            Behind(OnGround(root, "Bush", skin.bush, 12f, Pixel), ref order);
+
+            var ground = AddImage(root, "Ground", skin.ground, Color.white, Vector2.zero, Vector2.zero);
+            ground.type = Image.Type.Tiled;
+            ground.pixelsPerUnitMultiplier = 1f / ScenePixel;
+            var groundRect = ground.rectTransform;
+            groundRect.anchorMin = Vector2.zero;
+            groundRect.anchorMax = new Vector2(1f, 0f);
+            groundRect.pivot = new Vector2(.5f, 0f);
+            groundRect.anchoredPosition = Vector2.zero;
+            groundRect.sizeDelta = new Vector2(0f, root.rect.height * .5f + GroundTop);
+            Behind(ground, ref order);
+
+            var runner = OnGround(root, "Mouse", skin.mouse, -40f, Pixel);
+            Behind(runner, ref order);
+            mouse = runner.rectTransform;
+        }
+
+        private Image OnGround(RectTransform root, string name, Sprite sprite, float x, float pixel)
+        {
+            var size = Size(sprite, pixel);
+            return AddImage(root, name, sprite, Color.white, new Vector2(x, GroundTop + size.y * .5f - .5f), size);
+        }
+
+        private static void Behind(Image image, ref int order) => image.transform.SetSiblingIndex(order++);
+
         private void BuildTitle(RectTransform root, TextMeshProUGUI sceneTitle)
         {
             title = sceneTitle;
-            var position = new Vector2(-34f, 42f);
-            var size = new Vector2(84f, 20f);
-            var offsets = new[] { new Vector2(1.6f, -1.6f), new Vector2(.8f, -.8f) };
-            var colors = new[] { DeepPurple, Pink };
-            titleShadows = new TextMeshProUGUI[offsets.Length];
-            for (int i = 0; i < offsets.Length; i++)
-            {
-                var shadow = new GameObject("Title shadow", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
-                shadow.transform.SetParent(root, false);
-                TitleStyle(shadow, colors[i]);
-                shadow.text = title.text;
-                Place(shadow.rectTransform, position + offsets[i], size);
-                titleShadows[i] = shadow;
-            }
+            var position = new Vector2(-30f, 39f);
+            var size = new Vector2(100f, 16f);
+            titleShadow = new GameObject("Title shadow", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
+            titleShadow.transform.SetParent(root, false);
+            Style(titleShadow, 13f, Ink, TextAlignmentOptions.Left);
+            titleShadow.text = title.text;
+            Place(titleShadow.rectTransform, position + new Vector2(1.2f, -1.2f), size);
             title.transform.SetAsLastSibling();
-            TitleStyle(title, Cream);
+            Style(title, 13f, TextColor, TextAlignmentOptions.Left);
             Place(title.rectTransform, position, size);
-
-            var crown = AddImage(root, "Crown doodle", skin.crown, Pink, new Vector2(-24f, 54f), new Vector2(10f, 8f));
-            crown.transform.localEulerAngles = new Vector3(0f, 0f, -8f);
-            Dash(root, new Vector2(-78f, 42f), 0f, Pink);
-            Dash(root, new Vector2(-44f, 55f), 70f, Pink);
-            Dash(root, new Vector2(-6f, 51f), -35f, Pink);
-            Dash(root, new Vector2(-16f, 31f), -65f, Pink);
         }
 
-        private void TitleStyle(TextMeshProUGUI text, Color color)
-        {
-            text.font = skin.titleFont;
-            text.fontSize = 17f;
-            text.color = color;
-            text.alignment = TextAlignmentOptions.Left;
-            text.fontStyle = FontStyles.Normal;
-            text.characterSpacing = 2f;
-            text.textWrappingMode = TextWrappingModes.NoWrap;
-            text.raycastTarget = false;
-        }
-
-        // VOLVER on a lilac brush stroke, with a "go back" arrow.
+        // VOLVER on an orange button with a "go back" arrow, top right.
         private void BuildBack()
         {
             var backRect = (RectTransform)back.transform;
             back.transform.SetAsLastSibling();
-            var stroke = back.GetComponent<Image>();
-            stroke.sprite = skin.brush;
-            stroke.type = Image.Type.Simple;
-            stroke.color = Lilac;
-            Place(backRect, new Vector2(52f, 42f), new Vector2(46f, 14f));
-            backRect.localEulerAngles = new Vector3(0f, 0f, 3f);
-            AddImage(backRect, "Icon", skin.back, Ink, new Vector2(-13f, 0f), new Vector2(5.5f, 5.5f));
-            Style(backLabel, 5.5f, Ink, TextAlignmentOptions.Center, FontStyles.Bold);
-            Place(backLabel.rectTransform, new Vector2(4.5f, 0f), new Vector2(28f, 10f));
+            var image = back.GetComponent<Image>();
+            image.sprite = skin.panel;
+            Sliced(image);
+            var size = new Vector2(40f, 11f);
+            Place(backRect, new Vector2(56f, 39f), size);
+            backRect.localEulerAngles = Vector3.zero;
+            AddImage(backRect, "Icon", skin.back, Color.white, new Vector2(-13f, 0f), Size(skin.back, .6f));
+            Style(backLabel, 5.5f, TextColor, TextAlignmentOptions.Center);
+            Place(backLabel.rectTransform, new Vector2(4f, 0f), new Vector2(28f, 8f));
+            backFrame = Frame(backRect, Vector2.zero, size);
         }
 
-        // Dark rounded track, pink gradient fill and a white knob.
+        // Black track with a dark outline, red fill and a white knob.
         private void StyleSlider(Slider slider, float y)
         {
             var track = (RectTransform)slider.transform;
             track.SetAsLastSibling();
-            Place(track, new Vector2(17f, y), new Vector2(58f, 3f));
-            Sliced(track.GetComponent<Image>(), skin.round, 1.5f).color = Well;
+            Place(track, new Vector2(12f, y), new Vector2(60f, 4.5f));
+            var trackImage = track.GetComponent<Image>();
+            trackImage.sprite = skin.track;
+            trackImage.color = Color.white;
+            Sliced(trackImage);
 
             if (slider.fillRect == null)
             {
@@ -197,32 +228,33 @@ namespace UnCredibles.UI.Garage
                 fill.transform.SetParent(track, false);
                 fill.transform.SetSiblingIndex(0);
                 fill.raycastTarget = false;
-                fill.rectTransform.offsetMin = fill.rectTransform.offsetMax = Vector2.zero;
                 slider.fillRect = fill.rectTransform;
             }
-            Sliced(slider.fillRect.GetComponent<Image>(), skin.fill, 1.5f).color = Color.white;
+            // Inside the track's one-pixel outline.
+            slider.fillRect.offsetMin = new Vector2(Pixel, Pixel);
+            slider.fillRect.offsetMax = new Vector2(-Pixel, -Pixel);
+            var fillImage = slider.fillRect.GetComponent<Image>();
+            fillImage.sprite = skin.fill;
+            fillImage.color = Color.white;
+            Sliced(fillImage);
 
             var knob = slider.handleRect.GetComponent<Image>();
             knob.enabled = true;
             knob.sprite = skin.knob;
             knob.type = Image.Type.Simple;
             knob.color = Color.white;
-            // The handle's height follows the track: 3 + 3 makes a 6 x 6 knob.
-            slider.handleRect.sizeDelta = new Vector2(6f, 3f);
+            // The handle's height follows the track: 4.5 + 3 makes a 7 x 10 pixel knob.
+            slider.handleRect.sizeDelta = new Vector2(skin.knob.rect.width * Pixel, 3f);
             slider.handleRect.anchoredPosition = Vector2.zero;
         }
 
-        private Image Row(RectTransform root, float y, float width, float x)
+        // Yellow pixel frame around a row or button, shown while it is selected.
+        private Image Frame(Transform parent, Vector2 position, Vector2 size)
         {
-            var fill = AddImage(root, "Row", skin.round, RowFill, new Vector2(x, y), new Vector2(width, RowHeight), 3f);
-            fill.transform.SetSiblingIndex(0);
-            return AddImage(fill.transform, "Outline", skin.roundOutline, RowOutline, Vector2.zero, new Vector2(width, RowHeight), 3f);
-        }
-
-        private void Dash(Transform parent, Vector2 position, float angle, Color color)
-        {
-            var dash = AddImage(parent, "Doodle dash", skin.round, color, position, new Vector2(3.4f, .8f), .4f);
-            dash.transform.localEulerAngles = new Vector3(0f, 0f, angle);
+            var frame = AddImage(parent, "Selected frame", skin.select, Color.white, position, size + new Vector2(2f, 2f));
+            Sliced(frame);
+            frame.enabled = false;
+            return frame;
         }
 
         // Pad and keys go down the menu row by row (automatic navigation skips the bars from VOLVER).
@@ -250,34 +282,34 @@ namespace UnCredibles.UI.Garage
             };
         }
 
-        // A 9-sliced sprite's corners keep the given radius in canvas units, whatever the image size.
-        private static Image Sliced(Image image, Sprite sprite, float radius)
+        private static Vector2 Size(Sprite sprite, float pixel) => sprite.rect.size * pixel;
+
+        // 9-sliced at the interface pixel size, so every border is drawn with the same chunky pixels.
+        private static void Sliced(Image image)
         {
-            image.sprite = sprite;
             image.type = Image.Type.Sliced;
-            image.pixelsPerUnitMultiplier = sprite.border.x / radius;
-            return image;
+            image.pixelsPerUnitMultiplier = 1f / Pixel;
         }
 
-        private static Image AddImage(Transform parent, string name, Sprite sprite, Color color, Vector2 position, Vector2 size, float radius = 0f)
+        private static Image AddImage(Transform parent, string name, Sprite sprite, Color color, Vector2 position, Vector2 size)
         {
             var image = new GameObject(name, typeof(RectTransform), typeof(Image)).GetComponent<Image>();
             image.transform.SetParent(parent, false);
+            image.sprite = sprite;
             image.color = color;
             image.raycastTarget = false;
-            if (radius > 0f) Sliced(image, sprite, radius);
-            else image.sprite = sprite;
             Place(image.rectTransform, position, size);
             return image;
         }
 
-        private static void Style(TextMeshProUGUI text, float size, Color color, TextAlignmentOptions alignment, FontStyles style)
+        private void Style(TextMeshProUGUI text, float size, Color color, TextAlignmentOptions alignment)
         {
-            text.font = TMP_Settings.defaultFontAsset;
+            text.font = skin.Font;
             text.fontSize = size;
             text.color = color;
             text.alignment = alignment;
-            text.fontStyle = style;
+            text.fontStyle = FontStyles.Normal;
+            text.characterSpacing = 0f;
             text.textWrappingMode = TextWrappingModes.NoWrap;
             text.raycastTarget = false;
         }
