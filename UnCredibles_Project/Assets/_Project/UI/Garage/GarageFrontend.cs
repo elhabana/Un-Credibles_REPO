@@ -37,6 +37,9 @@ namespace UnCredibles.UI.Garage
         public LayerMask tvScreenLayer;
         [Tooltip("Sprites and title font of the settings menu on the TV.")]
         public TvMenuSkin tvMenuSkin;
+        [Header("Menus")]
+        [Tooltip("Plays when the selection moves to another button in the garage menus and on the TV.")]
+        public AudioClip selectSound;
         // Settings layout size in canvas units; the canvas grows to the screen's aspect around it.
         private static readonly Vector2 SettingsLayout = new Vector2(170f, 100f);
         private const int TvTextureWidth = 1024;
@@ -58,10 +61,14 @@ namespace UnCredibles.UI.Garage
         private TextMeshProUGUI languageValue;
         private Button previousLanguage;
         private Button nextLanguage;
+        private GameObject lastSettingsSelection;
 
         private IEnumerator Start()
         {
             PlaceSettingsOnTv();
+            CreditsCrawl.Build((RectTransform)detailPanels[(int)GarageView.Credits - 2].transform, tvMenuSkin.titleFont);
+            // On the canvas that holds every garage menu (Garage UI).
+            menuRoot.transform.parent.gameObject.AddComponent<SelectionHighlight>().Init(detailPanels[0].transform, selectSound);
             while (CoreRoot.Instance == null) yield return null;
             core = CoreRoot.Instance;
             gameObject.AddComponent<UnCredibles.UI.Voting.MapVoteView>();
@@ -116,7 +123,15 @@ namespace UnCredibles.UI.Garage
         {
             if (cameras.View < GarageView.Settings) return;
             if (cameras.View == GarageView.Settings && tvOsd != null)
-                tvOsd.Tick(EventSystem.current != null ? EventSystem.current.currentSelectedGameObject : null);
+            {
+                var events = EventSystem.current;
+                // A click on empty space clears the selection: keep the last one so the pad and keys still have a focus.
+                if (events != null && events.currentSelectedGameObject == null &&
+                    lastSettingsSelection != null && lastSettingsSelection.activeInHierarchy)
+                    events.SetSelectedGameObject(lastSettingsSelection);
+                lastSettingsSelection = events != null ? events.currentSelectedGameObject : null;
+                tvOsd.Tick(lastSettingsSelection);
+            }
             if ((Gamepad.current != null && Gamepad.current.buttonEast.wasPressedThisFrame) ||
                 (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)) ShowHome();
         }
@@ -152,6 +167,7 @@ namespace UnCredibles.UI.Garage
         private void Show(GarageView view)
         {
             if (EventSystem.current != null) EventSystem.current.SetSelectedGameObject(null);
+            lastSettingsSelection = null;
             menuRoot.SetActive(view == GarageView.Home);
             lobbyRoot.SetActive(view == GarageView.Lobby);
             for (int i = 0; i < detailPanels.Length; i++)
