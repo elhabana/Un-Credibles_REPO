@@ -15,6 +15,8 @@ namespace UnCredibles.UI.Garage
         // The garage door and its slats: they rise together when the players leave.
         public Transform[] doorPieces;
         private Vector3[] avatarStarts;
+        // Animated character inside each figure (Idle while waiting, Run when the door opens).
+        private PlayerCharacterAnimator[] characters;
         private Quaternion[] avatarRotations;
         private Vector3[] doorStarts;
         private Coroutine departure;
@@ -22,12 +24,14 @@ namespace UnCredibles.UI.Garage
         private void Awake()
         {
             var positions = new Vector3[avatars.Length];
+            characters = new PlayerCharacterAnimator[avatars.Length];
             for (int i = 0; i < avatars.Length; i++)
             {
                 positions[i] = avatars[i].transform.position;
                 // Figures face +Z; turn them to the lobby camera, on the side of the mask anchor.
                 var figure = Instantiate(figures.For(i), avatars[i].transform, false);
                 figure.transform.localRotation = Quaternion.Euler(0f, 90f, 0f);
+                characters[i] = figure.GetComponentInChildren<PlayerCharacterAnimator>();
             }
             // The lobby camera faces west: increasing Z runs from screen left to right.
             System.Array.Sort(positions, (a, b) => a.z.CompareTo(b.z));
@@ -83,8 +87,11 @@ namespace UnCredibles.UI.Garage
                 {
                     if (!avatars[i].activeSelf) continue;
                     var start = avatarStarts[i];
-                    avatars[i].transform.position = new Vector3(start.x - 1.9f * run,
-                        Mathf.Sin(run * Mathf.PI * 12f) * .08f, start.z);
+                    var character = characters[i];
+                    if (character != null && elapsed >= .45f) character.SetRunning(true);
+                    // The animated run already bounces; the old figures fake it with a hop.
+                    float hop = character != null ? start.y : Mathf.Sin(run * Mathf.PI * 12f) * .08f;
+                    avatars[i].transform.position = new Vector3(start.x - 1.9f * run, hop, start.z);
                     // The face is on the spot's +X (mask anchor); turn it to the door, west.
                     avatars[i].transform.rotation = Quaternion.Slerp(avatarRotations[i],
                         Quaternion.Euler(0f, 180f, 0f), Mathf.Clamp01(run * 4f));
@@ -104,6 +111,7 @@ namespace UnCredibles.UI.Garage
                 if (avatars[i] == null) continue;
                 avatars[i].transform.position = avatarStarts[i];
                 avatars[i].transform.rotation = avatarRotations[i];
+                if (characters != null && characters[i] != null) characters[i].SetRunning(false);
             }
         }
         private void Refresh()
