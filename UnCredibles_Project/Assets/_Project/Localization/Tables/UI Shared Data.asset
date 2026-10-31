@@ -475,6 +475,21 @@ MonoBehaviour:
     m_Metadata:
       m_Items:
       - rid: 889587774307958785
+  - m_Id: 35710362058753
+    m_Key: menu.quit
+    m_Metadata:
+      m_Items:
+      - rid: 889587774307958786
+  - m_Id: 35710362058754
+    m_Key: menu.quit_accept
+    m_Metadata:
+      m_Items:
+      - rid: 889587774307958787
+  - m_Id: 35710362058755
+    m_Key: menu.quit_cancel
+    m_Metadata:
+      m_Items:
+      - rid: 889587774307958788
   m_Metadata:
     m_Items: []
   m_KeyGenerator:
@@ -854,3 +869,15 @@ MonoBehaviour:
       type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
       data:
         m_CommentText: 'Settings TV: label above the language selector'
+    - rid: 889587774307958786
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: 'Main menu button: quit the game'
+    - rid: 889587774307958787
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: 'Quit confirmation: yes, quit'
+    - rid: 889587774307958788
+      type: {class: Comment, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_CommentText: 'Quit confirmation: stay in the game'

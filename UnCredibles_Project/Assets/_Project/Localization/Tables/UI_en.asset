@@ -392,6 +392,18 @@ MonoBehaviour:
     m_Localized: LANGUAGE
     m_Metadata:
       m_Items: []
+  - m_Id: 35710362058753
+    m_Localized: QUIT
+    m_Metadata:
+      m_Items: []
+  - m_Id: 35710362058754
+    m_Localized: OK
+    m_Metadata:
+      m_Items: []
+  - m_Id: 35710362058755
+    m_Localized: CANCEL
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

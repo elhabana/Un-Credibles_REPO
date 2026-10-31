@@ -1,9 +1,11 @@
 using UnCredibles.Core;
+using UnCredibles.UI.Garage;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
+using UnityEngine.Localization.Components;
 
 namespace UnCredibles.UI.MainMenu
 {
@@ -21,9 +23,13 @@ namespace UnCredibles.UI.MainMenu
         [SerializeField] private TMP_InputField roomCodeInput;
         [SerializeField] private TMP_Text connectionStatus;
         private bool enteringOnline;
+        private Button quitButton;
+        private Button quitAccept;
+        private Button quitCancel;
 
         private void Awake()
         {
+            BuildQuit();
             // Reuse the existing canvas and font; no separate debug overlay in the menu.
             if (connectionStatus == null)
             {
@@ -47,6 +53,7 @@ namespace UnCredibles.UI.MainMenu
                 ((Gamepad.current != null && Gamepad.current.buttonEast.wasPressedThisFrame) ||
                  (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)))
                 CloseMultiplayerSetup();
+            UpdateQuitConfirm();
             var core = CoreRoot.Instance;
             if (core == null) return;
             bool available = core.Online.CanConnect && !core.Scenes.IsLoading;
@@ -111,6 +118,91 @@ namespace UnCredibles.UI.MainMenu
         {
             if (EventSystem.current != null && singleplayerButton.interactable)
                 EventSystem.current.SetSelectedGameObject(singleplayerButton.gameObject);
+        }
+
+        // SALIR goes under the last home button, a copy of AJUSTES. Pressing it shows ACEPTAR and CANCELAR
+        // right next to it, joined to its right edge and as tall as it.
+        private void BuildQuit()
+        {
+            var template = (RectTransform)settingsButton.transform;
+            float lowest = template.anchoredPosition.y;
+            float step = 0f;
+            foreach (Transform child in mainPanel.transform)
+            {
+                if (child.GetComponent<Button>() == null) continue;
+                float y = ((RectTransform)child).anchoredPosition.y;
+                if (y < lowest) lowest = y;
+                if (y < template.anchoredPosition.y && (step == 0f || template.anchoredPosition.y - y < step))
+                    step = template.anchoredPosition.y - y;
+            }
+            if (step == 0f) step = template.rect.height + 25f;
+
+            quitButton = CopyButton(template, "SALIR", "menu.quit", new Vector2(template.anchoredPosition.x, lowest - step), template.sizeDelta);
+            quitButton.onClick.AddListener(() => ShowQuitConfirm(true));
+            var size = new Vector2(template.sizeDelta.x * .5f, template.sizeDelta.y);
+            float right = template.anchoredPosition.x + template.sizeDelta.x * .5f;
+            float y0 = lowest - step;
+            quitAccept = CopyButton(template, "ACEPTAR", "menu.quit_accept", new Vector2(right + size.x * .5f, y0), size);
+            quitAccept.onClick.AddListener(Quit);
+            quitAccept.gameObject.AddComponent<SelectionHighlight.KeepSize>();
+            quitCancel = CopyButton(template, "CANCELAR", "menu.quit_cancel", new Vector2(right + size.x * 1.5f, y0), size);
+            quitCancel.onClick.AddListener(() => ShowQuitConfirm(false));
+            quitCancel.gameObject.AddComponent<SelectionHighlight.KeepSize>();
+            ShowQuitConfirm(false);
+        }
+
+        private Button CopyButton(RectTransform template, string objectName, string key, Vector2 position, Vector2 size)
+        {
+            var rect = Instantiate(template, template.parent);
+            rect.name = objectName;
+            rect.anchoredPosition = position;
+            rect.sizeDelta = size;
+            var button = rect.GetComponent<Button>();
+            button.onClick = new Button.ButtonClickedEvent(); // drop AJUSTES's scene listeners
+            button.navigation = new Navigation { mode = Navigation.Mode.Automatic };
+            // The copy keeps AJUSTES's localized label: point it at its own entry.
+            rect.GetComponentInChildren<LocalizeStringEvent>(true).StringReference.SetReference("UI", key);
+            var label = rect.GetComponentInChildren<TMP_Text>(true);
+            label.rectTransform.sizeDelta = new Vector2(size.x - 10f, label.rectTransform.sizeDelta.y);
+            label.fontSizeMax = label.fontSize;
+            label.enableAutoSizing = true;
+            return button;
+        }
+
+        private void ShowQuitConfirm(bool show)
+        {
+            quitAccept.gameObject.SetActive(show);
+            quitCancel.gameObject.SetActive(show);
+            if (EventSystem.current != null && EventSystem.current.currentSelectedGameObject != null)
+                EventSystem.current.SetSelectedGameObject(show ? quitCancel.gameObject : quitButton.gameObject);
+        }
+
+        // Back (B / Esc) or moving to another home button closes the confirmation.
+        private void UpdateQuitConfirm()
+        {
+            if (!quitCancel.gameObject.activeSelf) return;
+            if ((Gamepad.current != null && Gamepad.current.buttonEast.wasPressedThisFrame) ||
+                (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame))
+            {
+                ShowQuitConfirm(false);
+                return;
+            }
+            var selected = EventSystem.current != null ? EventSystem.current.currentSelectedGameObject : null;
+            if (selected != null && selected != quitButton.gameObject && selected != quitAccept.gameObject &&
+                selected != quitCancel.gameObject)
+            {
+                quitAccept.gameObject.SetActive(false);
+                quitCancel.gameObject.SetActive(false);
+            }
+        }
+
+        private static void Quit()
+        {
+#if UNITY_EDITOR
+            UnityEditor.EditorApplication.isPlaying = false;
+#else
+            Application.Quit();
+#endif
         }
 
         private void ShowMultiplayerSetup(bool show)

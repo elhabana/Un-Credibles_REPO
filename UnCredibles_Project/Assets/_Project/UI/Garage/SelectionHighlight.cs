@@ -51,7 +51,7 @@ namespace UnCredibles.UI.Garage
                 current = target;
                 if (current != null && !baseScales.ContainsKey(current)) baseScales[current] = current.localScale;
             }
-            if (current != null)
+            if (current != null && current.GetComponent<KeepSize>() == null)
                 current.localScale = Vector3.Lerp(current.localScale, baseScales[current] * SelectedScale,
                     1f - Mathf.Exp(-ScaleSpeed * Time.unscaledDeltaTime));
         }
@@ -89,21 +89,30 @@ namespace UnCredibles.UI.Garage
             if (target != null && baseScales.TryGetValue(target, out var scale)) target.localScale = scale;
         }
 
+        // On buttons joined to others (side by side, no gap): selected, they only turn pink, so they don't overlap.
+        public sealed class KeepSize : MonoBehaviour
+        {
+        }
+
         private sealed class SelectOnHover : MonoBehaviour, IPointerEnterHandler
         {
+            // Looked up on its own object when needed: a script recompiled during Play, or a copy of the
+            // button made at runtime, comes back with this field empty.
             private Selectable selectable;
 
             // Text fields stay click-only: selecting one starts typing.
             public static void Add(Selectable selectable)
             {
                 if (selectable is TMP_InputField || selectable.GetComponent<SelectOnHover>() != null) return;
-                selectable.gameObject.AddComponent<SelectOnHover>().selectable = selectable;
+                selectable.gameObject.AddComponent<SelectOnHover>();
             }
 
             public void OnPointerEnter(PointerEventData eventData)
             {
+                if (selectable == null) selectable = GetComponent<Selectable>();
                 var events = EventSystem.current;
-                if (events == null || !selectable.IsInteractable() || events.currentSelectedGameObject == gameObject) return;
+                if (events == null || selectable == null || !selectable.IsInteractable() ||
+                    events.currentSelectedGameObject == gameObject) return;
                 // Not while dragging a slider: the knob would lose it.
                 if (eventData.dragging) return;
                 events.SetSelectedGameObject(gameObject);

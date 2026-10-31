@@ -83,6 +83,7 @@ namespace UnCredibles.Core
                 return;
             }
             Instance = this;
+            gameObject.AddComponent<DisplayModeToggle>();
             // NGO persists its own root; never attach it to Core's scene objects.
             Online = new GameObject("Online Connection").AddComponent<RelayConnection>();
 

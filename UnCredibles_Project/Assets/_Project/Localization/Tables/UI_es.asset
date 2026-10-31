@@ -388,6 +388,18 @@ MonoBehaviour:
     m_Localized: IDIOMA
     m_Metadata:
       m_Items: []
+  - m_Id: 35710362058753
+    m_Localized: SALIR
+    m_Metadata:
+      m_Items: []
+  - m_Id: 35710362058754
+    m_Localized: ACEPTAR
+    m_Metadata:
+      m_Items: []
+  - m_Id: 35710362058755
+    m_Localized: CANCELAR
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []
