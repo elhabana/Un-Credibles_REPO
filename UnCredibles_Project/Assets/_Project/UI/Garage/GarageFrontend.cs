@@ -29,7 +29,31 @@ namespace UnCredibles.UI.Garage
         public TextMeshProUGUI musicLabel;
         public TextMeshProUGUI sfxLabel;
         public TextMeshProUGUI tvInstruction;
+        [Tooltip("TV screen mesh (faces its local +Z). The settings canvas and the TV camera are fitted to it.")]
+        public MeshFilter tvScreen;
+        [Tooltip("CRT material of the TV screen mesh (UnCredibles/Garage/CRTScreen); it shows the settings texture.")]
+        public Material tvScreenMaterial;
+        [Tooltip("Layer seen only by the camera that renders the settings into the TV screen.")]
+        public LayerMask tvScreenLayer;
+        [Tooltip("Sprites and title font of the settings menu on the TV.")]
+        public TvMenuSkin tvMenuSkin;
+        // Settings layout size in canvas units; the canvas grows to the screen's aspect around it.
+        private static readonly Vector2 SettingsLayout = new Vector2(170f, 100f);
+        private const int TvTextureWidth = 1024;
+        // Part of the glass left uncovered by the TV frame and its rounded corners; the content stays inside it.
+        private const float TvSafeArea = .82f;
+        // The TV starts warming up while the camera is still flying to it.
+        private const float TvPowerOnDelay = .35f;
+        private const float TvPowerOnSeconds = 1.1f;
+        private const float TvPowerOffSeconds = .4f;
+        private static readonly int TvPowerId = Shader.PropertyToID("_Power");
         private CoreRoot core;
+        private Material tvMaterial;
+        private Mesh tvMesh;
+        private Camera tvCamera;
+        private Coroutine tvSwitch;
+        private float tvPower;
+        private TvSettingsOsd tvOsd;
         private TextMeshProUGUI languageLabel;
         private TextMeshProUGUI languageValue;
         private Button previousLanguage;
@@ -64,6 +88,13 @@ namespace UnCredibles.UI.Garage
             if (core != null) core.GameFlow.StateChanged -= StateChanged;
             if (menu != null) menu.SettingsRequested -= ShowSettings;
             L10n.LanguageChanged -= HandleLanguageChanged;
+            if (tvCamera != null)
+            {
+                tvCamera.targetTexture.Release();
+                Destroy(tvCamera.targetTexture);
+            }
+            Destroy(tvMaterial);
+            Destroy(tvMesh);
         }
 
         private void HandleLanguageChanged()
@@ -84,6 +115,8 @@ namespace UnCredibles.UI.Garage
         private void Update()
         {
             if (cameras.View < GarageView.Settings) return;
+            if (cameras.View == GarageView.Settings && tvOsd != null)
+                tvOsd.Tick(EventSystem.current != null ? EventSystem.current.currentSelectedGameObject : null);
             if ((Gamepad.current != null && Gamepad.current.buttonEast.wasPressedThisFrame) ||
                 (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)) ShowHome();
         }
@@ -123,6 +156,7 @@ namespace UnCredibles.UI.Garage
             lobbyRoot.SetActive(view == GarageView.Lobby);
             for (int i = 0; i < detailPanels.Length; i++)
                 detailPanels[i].SetActive((int)view == i + 2);
+            ShowOnTv(view == GarageView.Settings);
             cameras.Show(view);
             if (view == GarageView.Home) menu.FocusMain();
             else if ((int)view >= 2)
@@ -142,10 +176,6 @@ namespace UnCredibles.UI.Garage
         // Existing scenes contain the original screen-space settings panel. Move it onto the TV at runtime.
         private void PlaceSettingsOnTv()
         {
-            var tvView = cameras.viewpoints[(int)GarageView.Settings];
-            var cameraPosition = new Vector3(3f, 1.9f, 3.45f);
-            tvView.SetPositionAndRotation(cameraPosition,
-                Quaternion.LookRotation(new Vector3(3f, 1.9f, 4.75f) - cameraPosition));
             var settings = detailPanels[0];
             var root = (RectTransform)settings.transform;
             if (settings.GetComponent<Canvas>() == null)
@@ -161,42 +191,131 @@ namespace UnCredibles.UI.Garage
                 if (settingsScreenPanel != null) settingsScreenPanel.SetActive(false);
             }
 
-            Place(root, Vector2.zero, new Vector2(170, 100));
-            root.SetPositionAndRotation(new Vector3(3f, 1.9f, 4.72f), Quaternion.identity);
-            root.localScale = Vector3.one * .01f;
+            FitSettingsToScreen(root);
             settings.GetComponent<Canvas>().worldCamera = cameras.output;
-            Place(settingsTitle.rectTransform, new Vector2(-15, 38), new Vector2(115, 14));
-            settingsTitle.fontSize = 9;
-
-            Place(settingsBack, new Vector2(62, 38), new Vector2(38, 15));
-            var backLabel = settingsBack.GetComponentInChildren<TextMeshProUGUI>(true);
-            Place(backLabel.rectTransform, Vector2.zero, new Vector2(36, 14));
-            backLabel.fontSize = 5;
-
-            // Rows are kept short so the language selector fits under the three volumes.
-            PlaceVolume(masterVolume, masterLabel, 26);
-            PlaceVolume(musicVolume, musicLabel, 11);
-            PlaceVolume(sfxVolume, sfxLabel, -4);
             AddLanguageSelector(settings.transform, settingsBack);
+            tvOsd = new TvSettingsOsd(tvMenuSkin, new[] { masterVolume, musicVolume, sfxVolume },
+                new[] { masterLabel, musicLabel, sfxLabel }, settingsBack, languageLabel, new[] { previousLanguage, nextLanguage });
+            tvOsd.Build(root, settingsTitle, languageValue, tvInstruction);
             ShowInstruction();
+            // After the language selector: its copies must land on the TV layer too.
+            int layer = 0;
+            while (layer < 31 && (tvScreenLayer.value & (1 << layer)) == 0) layer++;
+            foreach (var child in root.GetComponentsInChildren<Transform>(true)) child.gameObject.layer = layer;
+            cameras.output.cullingMask &= ~(1 << layer);
+            tvCamera.cullingMask = 1 << layer;
         }
 
-        // "<  ESPAÑOL  >" built from the scene's own label and VOLVER button, so it looks like the rest of the TV.
+        // The player never sees the flat canvas: it only takes the clicks. A camera renders it into a
+        // texture mapped on the curved screen mesh, so the image follows the glass and the TV frame crops it.
+        // The canvas is sized to the screen's edges as seen from the TV camera and the mesh UVs use that
+        // same projection, so a click lands on what is drawn under it. One uniform scale keeps the content undistorted.
+        private void FitSettingsToScreen(RectTransform root)
+        {
+            var tvView = cameras.viewpoints[(int)GarageView.Settings];
+            var screen = tvScreen.transform;
+            var mesh = tvScreen.sharedMesh;
+            var bounds = mesh.bounds;
+            var normal = screen.forward;
+            var rotation = Quaternion.LookRotation(-normal, screen.up);
+            float width = bounds.size.x * screen.lossyScale.x;
+            float height = bounds.size.y * screen.lossyScale.y;
+
+            var camera = cameras.output;
+            float tan = Mathf.Tan(camera.fieldOfView * .5f * Mathf.Deg2Rad);
+            // The screen takes most of the view, leaving a little of the TV frame around it.
+            float distance = Mathf.Max(height * .5f / tan, width * .5f / (tan * camera.aspect)) / .88f;
+            var front = screen.TransformPoint(new Vector3(bounds.center.x, bounds.center.y, bounds.max.z)) + normal * .005f;
+            var cameraPosition = front + normal * distance;
+            tvView.SetPositionAndRotation(cameraPosition, rotation);
+
+            // Each vertex projected onto the canvas plane, in canvas axes. The vertices along the middle
+            // of each edge give the visible edge of the glass, not the bounding box of its curved back.
+            var vertices = mesh.vertices;
+            var projected = new Vector2[vertices.Length];
+            var right = rotation * Vector3.right;
+            var up = rotation * Vector3.up;
+            var half = Vector2.zero;
+            for (int i = 0; i < vertices.Length; i++)
+            {
+                var ray = screen.TransformPoint(vertices[i]) - cameraPosition;
+                var offset = cameraPosition + ray * (Vector3.Dot(front - cameraPosition, normal) / Vector3.Dot(ray, normal)) - front;
+                projected[i] = new Vector2(Vector3.Dot(offset, right), Vector3.Dot(offset, up));
+                if (Mathf.Abs(vertices[i].y - bounds.center.y) <= bounds.size.y * .15f)
+                    half.x = Mathf.Max(half.x, Mathf.Abs(projected[i].x));
+                if (Mathf.Abs(vertices[i].x - bounds.center.x) <= bounds.size.x * .15f)
+                    half.y = Mathf.Max(half.y, Mathf.Abs(projected[i].y));
+            }
+            var size = half * 2f;
+            float unit = TvSafeArea * Mathf.Min(size.x / SettingsLayout.x, size.y / SettingsLayout.y);
+            Place(root, Vector2.zero, size / unit);
+            root.SetPositionAndRotation(front, rotation);
+            root.localScale = Vector3.one * unit;
+
+            var uvs = new Vector2[vertices.Length];
+            for (int i = 0; i < vertices.Length; i++)
+                uvs[i] = new Vector2(.5f + projected[i].x / size.x, .5f + projected[i].y / size.y);
+            tvMesh = Instantiate(mesh);
+            tvMesh.uv = uvs;
+            tvScreen.sharedMesh = tvMesh;
+
+            var texture = new RenderTexture(TvTextureWidth, Mathf.RoundToInt(TvTextureWidth * size.y / size.x), 24)
+            {
+                name = "TV settings",
+                antiAliasing = 4,
+                wrapMode = TextureWrapMode.Clamp
+            };
+            tvCamera = new GameObject("TV settings camera").AddComponent<Camera>();
+            tvCamera.transform.SetPositionAndRotation(front + normal * .1f, rotation);
+            tvCamera.orthographic = true;
+            tvCamera.orthographicSize = size.y * .5f;
+            tvCamera.nearClipPlane = .01f;
+            tvCamera.farClipPlane = .2f;
+            tvCamera.clearFlags = CameraClearFlags.SolidColor;
+            tvCamera.backgroundColor = TvSettingsOsd.Background;
+            tvCamera.targetTexture = texture;
+            tvCamera.enabled = false;
+
+            tvMaterial = new Material(tvScreenMaterial) { mainTexture = texture };
+            tvMaterial.SetFloat(TvPowerId, 0f);
+            tvScreen.GetComponent<Renderer>().sharedMaterial = tvMaterial;
+        }
+
+        private void ShowOnTv(bool on)
+        {
+            if (tvCamera == null) return;
+            if (tvSwitch != null) StopCoroutine(tvSwitch);
+            // Switching off, the texture keeps the last picture for the tube to collapse.
+            tvCamera.enabled = on;
+            tvSwitch = StartCoroutine(SwitchTv(on));
+        }
+
+        private IEnumerator SwitchTv(bool on)
+        {
+            if (on && tvPower == 0f) yield return new WaitForSeconds(TvPowerOnDelay);
+            float target = on ? 1f : 0f;
+            float speed = 1f / (on ? TvPowerOnSeconds : TvPowerOffSeconds);
+            while (tvPower != target)
+            {
+                tvPower = Mathf.MoveTowards(tvPower, target, Time.deltaTime * speed);
+                tvMaterial.SetFloat(TvPowerId, tvPower);
+                yield return null;
+            }
+            tvSwitch = null;
+        }
+
+        // "IDIOMA  < ESPAÑOL >" built from the scene's own label and VOLVER button; TvSettingsOsd lays it out.
         private void AddLanguageSelector(Transform parent, RectTransform backButton)
         {
             languageLabel = Instantiate(masterLabel, parent);
             languageLabel.name = "Text - LANGUAGE";
-            Place(languageLabel.rectTransform, new Vector2(0, -19), new Vector2(120, 8));
             languageValue = Instantiate(masterLabel, parent);
             languageValue.name = "Language value";
-            languageValue.alignment = TextAlignmentOptions.Center;
-            languageValue.fontStyle = FontStyles.Bold;
-            Place(languageValue.rectTransform, new Vector2(0, -28), new Vector2(70, 9));
-            previousLanguage = ArrowButton(backButton, parent, "<", -45);
-            nextLanguage = ArrowButton(backButton, parent, ">", 45);
+            previousLanguage = ArrowButton(backButton, parent, "<");
+            nextLanguage = ArrowButton(backButton, parent, ">");
         }
 
-        private static Button ArrowButton(RectTransform template, Transform parent, string arrow, float x)
+        private static Button ArrowButton(RectTransform template, Transform parent, string arrow)
         {
             var rect = Instantiate(template, parent);
             rect.name = arrow == "<" ? "Language previous" : "Language next";
@@ -208,48 +327,22 @@ namespace UnCredibles.UI.Garage
             var label = new GameObject("Arrow", typeof(RectTransform), typeof(TextMeshProUGUI))
                 .GetComponent<TextMeshProUGUI>();
             label.transform.SetParent(rect, false);
-            label.font = copied.font;
-            label.color = copied.color;
-            label.raycastTarget = false;
-            Destroy(copied.gameObject);
+            // Immediate, so the TV menu styling finds the arrow and not VOLVER's label in this same frame.
+            DestroyImmediate(copied.gameObject);
             label.text = arrow;
-            label.fontSize = 7;
-            label.fontStyle = FontStyles.Bold;
-            label.alignment = TextAlignmentOptions.Center;
-            Place(rect, new Vector2(x, -28), new Vector2(16, 10));
-            Place(label.rectTransform, Vector2.zero, new Vector2(16, 10));
             return button;
         }
 
-        private void ShowInstruction()
-        {
-            Place(tvInstruction.rectTransform, new Vector2(0, -46), new Vector2(160, 8));
-            tvInstruction.text = L10n.Get(L10n.UI, "settings.volume_hint");
-            tvInstruction.font = TMP_Settings.defaultFontAsset;
-            tvInstruction.fontSize = 4;
-            tvInstruction.alignment = TextAlignmentOptions.Center;
-            tvInstruction.color = Color.white;
-            tvInstruction.raycastTarget = false;
-        }
+        private void ShowInstruction() => tvInstruction.text = L10n.Get(L10n.UI, "settings.volume_hint");
 
         private void ConfigureVolume(Slider slider, TextMeshProUGUI label, string key)
         {
-            slider.GetComponent<Image>().color = new Color(.28f, .37f, .45f);
-            slider.handleRect.GetComponent<Image>().color = new Color(.98f, .62f, .14f);
             slider.onValueChanged.AddListener(value => ShowVolume(label, key, value));
             ShowVolume(label, key, slider.value);
         }
 
         private static void ShowVolume(TextMeshProUGUI label, string key, float value) =>
-            label.text = L10n.Get(L10n.UI, key) + "  " + Mathf.RoundToInt(value * 100f) + "%";
-
-        private static void PlaceVolume(Slider slider, TextMeshProUGUI label, float y)
-        {
-            Place(label.rectTransform, new Vector2(0, y), new Vector2(120, 8));
-            label.fontSize = 5;
-            Place((RectTransform)slider.transform, new Vector2(0, y - 7), new Vector2(125, 3.5f));
-            Place(slider.handleRect, Vector2.zero, new Vector2(5, 6));
-        }
+            label.text = TvSettingsOsd.VolumeText(L10n.Get(L10n.UI, key), value);
 
         private static void Place(RectTransform rect, Vector2 position, Vector2 size)
         {
