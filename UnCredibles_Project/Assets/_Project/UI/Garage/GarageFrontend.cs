@@ -327,6 +327,8 @@ namespace UnCredibles.UI.Garage
             var label = new GameObject("Arrow", typeof(RectTransform), typeof(TextMeshProUGUI))
                 .GetComponent<TextMeshProUGUI>();
             label.transform.SetParent(rect, false);
+            // Its default 100 x 100 rect covers most of the TV: only the button itself takes the clicks.
+            label.raycastTarget = false;
             // Immediate, so the TV menu styling finds the arrow and not VOLVER's label in this same frame.
             DestroyImmediate(copied.gameObject);
             label.text = arrow;
