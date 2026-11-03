@@ -31,7 +31,17 @@ namespace UnCredibles.Minigames.GarageMice
             public float SwingVisual;
             public float Stun;
             public float Immunity;
+            // Bots keep their target and their detour for a moment instead of re-deciding every frame
+            // (that made them jitter in place and get stuck against shelves and walls).
+            public Mouse Target;
+            public float TargetTimer;
+            public Vector2 Detour;
+            public float DetourTimer;
         }
+
+        private const float AITargetSeconds = .8f;
+        private const float AIDetourSeconds = .45f;
+        private static readonly float[] AIDetourAngles = { 45f, 90f, 135f, 180f };
 
         private sealed class Mouse
         {
@@ -183,17 +193,15 @@ namespace UnCredibles.Minigames.GarageMice
             foreach (var sweeper in sweepers)
             {
                 if (!(sweeper.Slot.Input is AIInput input)) continue;
-                Mouse nearest = null;
-                float best = float.MaxValue;
-                foreach (var mouse in mice)
+                float deltaTime = Time.deltaTime;
+                sweeper.TargetTimer -= deltaTime;
+                sweeper.DetourTimer -= deltaTime;
+                if (sweeper.Target == null || !IsCatchable(sweeper.Target) || sweeper.TargetTimer <= 0f)
                 {
-                    if (!IsCatchable(mouse)) continue;
-                    float distance = (mouse.Root.position - sweeper.Root.position).sqrMagnitude;
-                    if (mouse.Golden) distance *= .25f; // Bots go for the golden mouse first.
-                    if (distance >= best) continue;
-                    best = distance;
-                    nearest = mouse;
+                    sweeper.Target = NearestMouse(sweeper);
+                    sweeper.TargetTimer = AITargetSeconds;
                 }
+                var nearest = sweeper.Target;
                 if (nearest == null || sweeper.Stun > 0f)
                 {
                     input.SetMove(Vector2.zero);
@@ -201,15 +209,21 @@ namespace UnCredibles.Minigames.GarageMice
                 }
                 Vector3 offset = nearest.Root.position - sweeper.Root.position;
                 Vector2 desired = new Vector2(offset.x, offset.z).normalized;
-                Vector3 test = sweeper.Root.position + new Vector3(desired.x, 0f, desired.y) * .8f;
-                if (IsBlocked(test, settings.PlayerRadius))
+                if (sweeper.DetourTimer > 0f && !IsBlocked(Ahead(sweeper, sweeper.Detour), settings.PlayerRadius))
+                    desired = sweeper.Detour;
+                else if (IsBlocked(Ahead(sweeper, desired), settings.PlayerRadius))
                 {
-                    Vector2 left = new Vector2(-desired.y, desired.x);
-                    Vector2 right = -left;
-                    var first = sweeper.Slot.SlotIndex % 2 == 0 ? left : right;
-                    var second = -first;
-                    Vector3 firstTest = sweeper.Root.position + new Vector3(first.x, 0f, first.y) * .8f;
-                    desired = !IsBlocked(firstTest, settings.PlayerRadius) ? first : second;
+                    // Turn away from the obstacle by the smallest free angle, each bot preferring its own side.
+                    float side = sweeper.Slot.SlotIndex % 2 == 0 ? 1f : -1f;
+                    foreach (float angle in AIDetourAngles)
+                    {
+                        var first = Rotate(desired, angle * side);
+                        var second = Rotate(desired, -angle * side);
+                        if (!IsBlocked(Ahead(sweeper, first), settings.PlayerRadius)) { desired = first; break; }
+                        if (!IsBlocked(Ahead(sweeper, second), settings.PlayerRadius)) { desired = second; break; }
+                    }
+                    sweeper.Detour = desired;
+                    sweeper.DetourTimer = AIDetourSeconds;
                 }
                 input.SetMove(desired);
                 offset.y = 0f;
@@ -217,6 +231,32 @@ namespace UnCredibles.Minigames.GarageMice
                     Vector3.Angle(sweeper.Root.forward, offset) < settings.SwingHalfAngle)
                     input.Press(PlayerAction.Jump);
             }
+        }
+
+        private Mouse NearestMouse(Sweeper sweeper)
+        {
+            Mouse nearest = null;
+            float best = float.MaxValue;
+            foreach (var mouse in mice)
+            {
+                if (!IsCatchable(mouse)) continue;
+                float distance = (mouse.Root.position - sweeper.Root.position).sqrMagnitude;
+                if (mouse.Golden) distance *= .25f; // Bots go for the golden mouse first.
+                if (distance >= best) continue;
+                best = distance;
+                nearest = mouse;
+            }
+            return nearest;
+        }
+
+        private static Vector3 Ahead(Sweeper sweeper, Vector2 direction) =>
+            sweeper.Root.position + new Vector3(direction.x, 0f, direction.y) * .8f;
+
+        private static Vector2 Rotate(Vector2 direction, float degrees)
+        {
+            float radians = degrees * Mathf.Deg2Rad;
+            float cos = Mathf.Cos(radians), sin = Mathf.Sin(radians);
+            return new Vector2(direction.x * cos - direction.y * sin, direction.x * sin + direction.y * cos);
         }
 
         private void TickMice(float deltaTime)

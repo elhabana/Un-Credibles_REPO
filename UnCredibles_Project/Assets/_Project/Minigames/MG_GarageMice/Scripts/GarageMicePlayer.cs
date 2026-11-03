@@ -11,6 +11,10 @@ namespace UnCredibles.Minigames.GarageMice
         [SerializeField, Tooltip("Shown and spinning above the head while stunned.")] private Transform stars;
         [SerializeField] private Renderer[] bodyRenderers = new Renderer[0];
 
+        // Read by the trailer previs to log swings and stuns.
+        public bool IsSwinging { get; private set; }
+        public bool IsStunned { get; private set; }
+
         public void Setup(PlayerSlot slot)
         {
             stars.gameObject.SetActive(false);
@@ -20,6 +24,8 @@ namespace UnCredibles.Minigames.GarageMice
         // swing: 1 when the swing starts, 0 when it is over.
         public void Animate(float swing, bool stunned, float deltaTime)
         {
+            IsSwinging = swing > 0f;
+            IsStunned = stunned;
             broom.localRotation = Quaternion.Euler(0f, swing > 0f ? -85f * Mathf.Sin(swing * Mathf.PI) : 0f, -20f);
             stars.gameObject.SetActive(stunned);
             if (stunned)

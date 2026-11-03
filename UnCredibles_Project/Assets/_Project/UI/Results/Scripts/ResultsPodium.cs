@@ -7,7 +7,7 @@ using UnCredibles.Players;
 
 namespace UnCredibles.UI.Results
 {
-    internal readonly struct PodiumEntry
+    public readonly struct PodiumEntry
     {
         public readonly int Placement;
         public readonly string Name;
@@ -33,7 +33,7 @@ namespace UnCredibles.UI.Results
     }
 
     // The final standings are represented by the same simple figures used in the garage lobby.
-    internal sealed class ResultsPodium
+    public sealed class ResultsPodium
     {
         private const float FloorTop = -2.5f;
         private const float FigureScale = .65f;

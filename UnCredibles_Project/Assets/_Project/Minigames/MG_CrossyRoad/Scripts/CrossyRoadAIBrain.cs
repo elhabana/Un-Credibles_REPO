@@ -11,7 +11,8 @@ namespace UnCredibles.Minigames.CrossyRoad
     {
         private const int PredictionSteps = 3;
         private const float StepSeconds = 0.15f;
-        private const float OilPenalty = 0.6f;
+        // Trailer previs sets it negative so the bots walk into the slicks.
+        public static float OilPenalty = 0.6f;
 
         private static readonly Vector2[] Directions =
         {
