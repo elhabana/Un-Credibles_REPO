@@ -400,6 +400,67 @@ MonoBehaviour:
     m_Localized: CANCELAR
     m_Metadata:
       m_Items: []
+  - m_Id: 6070755196928000
+    m_Localized: Personaje
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6070755247259648
+    m_Localized: Casco
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6070755247259649
+    m_Localized: Ropa
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6070755247259650
+    m_Localized: Botas
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6070755247259651
+    m_Localized: Nada
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6070755247259652
+    m_Localized: Correr
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6070755247259653
+    m_Localized: Parar
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6070755247259654
+    m_Localized: Volver
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6070755247259655
+    m_Localized: Guardar
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6070755247259656
+    m_Localized: "Arrastra para girar  \xB7  Rueda para acercar  \xB7  Q / E cambia
+      de pesta\xF1a"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6070755247259657
+    m_Localized: Casco abierto
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6070755247259658
+    m_Localized: Casco con visera
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6070755247259659
+    m_Localized: Mono
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6070755247259660
+    m_Localized: "T\xFAnica"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6070755247259661
+    m_Localized: Botas altas
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

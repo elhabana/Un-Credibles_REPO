@@ -25,6 +25,10 @@ namespace UnCredibles.Players
         [SerializeField, Tooltip("Worn from the start (each prefab variant can have its own).")]
         private CharacterLoadout loadout;
 
+        // Darker shade of each player colour, shared by every character wearing it.
+        private static readonly Dictionary<Material, Material> Shades = new Dictionary<Material, Material>();
+        private const float ShadeValue = .72f;
+
         private readonly List<GameObject> mounted = new List<GameObject>();
         private readonly List<Renderer> partRenderers = new List<Renderer>();
         private Dictionary<string, Transform> bones;
@@ -102,7 +106,7 @@ namespace UnCredibles.Players
 
                     var materials = (Material[])part.Materials.Clone();
                     if (materials.Length == 0) materials = renderer.sharedMaterials;
-                    if (part.UsePlayerColor && skin != null && materials.Length > 0) materials[0] = skin;
+                    if (part.UsePlayerColor && skin != null && materials.Length > 0) materials[0] = Shade(skin);
                     renderer.sharedMaterials = materials;
                     renderer.gameObject.layer = model.gameObject.layer;
                     mounted.Add(renderer.gameObject);
@@ -148,6 +152,21 @@ namespace UnCredibles.Players
         {
             if (Application.isPlaying) Destroy(target);
             else DestroyImmediate(target);
+        }
+
+        // Clothes in the player colour use a darker shade of it, so they read as clothes and
+        // not as bare skin.
+        private static Material Shade(Material skin)
+        {
+            if (Shades.TryGetValue(skin, out var shade) && shade != null) return shade;
+            var color = skin.HasProperty("_BaseColor") ? skin.GetColor("_BaseColor") : skin.color;
+            Color.RGBToHSV(color, out float h, out float s, out float v);
+            var dark = Color.HSVToRGB(h, Mathf.Clamp01(s * 1.1f), v * ShadeValue);
+            shade = new Material(skin) { name = skin.name + "_Prenda" };
+            shade.SetColor("_BaseColor", dark);
+            shade.color = dark;
+            Shades[skin] = shade;
+            return shade;
         }
 
         // The player colour of this variant is the material on the body.

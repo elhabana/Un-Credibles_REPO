@@ -89,6 +89,7 @@ namespace UnCredibles.Characters.Editor
             var catalog = CharacterPartsSetup.Build(neutral);
             var character = BuildCharacterPrefab(controller, neutral, eyes, brows, catalog);
             CharacterPartsSetup.MeasureHelmets(character, catalog);
+            CharacterEditorSetup.RenderIcons(character, catalog);
             var grandma = GrandmaCharacterSetup.Build(neutral);
             if (grandma == null) return;
 

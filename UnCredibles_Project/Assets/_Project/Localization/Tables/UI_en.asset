@@ -404,6 +404,66 @@ MonoBehaviour:
     m_Localized: CANCEL
     m_Metadata:
       m_Items: []
+  - m_Id: 6070755196928000
+    m_Localized: Character
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6070755247259648
+    m_Localized: Helmet
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6070755247259649
+    m_Localized: Outfit
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6070755247259650
+    m_Localized: Boots
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6070755247259651
+    m_Localized: None
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6070755247259652
+    m_Localized: Run
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6070755247259653
+    m_Localized: Stop
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6070755247259654
+    m_Localized: Back
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6070755247259655
+    m_Localized: Save
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6070755247259656
+    m_Localized: "Drag to rotate  \xB7  Wheel to zoom  \xB7  Q / E switch tab"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6070755247259657
+    m_Localized: Open helmet
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6070755247259658
+    m_Localized: Visor helmet
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6070755247259659
+    m_Localized: Jumpsuit
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6070755247259660
+    m_Localized: Tunic
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6070755247259661
+    m_Localized: Tall boots
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

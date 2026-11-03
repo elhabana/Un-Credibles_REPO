@@ -22,4 +22,4 @@ MonoBehaviour:
   coversFace: 0
   usePlayerColor: 0
   extraHeadHeight: 0
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 99c6526b92d18114892173796c3c2c73, type: 3}
