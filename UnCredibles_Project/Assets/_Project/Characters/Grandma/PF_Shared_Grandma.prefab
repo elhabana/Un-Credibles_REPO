@@ -122,6 +122,14 @@ PrefabInstance:
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: 27e9a424f9992154287872b07146b9b5, type: 2}
+    - target: {fileID: -7559409196894375142, guid: 160b786f26473b242aa2f432acb9bf80, type: 3}
+      propertyPath: m_UpdateWhenOffscreen
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -7559409196894375142, guid: 160b786f26473b242aa2f432acb9bf80, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: e5f481ef57cd35246985d2627f0b4c9b, type: 2}
     - target: {fileID: -2929403311648443778, guid: 160b786f26473b242aa2f432acb9bf80, type: 3}
       propertyPath: m_UpdateWhenOffscreen
       value: 1

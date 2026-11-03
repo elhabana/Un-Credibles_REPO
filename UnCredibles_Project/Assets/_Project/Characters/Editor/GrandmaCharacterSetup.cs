@@ -145,9 +145,10 @@ namespace UnCredibles.Characters.Editor
                 var renderers = model.GetComponentsInChildren<Renderer>(true);
                 foreach (var renderer in renderers)
                 {
-                    var color = PartColors.FirstOrDefault(p => p.part == renderer.name).color;
+                    string part = renderer.name.Split('.')[0]; // PELO.001 (the bun) is hair too
+                    var color = PartColors.FirstOrDefault(p => p.part == part).color;
                     if (color == default) color = Color.white;
-                    var material = MakeMaterial($"{Folder}/M_Shared_Grandma_{Pretty(renderer.name)}.mat", template, color);
+                    var material = MakeMaterial($"{Folder}/M_Shared_Grandma_{Pretty(part)}.mat", template, color);
                     renderer.sharedMaterials = Enumerable.Repeat(material, Mathf.Max(1, renderer.sharedMaterials.Length)).ToArray();
                     // The ragdoll flies away from the root bone: keep the bounds up to date so
                     // she is not culled while still on screen (a few hundred vertices).
