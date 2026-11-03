@@ -58,8 +58,8 @@ MonoBehaviour:
   squashHeight: 0.08
   squashDuration: 0.08
   vanishDuration: 0.25
-  grandmaLaunchSpeed: {x: 9, y: 14}
-  grandmaLaunchUp: {x: 9, y: 13}
+  grandmaLaunchSpeed: {x: 3, y: 6}
+  grandmaLaunchUp: {x: 8, y: 11}
   grandmaSpinSpeed: 900
   grandmaGravity: 20
   oilTruckChance: 0.08

@@ -22,8 +22,10 @@ namespace UnCredibles.Minigames.CrossyRoad
         private sealed class Flyer
         {
             public Transform Transform;
+            public GrandmaCharacterAnimator Animated; // ragdoll; without it she just spins in the air
             public Vector3 Velocity;
             public Vector3 SpinAxis;
+            public float Age;
         }
 
         // A delivered grandma: walks off to the nearest side waddling, gone once off screen.
@@ -40,6 +42,9 @@ namespace UnCredibles.Minigames.CrossyRoad
         private const float WalkMaxSeconds = 12f;
         private const float DropBackOffset = 0.25f; // fraction of a lane past the goal lane centre
         private const float WalkerSpacing = 1.5f;   // centre to centre; a grandma is about 1.1 wide
+        private const float RagdollSeconds = 3.2f;  // flying and tumbling on the ground before vanishing
+        private const float RagdollVanish = 0.35f;  // last seconds spent shrinking away
+        private const float RagdollSpin = 10f;      // radians per second when she is knocked off
 
         public int Count => grandmas.Length;
 
@@ -68,6 +73,18 @@ namespace UnCredibles.Minigames.CrossyRoad
                 Tint(grandma, colorBlock);
                 grandmas[i] = grandma;
             }
+            BuildRagdollFloor();
+        }
+
+        // Nothing else in the minigame uses physics: an invisible floor (much bigger than the
+        // board) just for the ragdoll grandmas to land, bounce and roll on.
+        private void BuildRagdollFloor()
+        {
+            var floor = new GameObject("GrandmaRagdollFloor").AddComponent<BoxCollider>();
+            floor.transform.SetParent(transform, false);
+            float depth = board.MaxZ - board.MinZ;
+            floor.transform.position = new Vector3(board.transform.position.x, board.transform.position.y - 0.5f, (board.MinZ + board.MaxZ) * 0.5f);
+            floor.size = new Vector3(board.Settings.BoardWidth * 4f, 1f, depth * 4f);
         }
 
         // Bit i set = grandma i waiting in her spot (sent by the host to the clients).
@@ -145,8 +162,8 @@ namespace UnCredibles.Minigames.CrossyRoad
                 instance.name = "FlyingGrandma";
                 Tint(instance, colorBlock);
                 var animated = instance.GetComponentInChildren<GrandmaCharacterAnimator>();
-                if (animated != null) animated.SetSpinning(true);
-                flyer = new Flyer { Transform = instance.transform };
+                if (animated != null && !animated.HasRagdoll) { animated.SetSpinning(true); animated = null; }
+                flyer = new Flyer { Transform = instance.transform, Animated = animated };
                 flyers.Add(flyer);
             }
 
@@ -154,6 +171,17 @@ namespace UnCredibles.Minigames.CrossyRoad
             float speed = Random.Range(settings.GrandmaLaunchSpeed.x, settings.GrandmaLaunchSpeed.y);
             flyer.Velocity = new Vector3(Mathf.Cos(angle) * speed, Random.Range(settings.GrandmaLaunchUp.x, settings.GrandmaLaunchUp.y), Mathf.Sin(angle) * speed);
             flyer.SpinAxis = Random.onUnitSphere;
+            flyer.Age = 0f;
+            flyer.Transform.localScale = Vector3.one;
+            if (flyer.Animated != null)
+            {
+                // Limp ragdoll: flops head and arms, lands, bounces and rolls, then vanishes.
+                flyer.Animated.ResetRagdoll();
+                flyer.Transform.SetPositionAndRotation(from, Quaternion.Euler(0f, Random.Range(0f, 360f), 0f));
+                flyer.Transform.gameObject.SetActive(true);
+                flyer.Animated.Launch(flyer.Velocity, flyer.SpinAxis * RagdollSpin, settings.GrandmaGravity);
+                return;
+            }
             flyer.Transform.SetPositionAndRotation(from, Random.rotation);
             flyer.Transform.gameObject.SetActive(true);
         }
@@ -208,6 +236,24 @@ namespace UnCredibles.Minigames.CrossyRoad
             return x;
         }
 
+        private void TickRagdoll(Flyer flyer, float deltaTime)
+        {
+            flyer.Age += deltaTime;
+            float left = RagdollSeconds - flyer.Age;
+            if (left < RagdollVanish)
+            {
+                // Shrinks away where she lies (not towards where she was launched).
+                if (left + deltaTime >= RagdollVanish) flyer.Animated.FreezeAround(flyer.Transform);
+                flyer.Transform.localScale = Vector3.one * Mathf.Max(0f, left / RagdollVanish);
+            }
+            if (left <= 0f || flyer.Animated.RagdollPosition.y < board.transform.position.y - 3f)
+            {
+                flyer.Transform.gameObject.SetActive(false);
+                flyer.Animated.ResetRagdoll();
+                flyer.Transform.localScale = Vector3.one;
+            }
+        }
+
         private bool IsOffScreen(Vector3 position)
         {
             if (viewCamera == null) viewCamera = Camera.main;
@@ -229,6 +275,11 @@ namespace UnCredibles.Minigames.CrossyRoad
             foreach (var flyer in flyers)
             {
                 if (!flyer.Transform.gameObject.activeSelf) continue;
+                if (flyer.Animated != null)
+                {
+                    TickRagdoll(flyer, deltaTime);
+                    continue;
+                }
                 flyer.Velocity.y -= settings.GrandmaGravity * deltaTime;
                 flyer.Transform.position += flyer.Velocity * deltaTime;
                 flyer.Transform.Rotate(flyer.SpinAxis, settings.GrandmaSpinSpeed * deltaTime, Space.World);

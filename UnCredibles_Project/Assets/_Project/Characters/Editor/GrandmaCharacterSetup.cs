@@ -16,6 +16,7 @@ namespace UnCredibles.Characters.Editor
         private const string ModelPath = Folder + "/SK_Shared_Grandma.fbx";
         private const string ControllerPath = Folder + "/AC_Shared_Grandma.controller";
         public const string PrefabPath = Folder + "/PF_Shared_Grandma.prefab";
+        private const string PhysicsMaterialPath = Folder + "/PM_Shared_Grandma.physicMaterial";
         private const string CrossyGrandmaPath = "Assets/_Project/Minigames/MG_CrossyRoad/Prefabs/PF_CR_Grandma.prefab";
         private const string IdleClipName = "AN_Shared_Grandma_Idle";
         private const string SwayClipName = "AN_Shared_Grandma_Sway";
@@ -148,7 +149,9 @@ namespace UnCredibles.Characters.Editor
                     if (color == default) color = Color.white;
                     var material = MakeMaterial($"{Folder}/M_Shared_Grandma_{Pretty(renderer.name)}.mat", template, color);
                     renderer.sharedMaterials = Enumerable.Repeat(material, Mathf.Max(1, renderer.sharedMaterials.Length)).ToArray();
-                    if (renderer is SkinnedMeshRenderer skinned) skinned.updateWhenOffscreen = false;
+                    // The ragdoll flies away from the root bone: keep the bounds up to date so
+                    // she is not culled while still on screen (a few hundred vertices).
+                    if (renderer is SkinnedMeshRenderer skinned) skinned.updateWhenOffscreen = true;
                 }
 
                 // Face +Z (the glasses are in front of the body).
@@ -173,6 +176,10 @@ namespace UnCredibles.Characters.Editor
                 var tinted = so.FindProperty("tintedRenderers");
                 tinted.arraySize = 1;
                 tinted.GetArrayElementAtIndex(0).objectReferenceValue = renderers.First(r => r.name == TintedPart);
+                var bodies = BuildRagdoll(model.transform);
+                var ragdoll = so.FindProperty("ragdollBodies");
+                ragdoll.arraySize = bodies.Length;
+                for (int i = 0; i < bodies.Length; i++) ragdoll.GetArrayElementAtIndex(i).objectReferenceValue = bodies[i];
                 so.ApplyModifiedPropertiesWithoutUndo();
 
                 var prefab = PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
@@ -180,6 +187,87 @@ namespace UnCredibles.Characters.Editor
                 return prefab;
             }
             finally { EditorSceneManager.ClosePreviewScene(scene); }
+        }
+
+        // ---------- Ragdoll (torso, head and arms; sizes in prefab units, she is 1 tall) ----------
+
+        private static Rigidbody[] BuildRagdoll(Transform model)
+        {
+            var material = AssetDatabase.LoadAssetAtPath<PhysicsMaterial>(PhysicsMaterialPath);
+            if (material == null)
+            {
+                material = new PhysicsMaterial("PM_Shared_Grandma");
+                AssetDatabase.CreateAsset(material, PhysicsMaterialPath);
+            }
+            material.bounciness = .45f; // bounces a couple of times when she lands
+            material.dynamicFriction = .5f;
+            material.staticFriction = .6f;
+            material.bounceCombine = PhysicsMaterialCombine.Maximum;
+            EditorUtility.SetDirty(material);
+
+            var torso = Part(model, "Torso", 3f, material, center: .075f, length: .58f, radius: .24f);
+            var head = Part(model, "Cabeza", 1f, material, center: .19f, length: 0f, radius: .21f);
+            var left = Part(model, "Brazo.L", .4f, material, center: .12f, length: .24f, radius: .065f);
+            var right = Part(model, "Brazo.R", .4f, material, center: .12f, length: .24f, radius: .065f);
+            if (torso == null || head == null || left == null || right == null) return new Rigidbody[0];
+
+            Joint(head, torso, twist: 30f, swing: 40f);
+            Joint(left, torso, twist: 60f, swing: 85f);
+            Joint(right, torso, twist: 60f, swing: 85f);
+            Debug.Log("[Abuela] Ragdoll: torso, cabeza y brazos (apagado hasta que sale volando)");
+            return new[] { torso, head, left, right };
+        }
+
+        // Collider along the bone (its Y axis points along the bone). center/length/radius are
+        // in prefab units and get converted to the bone's local scale. length 0 = sphere.
+        private static Rigidbody Part(Transform model, string bone, float mass, PhysicsMaterial material, float center, float length, float radius)
+        {
+            var transform = model.GetComponentsInChildren<Transform>(true).FirstOrDefault(t => t.name == bone);
+            if (transform == null)
+            {
+                Debug.LogError("[Abuela] El FBX no tiene el hueso " + bone);
+                return null;
+            }
+            float toLocal = 1f / transform.lossyScale.x;
+            Collider collider;
+            if (length <= 0f)
+            {
+                var sphere = transform.gameObject.AddComponent<SphereCollider>();
+                sphere.center = new Vector3(0f, center * toLocal, 0f);
+                sphere.radius = radius * toLocal;
+                collider = sphere;
+            }
+            else
+            {
+                var capsule = transform.gameObject.AddComponent<CapsuleCollider>();
+                capsule.direction = 1;
+                capsule.center = new Vector3(0f, center * toLocal, 0f);
+                capsule.height = length * toLocal;
+                capsule.radius = radius * toLocal;
+                collider = capsule;
+            }
+            collider.sharedMaterial = material;
+            collider.enabled = false;
+
+            var body = transform.gameObject.AddComponent<Rigidbody>();
+            body.mass = mass;
+            body.linearDamping = .05f;
+            body.angularDamping = .4f;
+            body.maxAngularVelocity = 40f; // lets her spin like crazy
+            body.isKinematic = true;
+            body.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
+            return body;
+        }
+
+        private static void Joint(Rigidbody part, Rigidbody parent, float twist, float swing)
+        {
+            var joint = part.gameObject.AddComponent<CharacterJoint>();
+            joint.connectedBody = parent;
+            joint.lowTwistLimit = new SoftJointLimit { limit = -twist };
+            joint.highTwistLimit = new SoftJointLimit { limit = twist };
+            joint.swing1Limit = new SoftJointLimit { limit = swing };
+            joint.swing2Limit = new SoftJointLimit { limit = swing };
+            joint.enablePreprocessing = false;
         }
 
         private static string Pretty(string part) => char.ToUpper(part[0]) + part.Substring(1).ToLower();
