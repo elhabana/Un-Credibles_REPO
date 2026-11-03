@@ -490,46 +490,6 @@ MonoBehaviour:
     m_Metadata:
       m_Items:
       - rid: 889587774307958788
-  - m_Id: 6070755196928000
-    m_Key: probador.title
-    m_Metadata:
-      m_Items: []
-  - m_Id: 6070755247259648
-    m_Key: probador.tab.helmet
-    m_Metadata:
-      m_Items: []
-  - m_Id: 6070755247259649
-    m_Key: probador.tab.outfit
-    m_Metadata:
-      m_Items: []
-  - m_Id: 6070755247259650
-    m_Key: probador.tab.boots
-    m_Metadata:
-      m_Items: []
-  - m_Id: 6070755247259651
-    m_Key: probador.none
-    m_Metadata:
-      m_Items: []
-  - m_Id: 6070755247259652
-    m_Key: probador.run
-    m_Metadata:
-      m_Items: []
-  - m_Id: 6070755247259653
-    m_Key: probador.stop
-    m_Metadata:
-      m_Items: []
-  - m_Id: 6070755247259654
-    m_Key: probador.back
-    m_Metadata:
-      m_Items: []
-  - m_Id: 6070755247259655
-    m_Key: probador.save
-    m_Metadata:
-      m_Items: []
-  - m_Id: 6070755247259656
-    m_Key: probador.hint
-    m_Metadata:
-      m_Items: []
   - m_Id: 6070755247259657
     m_Key: part.Casco_Abierto
     m_Metadata:
@@ -548,6 +508,26 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 6070755247259661
     m_Key: part.Botas_Altas
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6073943643914240
+    m_Key: lobby.part.helmet
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6073943719411712
+    m_Key: lobby.part.outfit
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6073943719411713
+    m_Key: lobby.part.boots
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6073943719411714
+    m_Key: lobby.part.none
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6075060121501696
+    m_Key: lobby.hint_outfit
     m_Metadata:
       m_Items: []
   m_Metadata:

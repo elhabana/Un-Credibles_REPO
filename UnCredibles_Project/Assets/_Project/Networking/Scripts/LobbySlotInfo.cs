@@ -18,6 +18,7 @@ namespace UnCredibles.Networking
         public bool Ready;
         public bool Host;
         public ulong Owner; // connection that controls the slot (host = 0), NoOwner when empty or offline
+        public CharacterLoadout Loadout;
 
         public bool IsAI => Type == PlayerType.AIPlayer;
 
@@ -32,6 +33,7 @@ namespace UnCredibles.Networking
             Ready = slot.IsReady,
             Host = slot.IsHost,
             Owner = slot.IsOccupied ? owner : NoOwner,
+            Loadout = slot.Loadout,
         };
 
         internal void Write(FastBufferWriter writer)
@@ -45,6 +47,9 @@ namespace UnCredibles.Networking
             writer.WriteValueSafe(Ready);
             writer.WriteValueSafe(Host);
             writer.WriteValueSafe(Owner);
+            writer.WriteValueSafe(Loadout.Helmet ?? string.Empty);
+            writer.WriteValueSafe(Loadout.Outfit ?? string.Empty);
+            writer.WriteValueSafe(Loadout.Boots ?? string.Empty);
         }
 
         internal static LobbySlotInfo Read(FastBufferReader reader)
@@ -59,6 +64,9 @@ namespace UnCredibles.Networking
             reader.ReadValueSafe(out info.Ready);
             reader.ReadValueSafe(out info.Host);
             reader.ReadValueSafe(out info.Owner);
+            reader.ReadValueSafe(out info.Loadout.Helmet);
+            reader.ReadValueSafe(out info.Loadout.Outfit);
+            reader.ReadValueSafe(out info.Loadout.Boots);
             info.Type = (PlayerType)type;
             info.State = (SlotState)state;
             info.Source = (InputSourceType)source;

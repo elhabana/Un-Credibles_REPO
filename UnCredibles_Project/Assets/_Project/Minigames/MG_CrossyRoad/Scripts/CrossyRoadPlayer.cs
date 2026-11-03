@@ -62,6 +62,7 @@ namespace UnCredibles.Minigames.CrossyRoad
 
             var block = new MaterialPropertyBlock();
             outfit = character != null ? character.GetComponent<PlayerCharacterOutfit>() : null;
+            if (outfit != null) outfit.Apply(slot.Loadout); // as chosen in the lobby
             // What is really on screen: the visible body zones plus the parts worn.
             PlayerPresentation.Attach(this, slot, outfit != null ? outfit.VisibleRenderers().ToArray() : bodyRenderers);
             if (outfit != null)

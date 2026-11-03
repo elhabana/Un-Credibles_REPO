@@ -91,10 +91,19 @@ namespace UnCredibles.UI.Results
             figure.transform.position = spot.position;
             figure.transform.localRotation = Quaternion.Euler(0f, 180f, 0f); // face the camera
             figure.transform.localScale = Vector3.one * FigureScale;
+            // Dressed as in the lobby; the crown sits on top of the helmet.
+            float helmet = 0f;
+            var outfit = figure.GetComponentInChildren<UnCredibles.Players.PlayerCharacterOutfit>();
+            var players = UnCredibles.Core.CoreRoot.Instance != null ? UnCredibles.Core.CoreRoot.Instance.Players : null;
+            if (outfit != null && players != null && entry.SlotIndex >= 0 && entry.SlotIndex < players.Slots.Count)
+            {
+                outfit.Apply(players.Slots[entry.SlotIndex].Loadout);
+                helmet = outfit.ExtraHeadHeight;
+            }
             if (entry.Placement == 1)
             {
                 var crown = UnityEngine.Object.Instantiate(prefabs.crown, root.transform, false);
-                crown.localPosition = new Vector3(x, top + 1.69f, -.08f);
+                crown.localPosition = new Vector3(x, top + 1.69f + helmet, -.08f);
             }
 
             Label($"{Ordinal(entry.Placement)}  {entry.Name}", new Vector3(x, top + 2.02f, -.2f), 2.8f, 2.1f);

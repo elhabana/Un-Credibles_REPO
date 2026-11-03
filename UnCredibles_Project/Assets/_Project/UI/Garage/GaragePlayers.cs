@@ -17,6 +17,8 @@ namespace UnCredibles.UI.Garage
         private Vector3[] avatarStarts;
         // Animated character inside each figure (Idle while waiting, Run when the door opens).
         private PlayerCharacterAnimator[] characters;
+        // Helmet, outfit and boots of each figure, changed from the lobby cards.
+        private PlayerCharacterOutfit[] outfits;
         private Quaternion[] avatarRotations;
         private Vector3[] doorStarts;
         private Coroutine departure;
@@ -25,6 +27,7 @@ namespace UnCredibles.UI.Garage
         {
             var positions = new Vector3[avatars.Length];
             characters = new PlayerCharacterAnimator[avatars.Length];
+            outfits = new PlayerCharacterOutfit[avatars.Length];
             for (int i = 0; i < avatars.Length; i++)
             {
                 positions[i] = avatars[i].transform.position;
@@ -32,6 +35,8 @@ namespace UnCredibles.UI.Garage
                 var figure = Instantiate(figures.For(i), avatars[i].transform, false);
                 figure.transform.localRotation = Quaternion.Euler(0f, 90f, 0f);
                 characters[i] = figure.GetComponentInChildren<PlayerCharacterAnimator>();
+                outfits[i] = figure.GetComponentInChildren<PlayerCharacterOutfit>();
+                if (outfits[i] != null && lobby.PartCatalog == null) lobby.PartCatalog = outfits[i].Catalog;
             }
             // The lobby camera faces west: increasing Z runs from screen left to right.
             System.Array.Sort(positions, (a, b) => a.z.CompareTo(b.z));
@@ -117,7 +122,12 @@ namespace UnCredibles.UI.Garage
         private void Refresh()
         {
             for (int i = 0; i < avatars.Length; i++)
-                avatars[i].SetActive(lobby.Players != null && lobby.Slots[i].Occupied);
+            {
+                bool occupied = lobby.Players != null && lobby.Slots[i].Occupied;
+                avatars[i].SetActive(occupied);
+                var loadout = lobby.Players != null ? lobby.Slots[i].Loadout : default;
+                if (outfits[i] != null && !outfits[i].Loadout.Equals(loadout)) outfits[i].Apply(loadout);
+            }
         }
     }
 }

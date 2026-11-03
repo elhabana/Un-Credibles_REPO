@@ -115,7 +115,7 @@ namespace UnCredibles.Players
         // Online clients only: copies one slot of the host so names, ids and slot order match on
         // every machine. The input is a placeholder; the host is the one that simulates.
         public void MirrorSlot(int index, int playerId, PlayerType type, SlotState state, string playerName,
-            bool ready, bool isHost, Func<IPlayerInput> createInput)
+            bool ready, bool isHost, Func<IPlayerInput> createInput, CharacterLoadout loadout = default)
         {
             if (!IsValidIndex(index)) return;
             var slot = slots[index];
@@ -137,6 +137,7 @@ namespace UnCredibles.Players
             slot.IsReady = ready;
             slot.IsHost = isHost;
             slot.IsConnected = state != SlotState.Disconnected;
+            slot.Loadout = loadout;
             SlotChanged?.Invoke(slot);
         }
 
@@ -192,6 +193,15 @@ namespace UnCredibles.Players
             if (!IsOccupied(index)) return false;
             if (slots[index].CharacterId == characterId) return true;
             slots[index].CharacterId = characterId;
+            SlotChanged?.Invoke(slots[index]);
+            return true;
+        }
+
+        public bool SetLoadout(int index, CharacterLoadout loadout)
+        {
+            if (!IsOccupied(index)) return false;
+            if (slots[index].Loadout.Equals(loadout)) return true;
+            slots[index].Loadout = loadout;
             SlotChanged?.Invoke(slots[index]);
             return true;
         }

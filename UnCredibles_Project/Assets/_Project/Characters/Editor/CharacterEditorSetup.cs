@@ -1,23 +1,19 @@
 using System.IO;
 using System.Linq;
 using UnCredibles.Players;
-using UnCredibles.UI.CharacterEditor;
 using UnityEditor;
 using UnityEditor.Localization;
 using UnityEditor.SceneManagement;
 using UnityEngine;
-using UnityEngine.EventSystems;
-using UnityEngine.InputSystem.UI;
 using UnityEngine.Localization.Tables;
 using UnityEngine.SceneManagement;
 
 namespace UnCredibles.Characters.Editor
 {
-    // Character editor ("probador") support: part icons, its UI texts and a test scene.
+    // Lobby customisation support: part icons and the texts of the outfit rows (slot and part names).
     public static class CharacterEditorSetup
     {
         private const string IconFolder = CharacterPartsSetup.Folder + "/Icons";
-        private const string ScenePath = "Assets/_Project/UI/CharacterEditor/SCN_CharacterEditor.unity";
         private const string CharacterPrefabPath = "Assets/_Project/Characters/PJ/PF_Shared_PJ.prefab";
         private const string CatalogPath = CharacterPartsSetup.Folder + "/SO_PJ_PartCatalog.asset";
         private const string PlayerMaterials = "Assets/_Project/Player/Materials/M_Player_";
@@ -25,17 +21,12 @@ namespace UnCredibles.Characters.Editor
 
         private static readonly (string key, string es, string en)[] Texts =
         {
-            ("probador.title", "Personaje", "Character"),
-            ("probador.tab.helmet", "Casco", "Helmet"),
-            ("probador.tab.outfit", "Ropa", "Outfit"),
-            ("probador.tab.boots", "Botas", "Boots"),
-            ("probador.none", "Nada", "None"),
-            ("probador.run", "Correr", "Run"),
-            ("probador.stop", "Parar", "Stop"),
-            ("probador.back", "Volver", "Back"),
-            ("probador.save", "Guardar", "Save"),
-            ("probador.hint", "Arrastra para girar  ·  Rueda para acercar  ·  Q / E cambia de pestaña",
-                "Drag to rotate  ·  Wheel to zoom  ·  Q / E switch tab"),
+            ("lobby.part.helmet", "Casco", "Helmet"),
+            ("lobby.part.outfit", "Ropa", "Outfit"),
+            ("lobby.part.boots", "Botas", "Boots"),
+            ("lobby.part.none", "Nada", "None"),
+            ("lobby.hint_outfit", "ARRIBA / ABAJO: casco, ropa o botas     IZQUIERDA / DERECHA: cambiar",
+                "UP / DOWN: helmet, outfit or boots     LEFT / RIGHT: change"),
             ("part.Casco_Abierto", "Casco abierto", "Open helmet"),
             ("part.Casco_Cerrado", "Casco con visera", "Visor helmet"),
             ("part.Traje_Mono", "Mono", "Jumpsuit"),
@@ -43,19 +34,25 @@ namespace UnCredibles.Characters.Editor
             ("part.Botas_Altas", "Botas altas", "Tall boots"),
         };
 
-        [MenuItem("UnCredibles/Personaje PJ/Probador: iconos, textos y escena")]
+        // Keys of the old standalone editor, removed from the table.
+        private static readonly string[] Obsolete =
+        {
+            "probador.title", "probador.tab.helmet", "probador.tab.outfit", "probador.tab.boots", "probador.none",
+            "probador.run", "probador.stop", "probador.back", "probador.save", "probador.hint",
+        };
+
+        [MenuItem("UnCredibles/Personaje PJ/Piezas: iconos y textos")]
         public static void Run()
         {
             var character = AssetDatabase.LoadAssetAtPath<GameObject>(CharacterPrefabPath);
             var catalog = AssetDatabase.LoadAssetAtPath<CharacterPartCatalog>(CatalogPath);
             if (character == null || catalog == null)
             {
-                Debug.LogError("[Probador] Falta el personaje o el catalogo: ejecuta antes 'Configurar e integrar'");
+                Debug.LogError("[Piezas] Falta el personaje o el catalogo: ejecuta antes 'Configurar e integrar'");
                 return;
             }
             RenderIcons(character, catalog);
             AddTexts();
-            BuildScene(character);
             AssetDatabase.SaveAssets();
         }
 
@@ -133,7 +130,7 @@ namespace UnCredibles.Characters.Editor
                     so.FindProperty("icon").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Sprite>(path);
                     so.ApplyModifiedPropertiesWithoutUndo();
                 }
-                Debug.Log($"[Probador] Iconos de {catalog.Parts.Count} piezas en {IconFolder}");
+                Debug.Log($"[Piezas] Iconos de {catalog.Parts.Count} piezas en {IconFolder}");
             }
             finally
             {
@@ -150,9 +147,11 @@ namespace UnCredibles.Characters.Editor
             var collection = LocalizationEditorSettings.GetStringTableCollection("UI");
             if (collection == null)
             {
-                Debug.LogWarning("[Probador] No hay tabla de textos UI");
+                Debug.LogWarning("[Piezas] No hay tabla de textos UI");
                 return;
             }
+            foreach (var key in Obsolete)
+                if (collection.SharedData.GetEntry(key) != null) collection.SharedData.RemoveKey(key);
             foreach (var (key, es, en) in Texts)
             {
                 if (collection.SharedData.GetEntry(key) == null) collection.SharedData.AddKey(key);
@@ -166,38 +165,7 @@ namespace UnCredibles.Characters.Editor
                 }
             }
             EditorUtility.SetDirty(collection.SharedData);
-            Debug.Log($"[Probador] {Texts.Length} textos en la tabla UI (es / en)");
-        }
-
-        // ---------- Test scene ----------
-
-        private static void BuildScene(GameObject characterPrefab)
-        {
-            if (SceneManager.GetSceneByPath(ScenePath).isLoaded)
-            {
-                Debug.Log("[Probador] La escena de prueba esta abierta: no se rehace");
-                return;
-            }
-            // Additive, so whatever scene is open stays as it is.
-            var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Additive);
-            var eventSystem = new GameObject("EventSystem", typeof(EventSystem), typeof(InputSystemUIInputModule));
-            SceneManager.MoveGameObjectToScene(eventSystem, scene);
-            var root = new GameObject("CharacterEditor");
-            SceneManager.MoveGameObjectToScene(root, scene);
-            var controller = root.AddComponent<CharacterEditorController>();
-            var so = new SerializedObject(controller);
-            so.FindProperty("characterPrefab").objectReferenceValue = characterPrefab;
-            so.FindProperty("stagePosition").vector3Value = Vector3.zero;
-            string[] colors = { "Red", "Blue", "Green", "Yellow" };
-            var list = so.FindProperty("playerColors");
-            list.arraySize = colors.Length;
-            for (int i = 0; i < colors.Length; i++)
-                list.GetArrayElementAtIndex(i).objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>(PlayerMaterials + colors[i] + ".mat");
-            so.ApplyModifiedPropertiesWithoutUndo();
-            Directory.CreateDirectory(Path.GetDirectoryName(ScenePath));
-            EditorSceneManager.SaveScene(scene, ScenePath);
-            EditorSceneManager.CloseScene(scene, true);
-            Debug.Log("[Probador] Escena de prueba: " + ScenePath);
+            Debug.Log($"[Piezas] {Texts.Length} textos en la tabla UI (es / en)");
         }
     }
 }

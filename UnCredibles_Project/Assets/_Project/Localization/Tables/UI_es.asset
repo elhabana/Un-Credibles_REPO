@@ -461,6 +461,26 @@ MonoBehaviour:
     m_Localized: Botas altas
     m_Metadata:
       m_Items: []
+  - m_Id: 6073943643914240
+    m_Localized: Casco
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6073943719411712
+    m_Localized: Ropa
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6073943719411713
+    m_Localized: Botas
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6073943719411714
+    m_Localized: Nada
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6075060121501696
+    m_Localized: 'ARRIBA / ABAJO: casco, ropa o botas     IZQUIERDA / DERECHA: cambiar'
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

@@ -39,6 +39,14 @@ namespace UnCredibles.UI.PartyLobby
         private Coroutine countdown;
         private bool starting;
 
+        // Customisation: row picked on each card (helmet / outfit / boots), last stick of each
+        // local player (to act once per push) and whether the slot already got its first outfit.
+        private const float StickPush = .6f;
+        private readonly int[] partRow = new int[PlayerRegistry.MaxPlayers];
+        private readonly Vector2[] lastMove = new Vector2[PlayerRegistry.MaxPlayers];
+        private readonly bool[] dressed = new bool[PlayerRegistry.MaxPlayers];
+        private bool sentSavedLoadout;
+
         public PlayerRegistry Players { get; private set; }
         public BatPadService BatPad => batPad;
         public SessionMode Mode { get; private set; }
@@ -61,6 +69,10 @@ namespace UnCredibles.UI.PartyLobby
 
         // Online, the BatPad room reuses the Relay join code so players only share one code.
         private string PhoneRoomCode => IsOnline ? core.Online.JoinCode : null;
+
+        // Wearable parts the lobby lets the players pick (given by the garage figures).
+        public CharacterPartCatalog PartCatalog { get; set; }
+        public event Action CustomizationChanged; // the highlighted row of a card moved
 
         public event Action Initialized;
         public event Action SlotsChanged;
@@ -136,11 +148,18 @@ namespace UnCredibles.UI.PartyLobby
             expiredPhones.Clear();
         }
 
-        // Lobby input of the players of this machine: Jump toggles Ready, Pause un-readies or leaves.
-        // Remote players' ready arrives through the online session instead.
+        // Lobby input of the players of this machine: Jump toggles Ready, Pause un-readies or leaves,
+        // up/down picks helmet, outfit or boots and left/right changes it.
+        // Remote players' ready and outfit arrive through the online session instead.
         private void Update()
         {
-            if (Players == null || starting || !IsAuthority) return;
+            if (Players == null || starting) return;
+            if (!IsAuthority)
+            {
+                SendSavedLoadoutOnce();
+                return;
+            }
+            DressNewPlayers();
             RemoveExpiredPhones();
             if (UsesPhones) JoinPressingPhones();
             foreach (var slot in Players.Slots)
@@ -148,6 +167,7 @@ namespace UnCredibles.UI.PartyLobby
                 if (!slot.IsOccupied || slot.IsAI || slot.Input == null || slot.Input is NetworkInput) continue;
                 if (joinFrame[slot.SlotIndex] == Time.frameCount) continue; // the join press is not a ready press
 
+                ReadCustomizeStick(slot.SlotIndex, slot.Input.Move);
                 if (slot.Input.WasPressed(PlayerAction.Jump)) Players.SetReady(slot.SlotIndex, !slot.IsReady);
                 else if (slot.Input.WasPressed(PlayerAction.Crouch)) Players.SetReady(slot.SlotIndex, false);
                 else if (slot.Input.WasPressed(PlayerAction.Pause))
@@ -162,6 +182,125 @@ namespace UnCredibles.UI.PartyLobby
                     }
                 }
             }
+        }
+
+        // ---------- Customisation (helmet, outfit, boots) ----------
+
+        public int SelectedPartRow(int slotIndex) => partRow[slotIndex];
+
+        // Who may change a card: the authority for the players of its own machine and the bots,
+        // an online client only for its own player.
+        public bool CanCustomize(int slotIndex)
+        {
+            if (Players == null || starting || PartCatalog == null) return false;
+            if (!IsAuthority)
+                return room.Slots[slotIndex].Occupied && room.Slots[slotIndex].Owner == LocalClientId;
+            var slot = Players.Slots[slotIndex];
+            return slot.IsOccupied && !(slot.Input is NetworkInput);
+        }
+
+        public void StepPart(int slotIndex, CharacterPartSlot partSlot, int step)
+        {
+            if (!CanCustomize(slotIndex)) return;
+            partRow[slotIndex] = (int)partSlot;
+            var current = Slots[slotIndex].Loadout;
+            var next = current.With(partSlot, PartCatalog.Step(partSlot, current.Get(partSlot), step));
+            CustomizationChanged?.Invoke();
+            if (IsAuthority)
+            {
+                Players.SetLoadout(slotIndex, next);
+                if (Players.Slots[slotIndex].IsHost) CharacterLoadoutStore.Save(next); // this machine's own player
+            }
+            else
+            {
+                room.SendLoadout(next);
+                CharacterLoadoutStore.Save(next);
+            }
+        }
+
+        public void MovePartRow(int slotIndex, int delta)
+        {
+            if (!CanCustomize(slotIndex)) return;
+            int rows = Enum.GetValues(typeof(CharacterPartSlot)).Length;
+            partRow[slotIndex] = ((partRow[slotIndex] + delta) % rows + rows) % rows;
+            CustomizationChanged?.Invoke();
+        }
+
+        // Once per push of the stick / arrow keys (holding does not repeat).
+        private void ReadCustomizeStick(int slotIndex, Vector2 move)
+        {
+            var last = lastMove[slotIndex];
+            lastMove[slotIndex] = move;
+            if (move.y > StickPush && last.y <= StickPush) MovePartRow(slotIndex, -1);
+            else if (move.y < -StickPush && last.y >= -StickPush) MovePartRow(slotIndex, 1);
+            else if (move.x > StickPush && last.x <= StickPush) StepPart(slotIndex, (CharacterPartSlot)partRow[slotIndex], 1);
+            else if (move.x < -StickPush && last.x >= -StickPush) StepPart(slotIndex, (CharacterPartSlot)partRow[slotIndex], -1);
+        }
+
+        // New bots get a random outfit; this machine's own player wears the one it saved.
+        private void DressNewPlayers()
+        {
+            if (PartCatalog == null) return;
+            foreach (var slot in Players.Slots)
+            {
+                int index = slot.SlotIndex;
+                if (!slot.IsOccupied)
+                {
+                    dressed[index] = false;
+                    partRow[index] = 0;
+                    continue;
+                }
+                if (dressed[index] || !slot.Loadout.Equals(default(CharacterLoadout)))
+                {
+                    dressed[index] = true;
+                    continue;
+                }
+                dressed[index] = true;
+                if (slot.IsAI) Players.SetLoadout(index, PartCatalog.RandomLoadout());
+                else if (slot.IsHost) Players.SetLoadout(index, CharacterLoadoutStore.Load());
+            }
+        }
+
+        // Online client: as soon as its player is in the room, it wears the outfit saved here.
+        private void SendSavedLoadoutOnce()
+        {
+            if (sentSavedLoadout) return;
+            int mine = MySlotIndex();
+            if (mine < 0) return;
+            sentSavedLoadout = true;
+            var saved = CharacterLoadoutStore.Load();
+            if (!saved.Equals(default(CharacterLoadout)) && room.Slots[mine].Loadout.Equals(default(CharacterLoadout)))
+                room.SendLoadout(saved);
+        }
+
+        private int MySlotIndex()
+        {
+            var slots = room.Slots;
+            for (int i = 0; i < slots.Count; i++)
+                if (slots[i].Occupied && slots[i].Owner == LocalClientId) return i;
+            return -1;
+        }
+
+        // Arrow keys / WASD / d-pad of an online client move its own outfit.
+        private static bool TryDirection(InputControl control, out int dx, out int dy)
+        {
+            dx = dy = 0;
+            string name = control.name;
+            if (control.device is Keyboard)
+            {
+                if (name == "leftArrow" || name == "a") dx = -1;
+                else if (name == "rightArrow" || name == "d") dx = 1;
+                else if (name == "upArrow" || name == "w") dy = 1;
+                else if (name == "downArrow" || name == "s") dy = -1;
+            }
+            else if (control.device is Gamepad && control.parent != null && control.parent.name == "dpad")
+            {
+                if (name == "left") dx = -1;
+                else if (name == "right") dx = 1;
+                else if (name == "up") dy = 1;
+                else if (name == "down") dy = -1;
+            }
+            return dx != 0 || dy != 0;
         }
 
         public bool AddAI(int slotIndex)
@@ -269,6 +408,14 @@ namespace UnCredibles.UI.PartyLobby
         private void HandleClientButton(InputControl control)
         {
             if (starting) return;
+            if (TryDirection(control, out int dx, out int dy))
+            {
+                int mine = MySlotIndex();
+                if (mine < 0) return;
+                if (dy != 0) MovePartRow(mine, -dy);
+                else StepPart(mine, (CharacterPartSlot)partRow[mine], dx);
+                return;
+            }
             if (IsJoinButton(control)) room.SendReady(!IsMyPlayerReady());
             else if (IsCancelButton(control)) room.SendReady(false);
         }

@@ -24,6 +24,7 @@ namespace UnCredibles.Networking
         private const string SnapshotMessage = "uc.lobby.snapshot";
         private const string CountdownMessage = "uc.lobby.countdown";
         private const string ReadyMessage = "uc.lobby.ready";
+        private const string LoadoutMessage = "uc.lobby.loadout";
         private const string HelloMessage = "uc.lobby.hello";
         private const string SceneMessage = "uc.flow.scene";
         private const string LoadedMessage = "uc.flow.loaded";
@@ -38,7 +39,7 @@ namespace UnCredibles.Networking
         // Bigger snapshots cannot travel unreliable in one packet.
         private const int UnreliableLimit = 1000;
 
-        private static readonly string[] HostMessages = { ReadyMessage, HelloMessage, LoadedMessage, InputMessage, VoteRequestMessage };
+        private static readonly string[] HostMessages = { ReadyMessage, LoadoutMessage, HelloMessage, LoadedMessage, InputMessage, VoteRequestMessage };
         private static readonly string[] ClientMessages =
             { SnapshotMessage, CountdownMessage, SceneMessage, StandingsMessage, VoteMessage, HudMessage, MinigameSnapshotMessage, EventMessage };
 
@@ -123,6 +124,17 @@ namespace UnCredibles.Networking
             using var writer = new FastBufferWriter(4, Allocator.Temp);
             writer.WriteValueSafe(ready);
             messaging.SendNamedMessage(ReadyMessage, NetworkManager.ServerClientId, writer);
+        }
+
+        // Client: helmet, outfit and boots chosen for its own player.
+        public void SendLoadout(CharacterLoadout loadout)
+        {
+            if (!IsActive || IsHost) return;
+            using var writer = new FastBufferWriter(256, Allocator.Temp);
+            writer.WriteValueSafe(loadout.Helmet ?? string.Empty);
+            writer.WriteValueSafe(loadout.Outfit ?? string.Empty);
+            writer.WriteValueSafe(loadout.Boots ?? string.Empty);
+            messaging.SendNamedMessage(LoadoutMessage, NetworkManager.ServerClientId, writer);
         }
 
         // Client: a freshly loaded lobby asks for the current state (earlier snapshots may have
@@ -254,6 +266,7 @@ namespace UnCredibles.Networking
             if (connection.Manager.IsServer)
             {
                 messaging.RegisterNamedMessageHandler(ReadyMessage, HandleReadyMessage);
+                messaging.RegisterNamedMessageHandler(LoadoutMessage, HandleLoadoutMessage);
                 messaging.RegisterNamedMessageHandler(HelloMessage, HandleHelloMessage);
                 messaging.RegisterNamedMessageHandler(LoadedMessage, HandleLoadedMessage);
                 messaging.RegisterNamedMessageHandler(InputMessage, HandleInputMessage);
@@ -328,6 +341,15 @@ namespace UnCredibles.Networking
             if (clientSlots.TryGetValue(sender, out int slotIndex)) players.SetReady(slotIndex, ready);
         }
 
+        private void HandleLoadoutMessage(ulong sender, FastBufferReader reader)
+        {
+            var loadout = new CharacterLoadout();
+            reader.ReadValueSafe(out loadout.Helmet);
+            reader.ReadValueSafe(out loadout.Outfit);
+            reader.ReadValueSafe(out loadout.Boots);
+            if (clientSlots.TryGetValue(sender, out int slotIndex)) players.SetLoadout(slotIndex, loadout);
+        }
+
         private void HandleHelloMessage(ulong sender, FastBufferReader reader) => SendLobbySnapshot();
 
         private void HandleLoadedMessage(ulong sender, FastBufferReader reader)
@@ -391,7 +413,7 @@ namespace UnCredibles.Networking
                 slots[i] = info;
                 ulong owner = info.Owner;
                 players.MirrorSlot(i, info.PlayerId, info.Occupied ? info.Type : PlayerType.Empty, info.State,
-                    info.Name, info.Ready, info.Host, () => new NetworkInput(owner));
+                    info.Name, info.Ready, info.Host, () => new NetworkInput(owner), info.Loadout);
             }
             SlotsChanged?.Invoke();
         }

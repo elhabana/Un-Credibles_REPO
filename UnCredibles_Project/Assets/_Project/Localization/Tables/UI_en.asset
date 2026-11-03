@@ -464,6 +464,26 @@ MonoBehaviour:
     m_Localized: Tall boots
     m_Metadata:
       m_Items: []
+  - m_Id: 6073943643914240
+    m_Localized: Helmet
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6073943719411712
+    m_Localized: Outfit
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6073943719411713
+    m_Localized: Boots
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6073943719411714
+    m_Localized: None
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6075060121501696
+    m_Localized: 'UP / DOWN: helmet, outfit or boots     LEFT / RIGHT: change'
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

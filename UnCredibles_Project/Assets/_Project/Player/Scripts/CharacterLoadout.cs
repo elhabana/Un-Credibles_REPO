@@ -24,7 +24,7 @@ namespace UnCredibles.Players
     // What a player wears: one part id per slot (empty = nothing). Small enough to send
     // over the network or save as it is.
     [Serializable]
-    public struct CharacterLoadout
+    public struct CharacterLoadout : IEquatable<CharacterLoadout>
     {
         public string Helmet;
         public string Outfit;
@@ -36,6 +36,14 @@ namespace UnCredibles.Players
             CharacterPartSlot.Outfit => Outfit,
             _ => Boots,
         };
+
+        public bool Equals(CharacterLoadout other) =>
+            (Helmet ?? string.Empty) == (other.Helmet ?? string.Empty)
+            && (Outfit ?? string.Empty) == (other.Outfit ?? string.Empty)
+            && (Boots ?? string.Empty) == (other.Boots ?? string.Empty);
+
+        public override bool Equals(object obj) => obj is CharacterLoadout other && Equals(other);
+        public override int GetHashCode() => HashCode.Combine(Helmet ?? string.Empty, Outfit ?? string.Empty, Boots ?? string.Empty);
 
         public CharacterLoadout With(CharacterPartSlot slot, string partId)
         {

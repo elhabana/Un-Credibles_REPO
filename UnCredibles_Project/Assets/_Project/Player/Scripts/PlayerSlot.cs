@@ -13,6 +13,8 @@ namespace UnCredibles.Players
         public SlotState State { get; internal set; }
         public IPlayerInput Input { get; internal set; }
         public int CharacterId { get; internal set; }
+        // Helmet, outfit and boots chosen in the lobby.
+        public CharacterLoadout Loadout { get; internal set; }
         public bool IsReady { get; internal set; }
         public bool IsConnected { get; internal set; }
         public bool IsHost { get; internal set; }
@@ -32,6 +34,7 @@ namespace UnCredibles.Players
             State = SlotState.Empty;
             Input = null;
             CharacterId = 0;
+            Loadout = default;
             IsReady = false;
             IsConnected = false;
             IsHost = false;
