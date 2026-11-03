@@ -59,7 +59,7 @@ MonoBehaviour:
   squashDuration: 0.08
   vanishDuration: 0.25
   grandmaLaunchSpeed: {x: 8, y: 11}
-  grandmaLaunchUp: {x: 8, y: 10}
+  grandmaLaunchUp: {x: 10, y: 15}
   grandmaSpinSpeed: 900
   grandmaGravity: 20
   oilTruckChance: 0.08
@@ -88,6 +88,7 @@ MonoBehaviour:
   grandmaRespawnDelay: 2
   returnToSpawnAfterDelivery: 0
   grandmaColor: {r: 0.75, g: 0.55, b: 0.85, a: 1}
+  grandmaWalkSpeed: 1.8
   offscreenMargin: 11
   carColors:
   - {r: 0.95, g: 0.45, b: 0.1, a: 1}

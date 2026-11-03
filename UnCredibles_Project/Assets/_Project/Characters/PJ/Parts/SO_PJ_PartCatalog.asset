@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3be723fc0d835344587493c2e7657d5c, type: 3}
+  m_Name: SO_PJ_PartCatalog
+  m_EditorClassIdentifier: UnCredibles.Player::UnCredibles.Players.CharacterPartCatalog
+  parts:
+  - {fileID: 11400000, guid: 89fd3013bc9916941ad3dfc1c4ca5084, type: 2}
+  - {fileID: 11400000, guid: c301c90f83bfd9247afa010616ca2674, type: 2}
+  - {fileID: 11400000, guid: 715edd94ffbdf7048bf96b4254d83811, type: 2}
+  - {fileID: 11400000, guid: 6280ef9d24dd93243bb7023e5a4a00e4, type: 2}
+  - {fileID: 11400000, guid: 7ccbd5b743654b642876c61d97869e27, type: 2}

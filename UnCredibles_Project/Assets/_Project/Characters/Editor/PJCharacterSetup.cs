@@ -34,7 +34,12 @@ namespace UnCredibles.Characters.Editor
         private const string CharacterChild = "PJ";
 
         private static readonly string[] Colors = { "Red", "Blue", "Green", "Yellow" };
-        private static readonly string[] SkinMeshes = { "Cuerpo", "Parpado_Sup_L", "Parpado_Inf_L", "Parpado_Sup_R", "Parpado_Inf_R" };
+        private const string BodyZonePrefix = "Cuerpo_";   // the body comes split in zones (Cuerpo_Torso...)
+        private static readonly string[] Lids = { "Parpado_Sup_L", "Parpado_Inf_L", "Parpado_Sup_R", "Parpado_Inf_R" };
+        private static readonly string[] FaceMeshes = { "Ojos", "Cejas", "Parpado_Sup_L", "Parpado_Inf_L", "Parpado_Sup_R", "Parpado_Inf_R" };
+
+        // Painted with the player colour: every body zone and the eyelids (skin).
+        private static bool IsSkin(string meshName) => meshName.StartsWith(BodyZonePrefix) || Lids.Contains(meshName);
         private static readonly string[] OldFigureParts = { "Head", "Body", "Right eye", "Left eye" };
         private static readonly string[] OldCrossyParts = { "Body", "Nose" };
 
@@ -81,7 +86,9 @@ namespace UnCredibles.Characters.Editor
             var eyes = MakeMaterial(EyesMaterialPath, neutral, new Color(.96f, .96f, .96f));
             var brows = MakeMaterial(BrowsMaterialPath, neutral, new Color(.25f, .15f, .1f));
             var controller = BuildController();
-            var character = BuildCharacterPrefab(controller, neutral, eyes, brows);
+            var catalog = CharacterPartsSetup.Build(neutral);
+            var character = BuildCharacterPrefab(controller, neutral, eyes, brows, catalog);
+            CharacterPartsSetup.MeasureHelmets(character, catalog);
             var grandma = GrandmaCharacterSetup.Build(neutral);
             if (grandma == null) return;
 
@@ -215,7 +222,7 @@ namespace UnCredibles.Characters.Editor
 
         // ---------- Character prefab (1 unit tall, feet at 0, facing +Z) ----------
 
-        private static GameObject BuildCharacterPrefab(AnimatorController controller, Material skin, Material eyes, Material brows)
+        private static GameObject BuildCharacterPrefab(AnimatorController controller, Material skin, Material eyes, Material brows, CharacterPartCatalog catalog)
         {
             var scene = EditorSceneManager.NewPreviewScene();
             try
@@ -233,7 +240,7 @@ namespace UnCredibles.Characters.Editor
                 }
 
                 // Face +Z like the old figures (the eyes are in front of the body).
-                var body = Find(model, "Cuerpo").bounds;
+                var body = Find(model, BodyZonePrefix + "Cabeza").bounds;
                 var eyeBounds = Find(model, "Ojos").bounds;
                 if (eyeBounds.center.z < body.center.z) model.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
 
@@ -255,6 +262,27 @@ namespace UnCredibles.Characters.Editor
                 if (socket == null) Debug.LogError("[PJ] El FBX no tiene el hueso " + BackSocketBone);
                 so.FindProperty("backSocket").objectReferenceValue = socket;
                 so.ApplyModifiedPropertiesWithoutUndo();
+
+                // Outfit: body zones it can hide, face meshes for helmets with a visor, part catalog.
+                var outfit = root.AddComponent<PlayerCharacterOutfit>();
+                var outfitSo = new SerializedObject(outfit);
+                outfitSo.FindProperty("catalog").objectReferenceValue = catalog;
+                outfitSo.FindProperty("model").objectReferenceValue = model.transform;
+                var zones = model.GetComponentsInChildren<Renderer>(true).Where(r => r.name.StartsWith(BodyZonePrefix)).ToArray();
+                var zoneList = outfitSo.FindProperty("zones");
+                zoneList.arraySize = zones.Length;
+                for (int i = 0; i < zones.Length; i++)
+                {
+                    var item = zoneList.GetArrayElementAtIndex(i);
+                    item.FindPropertyRelative("Zone").intValue = (int)CharacterPartsSetup.ZoneFromName(zones[i].name.Substring(BodyZonePrefix.Length));
+                    item.FindPropertyRelative("Renderer").objectReferenceValue = zones[i];
+                }
+                var faceRenderers = model.GetComponentsInChildren<Renderer>(true).Where(r => FaceMeshes.Contains(r.name)).ToArray();
+                var faceList = outfitSo.FindProperty("face");
+                faceList.arraySize = faceRenderers.Length;
+                for (int i = 0; i < faceRenderers.Length; i++) faceList.GetArrayElementAtIndex(i).objectReferenceValue = faceRenderers[i];
+                outfitSo.ApplyModifiedPropertiesWithoutUndo();
+                if (FindDeep(model.transform, "Socket_Cabeza") == null) Debug.LogError("[PJ] El FBX no tiene el hueso Socket_Cabeza (cascos)");
 
                 var prefab = PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
                 Debug.Log("[PJ] PF_Shared_PJ creado (altura 1, mira a +Z)");
@@ -329,9 +357,10 @@ namespace UnCredibles.Characters.Editor
                 var so = new SerializedObject(player);
                 so.FindProperty("character").objectReferenceValue = driver;
                 so.FindProperty("carriedGrandma").objectReferenceValue = carried;
+                var zoneRenderers = instance.GetComponentsInChildren<Renderer>(true).Where(r => r.name.StartsWith(BodyZonePrefix)).ToArray();
                 var renderers = so.FindProperty("bodyRenderers");
-                renderers.arraySize = 1;
-                renderers.GetArrayElementAtIndex(0).objectReferenceValue = Find(instance, "Cuerpo");
+                renderers.arraySize = zoneRenderers.Length;
+                for (int i = 0; i < zoneRenderers.Length; i++) renderers.GetArrayElementAtIndex(i).objectReferenceValue = zoneRenderers[i];
                 so.ApplyModifiedPropertiesWithoutUndo();
 
                 PrefabUtility.SaveAsPrefabAsset(contents, CrossyPath + ".prefab");
@@ -438,7 +467,7 @@ namespace UnCredibles.Characters.Editor
                     // Each run rebuilds the character, so overrides of the previous one point nowhere.
                     PrefabUtility.RemoveUnusedOverrides(new[] { contents }, InteractionMode.AutomatedAction);
                     foreach (var renderer in contents.GetComponentsInChildren<Renderer>(true))
-                        if (SkinMeshes.Contains(renderer.name))
+                        if (IsSkin(renderer.name))
                             renderer.sharedMaterials = Enumerable.Repeat(pair.Value, renderer.sharedMaterials.Length).ToArray();
                     PrefabUtility.SaveAsPrefabAsset(contents, path);
                 }

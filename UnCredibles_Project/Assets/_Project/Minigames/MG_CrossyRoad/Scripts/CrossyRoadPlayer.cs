@@ -37,6 +37,9 @@ namespace UnCredibles.Minigames.CrossyRoad
         private bool hasRemote;
         private bool remoteRunning;
         private float runGraceTimer;
+        private PlayerCharacterOutfit outfit;
+        private Vector3 carriedRestLocal;
+        private bool carriedRestKnown;
 
         public PlayerSlot Slot { get; private set; }
         public Vector3 SpawnPosition { get; private set; }
@@ -58,7 +61,15 @@ namespace UnCredibles.Minigames.CrossyRoad
             SpawnPosition = spawnPosition;
 
             var block = new MaterialPropertyBlock();
-            PlayerPresentation.Attach(this, slot, bodyRenderers);
+            outfit = character != null ? character.GetComponent<PlayerCharacterOutfit>() : null;
+            // What is really on screen: the visible body zones plus the parts worn.
+            PlayerPresentation.Attach(this, slot, outfit != null ? outfit.VisibleRenderers().ToArray() : bodyRenderers);
+            if (outfit != null)
+            {
+                outfit.Changed -= FitCarriedGrandma;
+                outfit.Changed += FitCarriedGrandma;
+            }
+            FitCarriedGrandma();
             if (carriedGrandma != null)
             {
                 block.SetColor(BaseColorId, grandmaColor);
@@ -72,6 +83,20 @@ namespace UnCredibles.Minigames.CrossyRoad
         }
 
         public bool IsSlipping => slipTimer > 0f;
+
+        // The grandma sits on the head: a helmet lifts her by its height.
+        private void FitCarriedGrandma()
+        {
+            if (carriedGrandma == null) return;
+            var carried = carriedGrandma.transform;
+            if (!carriedRestKnown)
+            {
+                carriedRestLocal = carried.localPosition;
+                carriedRestKnown = true;
+            }
+            float lift = outfit != null ? outfit.ExtraHeadHeight : 0f;
+            carried.localPosition = carriedRestLocal + (carried.parent != null ? carried.parent.InverseTransformVector(Vector3.up * lift) : Vector3.up * lift);
+        }
 
         // Moves with the stick/keys. Walking into a car is blocked; the avatar slides along it.
         // On oil it keeps its momentum: it can barely steer and goes further than wanted.
