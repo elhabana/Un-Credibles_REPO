@@ -37,7 +37,7 @@ namespace UnCredibles.Minigames.CrossyRoad
         [SerializeField, Min(1f), Tooltip("Speed multiplier when not carrying a grandma.")]
         private float emptyHandedSpeedMultiplier = 1.3f;
         [SerializeField, Min(0f), Tooltip("Degrees per second the avatar turns towards where it walks.")]
-        private float turnSpeed = 900f;
+        private float turnSpeed = 1800f;
         [SerializeField, Range(0f, 0.9f)] private float inputDeadZone = 0.2f;
         [SerializeField, Min(0.1f), Tooltip("Body radius in metres for cars, players and pickups.")]
         private float playerRadius = 0.4f;

@@ -47,7 +47,7 @@ MonoBehaviour:
     carLength: 2
   moveSpeed: 5
   emptyHandedSpeedMultiplier: 1.3
-  turnSpeed: 900
+  turnSpeed: 1800
   inputDeadZone: 0.2
   playerRadius: 0.4
   walkBobHeight: 0.12

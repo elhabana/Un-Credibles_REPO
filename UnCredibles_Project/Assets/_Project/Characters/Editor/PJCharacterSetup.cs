@@ -42,8 +42,8 @@ namespace UnCredibles.Characters.Editor
         private const float CrossyHeight = 1.7f;    // clearly taller than the 1.18 grandmas and 1.0 cars
         private const float CrossyRunSpeed = 2.2f;  // small avatar moving fast: quicker legs
         private const float CarriedGrandmaHeight = 1f; // a bit smaller than the waiting ones (1.18) so she fits on the back
-        private const float CarriedGrandmaSitMin = -.1f; // range for her bottom relative to the hands
-        private const float CarriedGrandmaSitMax = .3f;
+        private const float CarriedGrandmaSitMin = -.05f; // her bottom sits on the hands (range around them)
+        private const float CarriedGrandmaSitMax = .05f;
         private const float CarriedGrandmaSink = .04f; // pressed slightly into the back so no gap shows while bouncing
 
         static PJCharacterSetup()
@@ -201,7 +201,10 @@ namespace UnCredibles.Characters.Editor
                     var transition = from.state.AddTransition(to.state);
                     transition.hasExitTime = false;
                     transition.hasFixedDuration = true;
-                    transition.duration = to.running ? .15f : .2f;
+                    // Short and interruptible: turning or tapping the stick never leaves the legs
+                    // stuck halfway between two loops.
+                    transition.duration = to.running ? .08f : .12f;
+                    transition.interruptionSource = TransitionInterruptionSource.Destination;
                     transition.AddCondition(to.running ? AnimatorConditionMode.If : AnimatorConditionMode.IfNot, 0f, "Running");
                     transition.AddCondition(to.carrying ? AnimatorConditionMode.If : AnimatorConditionMode.IfNot, 0f, "Carrying");
                 }
@@ -367,7 +370,7 @@ namespace UnCredibles.Characters.Editor
                 var heroBack = heroPoints.GroupBy(p => Mathf.FloorToInt(p.y / Slice)).ToDictionary(g => g.Key, g => g.Min(p => p.z));
 
                 float bestScore = float.MaxValue, bestLean = 0f, bestLift = 0f, bestGap = 0f;
-                for (float lean = 0f; lean <= 16.1f; lean += 4f) // forward, following the lean of the carry loops
+                for (float lean = 0f; lean <= 40.1f; lean += 4f) // forward, following the bent back of the carry loops
                 {
                     rider.transform.rotation = Quaternion.Euler(lean, 0f, 0f);
                     var riderPoints = BakedPoints(rider).Where(p => Mathf.Abs(p.x) < .35f).ToList();

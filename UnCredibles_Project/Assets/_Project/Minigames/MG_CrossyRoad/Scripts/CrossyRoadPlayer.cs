@@ -11,6 +11,9 @@ namespace UnCredibles.Minigames.CrossyRoad
     {
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
         private const float BlinkInterval = 0.1f;
+        // Keeps the run going this long after the stick passes through the dead zone (e.g. when
+        // reversing), so the legs do not drop to idle for a frame and look like sliding.
+        private const float RunGrace = 0.12f;
 
         [SerializeField] private Transform visual;
         [SerializeField] private Renderer[] bodyRenderers = new Renderer[0];
@@ -33,6 +36,7 @@ namespace UnCredibles.Minigames.CrossyRoad
         private bool remoteSlipping;
         private bool hasRemote;
         private bool remoteRunning;
+        private float runGraceTimer;
 
         public PlayerSlot Slot { get; private set; }
         public Vector3 SpawnPosition { get; private set; }
@@ -111,8 +115,10 @@ namespace UnCredibles.Minigames.CrossyRoad
 
             AnimateVisual(deltaTime, hasInput);
             // Run only while actually advancing: blocked by a car or sliding on oil shows the idle.
+            bool advancing = hasInput && !IsSlipping && velocity.sqrMagnitude > .01f;
+            runGraceTimer = advancing ? RunGrace : runGraceTimer - deltaTime;
             if (character != null)
-                character.SetRunning(hasInput && !IsSlipping && velocity.sqrMagnitude > .01f);
+                character.SetRunning(!IsSlipping && runGraceTimer > 0f);
         }
 
         // Ice physics: the stick only pushes, almost nothing slows you down, and you can
