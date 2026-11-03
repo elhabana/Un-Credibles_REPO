@@ -9,7 +9,7 @@ using UnityEngine.SceneManagement;
 namespace UnCredibles.Characters.Editor
 {
     // Sets up the animated grandma (SK_Shared_Grandma.fbx, one bone) and puts her into the
-    // CrossyRoad grandma prefab. Called by PJCharacterSetup, which also puts her on the back.
+    // CrossyRoad grandma prefab. Called by PJCharacterSetup, which also puts her on top of the character.
     public static class GrandmaCharacterSetup
     {
         private const string Folder = "Assets/_Project/Characters/Grandma";
@@ -115,7 +115,7 @@ namespace UnCredibles.Characters.Editor
                 transition.duration = duration;
                 foreach (var (mode, parameter) in conditions) transition.AddCondition(mode, 0f, parameter);
             }
-            // The sway is used both on the back and when she walks away after a delivery.
+            // The sway is used both while carried and when she walks away after a delivery.
             Link(idle, sway, .15f, (AnimatorConditionMode.If, "Carried"));
             Link(idle, sway, .15f, (AnimatorConditionMode.If, "Walking"));
             Link(sway, idle, .15f, (AnimatorConditionMode.IfNot, "Carried"), (AnimatorConditionMode.IfNot, "Walking"));
@@ -125,7 +125,7 @@ namespace UnCredibles.Characters.Editor
 
             EditorUtility.SetDirty(controller);
             if (idle.motion == null || sway.motion == null || spin.motion == null) Debug.LogError("[Abuela] Faltan clips en el FBX");
-            else Debug.Log("[Abuela] AC_Shared_Grandma: Idle (rebote) / Sway (en la espalda o yendose) / Spin (sale volando)");
+            else Debug.Log("[Abuela] AC_Shared_Grandma: Idle (rebote) / Sway (cargada o yendose) / Spin (sale volando)");
             return controller;
         }
 

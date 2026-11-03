@@ -3,7 +3,7 @@ using UnityEngine;
 namespace UnCredibles.Players
 {
     // Drives the animated player character (Idle / Run, and IdleCarry / RunCarry with a grandma
-    // on the back). Whoever moves the avatar only says whether it runs and whether it carries;
+    // held up over the head). Whoever moves the avatar only says whether it runs and whether it carries;
     // the Animator Controller blends between the loops.
     public sealed class PlayerCharacterAnimator : MonoBehaviour
     {
@@ -18,7 +18,7 @@ namespace UnCredibles.Players
         [SerializeField, Tooltip("Start the idle at a random point so several characters do not breathe in sync.")]
         private bool randomizeIdlePhase = true;
 
-        [SerializeField, Tooltip("Bone on the back where a carried grandma is attached.")]
+        [SerializeField, Tooltip("Chest bone the carried grandma is attached to.")]
         private Transform backSocket;
 
         public bool IsRunning { get; private set; }

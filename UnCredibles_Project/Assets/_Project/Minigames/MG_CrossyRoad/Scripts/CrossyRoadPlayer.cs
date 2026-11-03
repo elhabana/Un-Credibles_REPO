@@ -64,7 +64,7 @@ namespace UnCredibles.Minigames.CrossyRoad
                 block.SetColor(BaseColorId, grandmaColor);
                 CrossyRoadGrandmas.Tint(carriedGrandma, block);
                 var riding = carriedGrandma.GetComponentInChildren<GrandmaCharacterAnimator>(true);
-                if (riding != null) riding.SetCarried(true); // sways on the back instead of bouncing
+                if (riding != null) riding.SetCarried(true); // balances while carried instead of bouncing
             }
 
             SetCarrying(-1);

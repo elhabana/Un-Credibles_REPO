@@ -41,10 +41,8 @@ namespace UnCredibles.Characters.Editor
         private const float FigureHeight = 2.55f;   // same height as the old garage/podium figure
         private const float CrossyHeight = 1.7f;    // clearly taller than the 1.18 grandmas and 1.0 cars
         private const float CrossyRunSpeed = 2.2f;  // small avatar moving fast: quicker legs
-        private const float CarriedGrandmaHeight = 1f; // a bit smaller than the waiting ones (1.18) so she fits on the back
-        private const float CarriedGrandmaSitMin = -.05f; // her bottom sits on the hands (range around them)
-        private const float CarriedGrandmaSitMax = .05f;
-        private const float CarriedGrandmaSink = .04f; // pressed slightly into the back so no gap shows while bouncing
+        private const float CarriedGrandmaHeight = 1f; // a bit smaller than the waiting ones (1.18) so she fits on top
+        private const float CarriedGrandmaSink = .1f;  // into the head, so her skirt and not only her shoes touches it
 
         static PJCharacterSetup()
         {
@@ -96,7 +94,7 @@ namespace UnCredibles.Characters.Editor
             PaintVariants(CrossyPath, crossyColors);
 
             AssetDatabase.SaveAssets();
-            Debug.Log("[PJ] Listo: personaje integrado en figuras (lobby/podio) y en PF_CR_Player, abuela en PF_CR_Grandma y en la espalda.");
+            Debug.Log("[PJ] Listo: personaje integrado en figuras (lobby/podio) y en PF_CR_Player, abuela en PF_CR_Grandma y sobre la cabeza.");
         }
 
         // ---------- Model import ----------
@@ -307,7 +305,7 @@ namespace UnCredibles.Characters.Editor
 
         private static void IntegrateCrossy(GameObject character, GameObject grandma)
         {
-            var riding = PlaceOnBack(character, grandma);
+            var riding = PlaceOnHead(character, grandma);
             var contents = PrefabUtility.LoadPrefabContents(CrossyPath + ".prefab");
             try
             {
@@ -319,8 +317,8 @@ namespace UnCredibles.Characters.Editor
                 driverSo.FindProperty("runPlaybackSpeed").floatValue = CrossyRunSpeed;
                 driverSo.ApplyModifiedPropertiesWithoutUndo();
 
-                // The carried grandma rides on the back: child of the back bone, so she follows
-                // the bounce and the lean of the carry loops.
+                // The carried grandma rides on top of the head: child of the chest bone, so she
+                // follows the bounce and the wobble of the carry loops.
                 var carried = (GameObject)PrefabUtility.InstantiatePrefab(grandma, driver.BackSocket);
                 carried.name = "CarriedGrandma";
                 carried.transform.SetLocalPositionAndRotation(riding.position, riding.rotation);
@@ -337,14 +335,14 @@ namespace UnCredibles.Characters.Editor
                 so.ApplyModifiedPropertiesWithoutUndo();
 
                 PrefabUtility.SaveAsPrefabAsset(contents, CrossyPath + ".prefab");
-                Debug.Log("[PJ] PF_CR_Player: personaje de " + CrossyHeight + " de alto, carrera x" + CrossyRunSpeed + ", abuela en la espalda");
+                Debug.Log("[PJ] PF_CR_Player: personaje de " + CrossyHeight + " de alto, carrera x" + CrossyRunSpeed + ", abuela sobre la cabeza");
             }
             finally { PrefabUtility.UnloadPrefabContents(contents); }
         }
 
-        // Where the grandma sits relative to the back bone: measured on a temporary copy posed
-        // with the carry loop, her front against the back and her bottom on the hands.
-        private static (Vector3 position, Quaternion rotation, Vector3 scale) PlaceOnBack(GameObject character, GameObject grandma)
+        // Where the grandma sits relative to the chest bone: measured on a temporary copy posed
+        // with the carry loop, sitting on top of the head (he holds her up with raised arms).
+        private static (Vector3 position, Quaternion rotation, Vector3 scale) PlaceOnHead(GameObject character, GameObject grandma)
         {
             var scene = EditorSceneManager.NewPreviewScene();
             try
@@ -356,42 +354,23 @@ namespace UnCredibles.Characters.Editor
                 var model = hero.GetComponentInChildren<Animator>().gameObject;
                 Clip(RunCarryClipName).SampleAnimation(model, 0f);
 
-                float centerX = driver.BackSocket.position.x;
-                var heroPoints = BakedPoints(hero).Where(p => Mathf.Abs(p.x - centerX) < .35f).ToList();
-                float hands = (FindDeep(model.transform, "hand.L").position.y + FindDeep(model.transform, "hand.R").position.y) / 2f;
+                // Top of the head and its centre (average of the points near the top).
+                var heroPoints = BakedPoints(hero);
+                float top = heroPoints.Max(p => p.y);
+                var crown = heroPoints.Where(p => p.y > top - .15f).ToList();
+                var headCenter = new Vector3(crown.Average(p => p.x), 0f, crown.Average(p => p.z));
 
-                // Piggyback: sitting on the hands and resting on the back. Tries a few leans and
-                // heights and keeps the one where her whole front stays closest to his back
-                // (the big head would otherwise keep her body away).
                 var rider = (GameObject)PrefabUtility.InstantiatePrefab(grandma);
                 SceneManager.MoveGameObjectToScene(rider, scene);
                 rider.transform.localScale = Vector3.one * CarriedGrandmaHeight;
-                const float Slice = .05f;
-                var heroBack = heroPoints.GroupBy(p => Mathf.FloorToInt(p.y / Slice)).ToDictionary(g => g.Key, g => g.Min(p => p.z));
-
-                float bestScore = float.MaxValue, bestLean = 0f, bestLift = 0f, bestGap = 0f;
-                for (float lean = 0f; lean <= 40.1f; lean += 4f) // forward, following the bent back of the carry loops
-                {
-                    rider.transform.rotation = Quaternion.Euler(lean, 0f, 0f);
-                    var riderPoints = BakedPoints(rider).Where(p => Mathf.Abs(p.x) < .35f).ToList();
-                    for (float sit = CarriedGrandmaSitMin; sit <= CarriedGrandmaSitMax + .001f; sit += .05f)
-                    {
-                        float lift = hands + sit - riderPoints.Min(p => p.y);
-                        // Distance between both silhouettes, slice by slice.
-                        var gaps = new List<float>();
-                        foreach (var group in riderPoints.GroupBy(p => Mathf.FloorToInt((p.y + lift) / Slice)))
-                            if (heroBack.TryGetValue(group.Key, out float back)) gaps.Add(back - group.Max(p => p.z));
-                        if (gaps.Count < 4) continue;
-                        float gap = gaps.Min();                       // closest without going through
-                        float score = gaps.Average(g => g - gap);     // how far the rest of her stays
-                        if (score >= bestScore) continue;
-                        bestScore = score; bestLean = lean; bestLift = lift; bestGap = gap;
-                    }
-                }
-                rider.transform.SetPositionAndRotation(new Vector3(centerX, bestLift, bestGap + CarriedGrandmaSink), Quaternion.Euler(bestLean, 0f, 0f));
+                var riderPoints = BakedPoints(rider);
+                var riderCenter = new Vector3(riderPoints.Average(p => p.x), 0f, riderPoints.Average(p => p.z));
+                float bottom = riderPoints.Min(p => p.y);
+                // Sunk a little so her skirt (not just the tips of her shoes) rests on the round head.
+                rider.transform.position = headCenter - riderCenter + Vector3.up * (top - bottom - CarriedGrandmaSink);
 
                 rider.transform.SetParent(driver.BackSocket, true);
-                Debug.Log($"[PJ] Abuela en la espalda: inclinacion {bestLean:F0}, altura {bestLift:F2}, separacion media {bestScore:F2}");
+                Debug.Log($"[PJ] Abuela sobre la cabeza: cabeza y={top:F2}");
                 return (rider.transform.localPosition, rider.transform.localRotation, rider.transform.localScale);
             }
             finally { EditorSceneManager.ClosePreviewScene(scene); }

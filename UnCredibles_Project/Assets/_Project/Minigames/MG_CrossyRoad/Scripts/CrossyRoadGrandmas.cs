@@ -39,6 +39,7 @@ namespace UnCredibles.Minigames.CrossyRoad
         private const float WalkBobFrequency = 9f;
         private const float WalkMaxSeconds = 12f;
         private const float DropBackOffset = 0.25f; // fraction of a lane past the goal lane centre
+        private const float WalkerSpacing = 1.5f;   // centre to centre; a grandma is about 1.1 wide
 
         public int Count => grandmas.Length;
 
@@ -182,8 +183,29 @@ namespace UnCredibles.Minigames.CrossyRoad
             walker.BaseHeight = board.transform.position.y;
             // Dropped on the far half of the goal lane, clear of the cars on the last road.
             float z = Mathf.Max(from.z, board.LaneToZ(board.GoalLane) + board.CellSize * DropBackOffset);
-            walker.Transform.SetPositionAndRotation(new Vector3(from.x, walker.BaseHeight, z), Quaternion.LookRotation(walker.Direction));
+            float x = KeepApart(from.x, side, walker);
+            walker.Transform.SetPositionAndRotation(new Vector3(x, walker.BaseHeight, z), Quaternion.LookRotation(walker.Direction));
             walker.Transform.gameObject.SetActive(true);
+        }
+
+        // Grandmas leaving at the same time must not overlap: the new one starts behind any
+        // grandma that is too close. All walk at the same speed, so the gap stays.
+        private float KeepApart(float x, float side, Walker self)
+        {
+            for (int attempt = 0; attempt < walkers.Count; attempt++)
+            {
+                bool moved = false;
+                foreach (var other in walkers)
+                {
+                    if (other == self || !other.Transform.gameObject.activeSelf) continue;
+                    float otherX = other.Transform.position.x;
+                    if (Mathf.Abs(otherX - x) >= WalkerSpacing) continue;
+                    x = otherX - side * WalkerSpacing;
+                    moved = true;
+                }
+                if (!moved) break;
+            }
+            return x;
         }
 
         private bool IsOffScreen(Vector3 position)

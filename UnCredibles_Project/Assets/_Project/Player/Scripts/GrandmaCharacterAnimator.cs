@@ -3,7 +3,7 @@ using UnityEngine;
 namespace UnCredibles.Players
 {
     // Drives the animated grandma: a small bounce while she waits, a side-to-side sway while
-    // she rides on a player's back or walks away, and a spin (around the vertical axis) when she flies off.
+    // she is carried by a player or walks away, and a spin (around the vertical axis) when she flies off.
     public sealed class GrandmaCharacterAnimator : MonoBehaviour
     {
         private static readonly int CarriedId = Animator.StringToHash("Carried");
