@@ -254,7 +254,7 @@ Rigidbody:
   serializedVersion: 5
   m_Mass: 0.4
   m_LinearDamping: 0.05
-  m_AngularDamping: 0.4
+  m_AngularDamping: 0.15
   m_CenterOfMass: {x: 0, y: 0, z: 0}
   m_InertiaTensor: {x: 1, y: 1, z: 1}
   m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
@@ -290,22 +290,22 @@ CharacterJoint:
     spring: 0
     damper: 0
   m_LowTwistLimit:
-    limit: -60
+    limit: -80
     bounciness: 0
     contactDistance: 0
   m_HighTwistLimit:
-    limit: 60
+    limit: 80
     bounciness: 0
     contactDistance: 0
   m_SwingLimitSpring:
     spring: 0
     damper: 0
   m_Swing1Limit:
-    limit: 85
+    limit: 120
     bounciness: 0
     contactDistance: 0
   m_Swing2Limit:
-    limit: 85
+    limit: 120
     bounciness: 0
     contactDistance: 0
   m_EnableProjection: 0
@@ -360,7 +360,7 @@ Rigidbody:
   serializedVersion: 5
   m_Mass: 3
   m_LinearDamping: 0.05
-  m_AngularDamping: 0.4
+  m_AngularDamping: 0.15
   m_CenterOfMass: {x: 0, y: 0, z: 0}
   m_InertiaTensor: {x: 1, y: 1, z: 1}
   m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
@@ -415,7 +415,7 @@ Rigidbody:
   serializedVersion: 5
   m_Mass: 0.4
   m_LinearDamping: 0.05
-  m_AngularDamping: 0.4
+  m_AngularDamping: 0.15
   m_CenterOfMass: {x: 0, y: 0, z: 0}
   m_InertiaTensor: {x: 1, y: 1, z: 1}
   m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
@@ -451,22 +451,22 @@ CharacterJoint:
     spring: 0
     damper: 0
   m_LowTwistLimit:
-    limit: -60
+    limit: -80
     bounciness: 0
     contactDistance: 0
   m_HighTwistLimit:
-    limit: 60
+    limit: 80
     bounciness: 0
     contactDistance: 0
   m_SwingLimitSpring:
     spring: 0
     damper: 0
   m_Swing1Limit:
-    limit: 85
+    limit: 120
     bounciness: 0
     contactDistance: 0
   m_Swing2Limit:
-    limit: 85
+    limit: 120
     bounciness: 0
     contactDistance: 0
   m_EnableProjection: 0
@@ -514,7 +514,7 @@ Rigidbody:
   serializedVersion: 5
   m_Mass: 1
   m_LinearDamping: 0.05
-  m_AngularDamping: 0.4
+  m_AngularDamping: 0.15
   m_CenterOfMass: {x: 0, y: 0, z: 0}
   m_InertiaTensor: {x: 1, y: 1, z: 1}
   m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
@@ -550,22 +550,22 @@ CharacterJoint:
     spring: 0
     damper: 0
   m_LowTwistLimit:
-    limit: -30
+    limit: -45
     bounciness: 0
     contactDistance: 0
   m_HighTwistLimit:
-    limit: 30
+    limit: 45
     bounciness: 0
     contactDistance: 0
   m_SwingLimitSpring:
     spring: 0
     damper: 0
   m_Swing1Limit:
-    limit: 40
+    limit: 55
     bounciness: 0
     contactDistance: 0
   m_Swing2Limit:
-    limit: 40
+    limit: 55
     bounciness: 0
     contactDistance: 0
   m_EnableProjection: 0

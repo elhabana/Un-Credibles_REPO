@@ -168,11 +168,14 @@ namespace UnCredibles.Minigames.CrossyRoad
             AwardPoints(avatar, -(avatar.IsCarrying ? Settings.HitWithGrandmaPenalty : Settings.HitPenalty), false);
             if (avatar.IsCarrying)
             {
-                // She flies off with a lot of force, then goes back to her spot as usual.
-                grandmas.Launch(avatar.CarryPosition);
-                var message = BeginEvent(GrandmaLaunchedEvent);
+                // She flies off with a lot of force the way the car was going, then goes back
+                // to her spot as usual.
                 var from = avatar.CarryPosition;
+                float push = Mathf.Sign(traffic.VelocityNear(avatar.Position.z));
+                grandmas.Launch(from, push);
+                var message = BeginEvent(GrandmaLaunchedEvent);
                 message.Write(from.x); message.Write(from.y); message.Write(from.z);
+                message.Write(push);
                 SendEvent();
                 grandmas.Return(avatar.CarriedGrandma);
                 avatar.SetCarrying(-1);
@@ -251,7 +254,7 @@ namespace UnCredibles.Minigames.CrossyRoad
         protected override void OnNetworkEvent(byte eventId, BinaryReader reader)
         {
             if (eventId == GrandmaLaunchedEvent)
-                grandmas.Launch(new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle()));
+                grandmas.Launch(new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle()), reader.ReadSingle());
             else if (eventId == GrandmaDeliveredEvent)
                 grandmas.SendOff(new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle()));
             else if (eventId == ScoreEvent)

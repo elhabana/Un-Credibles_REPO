@@ -84,16 +84,19 @@ namespace UnCredibles.Players
         }
 
         // Goes limp and flies with this velocity. `gravity` is the fall acceleration wanted
-        // (the minigame uses a stronger one than the physics default).
-        public void Launch(Vector3 velocity, Vector3 angularVelocity, float gravity)
+        // (the minigame uses a stronger one than the physics default); `flail` adds a random
+        // spin to the head and arms so they whip around on their own.
+        public void Launch(Vector3 velocity, Vector3 angularVelocity, float gravity, float flail = 0f)
         {
             if (!HasRagdoll) return;
             ApplyRagdoll(true);
             extraGravity = Mathf.Max(0f, gravity - Mathf.Abs(Physics.gravity.y));
-            foreach (var body in ragdollBodies)
+            for (int i = 0; i < ragdollBodies.Length; i++)
             {
-                body.linearVelocity = velocity;
-                body.angularVelocity = angularVelocity;
+                var body = ragdollBodies[i];
+                bool limb = i > 0; // the torso goes first
+                body.linearVelocity = velocity + (limb ? Random.insideUnitSphere * (flail * 0.15f) : Vector3.zero);
+                body.angularVelocity = angularVelocity + (limb ? Random.insideUnitSphere * flail : Vector3.zero);
             }
         }
 

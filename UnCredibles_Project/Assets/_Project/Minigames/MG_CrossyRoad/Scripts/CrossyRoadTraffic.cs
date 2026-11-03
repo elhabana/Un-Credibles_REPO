@@ -198,6 +198,21 @@ namespace UnCredibles.Minigames.CrossyRoad
         // so a player standing between two lanes is tested against both.
         public bool Overlaps(Vector3 worldPosition, float radius) => OverlapsAt(worldPosition, radius, 0f);
 
+        // Signed speed of the cars in the road closest to this Z (0 when there is no road).
+        public float VelocityNear(float z)
+        {
+            float best = float.MaxValue, velocity = 0f;
+            foreach (var lane in lanes)
+            {
+                if (lane == null) continue;
+                float distance = Mathf.Abs(z - lane.Z);
+                if (distance >= best) continue;
+                best = distance;
+                velocity = lane.Velocity;
+            }
+            return velocity;
+        }
+
         // Same test with every car moved `seconds` into the future (used by the AI to plan).
         public bool OverlapsAt(Vector3 worldPosition, float radius, float seconds)
         {

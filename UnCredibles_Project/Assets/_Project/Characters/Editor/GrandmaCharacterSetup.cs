@@ -211,9 +211,10 @@ namespace UnCredibles.Characters.Editor
             var right = Part(model, "Brazo.R", .4f, material, center: .12f, length: .24f, radius: .065f);
             if (torso == null || head == null || left == null || right == null) return new Rigidbody[0];
 
-            Joint(head, torso, twist: 30f, swing: 40f);
-            Joint(left, torso, twist: 60f, swing: 85f);
-            Joint(right, torso, twist: 60f, swing: 85f);
+            // Loose joints: the head and arms flop a lot when she flies.
+            Joint(head, torso, twist: 45f, swing: 55f);
+            Joint(left, torso, twist: 80f, swing: 120f);
+            Joint(right, torso, twist: 80f, swing: 120f);
             Debug.Log("[Abuela] Ragdoll: torso, cabeza y brazos (apagado hasta que sale volando)");
             return new[] { torso, head, left, right };
         }
@@ -252,7 +253,7 @@ namespace UnCredibles.Characters.Editor
             var body = transform.gameObject.AddComponent<Rigidbody>();
             body.mass = mass;
             body.linearDamping = .05f;
-            body.angularDamping = .4f;
+            body.angularDamping = .15f;
             body.maxAngularVelocity = 40f; // lets her spin like crazy
             body.isKinematic = true;
             body.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;

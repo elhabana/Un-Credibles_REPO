@@ -42,9 +42,11 @@ namespace UnCredibles.Minigames.CrossyRoad
         private const float WalkMaxSeconds = 12f;
         private const float DropBackOffset = 0.25f; // fraction of a lane past the goal lane centre
         private const float WalkerSpacing = 1.5f;   // centre to centre; a grandma is about 1.1 wide
-        private const float RagdollSeconds = 3.2f;  // flying and tumbling on the ground before vanishing
+        private const float RagdollSeconds = 3.6f;  // flying and tumbling on the ground before vanishing
         private const float RagdollVanish = 0.35f;  // last seconds spent shrinking away
-        private const float RagdollSpin = 10f;      // radians per second when she is knocked off
+        private const float RagdollSpin = 18f;      // radians per second when she is knocked off
+        private const float RagdollFlail = 14f;     // extra random spin of the head and arms
+        private const float LaunchSpread = 0.45f;   // radians around the car direction
 
         public int Count => grandmas.Length;
 
@@ -148,9 +150,10 @@ namespace UnCredibles.Minigames.CrossyRoad
             respawnTimers[index] = board.Settings.GrandmaRespawnDelay;
         }
 
-        // A grandma knocked out of a player's hands: flies off spinning in a random direction.
+        // A grandma knocked out of a player's hands: flies off spinning, pushed along `pushX`
+        // (the way the car was going, +1 / -1; 0 = any direction).
         // Only visual; the real grandma already went back to her spot through Return().
-        public void Launch(Vector3 from)
+        public void Launch(Vector3 from, float pushX = 0f)
         {
             var settings = board.Settings;
             Flyer flyer = null;
@@ -167,7 +170,9 @@ namespace UnCredibles.Minigames.CrossyRoad
                 flyers.Add(flyer);
             }
 
-            float angle = Random.Range(0f, Mathf.PI * 2f);
+            float angle = pushX > 0f ? Random.Range(-LaunchSpread, LaunchSpread)
+                : pushX < 0f ? Mathf.PI + Random.Range(-LaunchSpread, LaunchSpread)
+                : Random.Range(0f, Mathf.PI * 2f);
             float speed = Random.Range(settings.GrandmaLaunchSpeed.x, settings.GrandmaLaunchSpeed.y);
             flyer.Velocity = new Vector3(Mathf.Cos(angle) * speed, Random.Range(settings.GrandmaLaunchUp.x, settings.GrandmaLaunchUp.y), Mathf.Sin(angle) * speed);
             flyer.SpinAxis = Random.onUnitSphere;
@@ -179,7 +184,7 @@ namespace UnCredibles.Minigames.CrossyRoad
                 flyer.Animated.ResetRagdoll();
                 flyer.Transform.SetPositionAndRotation(from, Quaternion.Euler(0f, Random.Range(0f, 360f), 0f));
                 flyer.Transform.gameObject.SetActive(true);
-                flyer.Animated.Launch(flyer.Velocity, flyer.SpinAxis * RagdollSpin, settings.GrandmaGravity);
+                flyer.Animated.Launch(flyer.Velocity, flyer.SpinAxis * RagdollSpin, settings.GrandmaGravity, RagdollFlail);
                 return;
             }
             flyer.Transform.SetPositionAndRotation(from, Random.rotation);

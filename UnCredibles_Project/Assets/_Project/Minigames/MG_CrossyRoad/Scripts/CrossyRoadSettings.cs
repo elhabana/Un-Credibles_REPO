@@ -53,9 +53,9 @@ namespace UnCredibles.Minigames.CrossyRoad
         [SerializeField, Min(0f), Tooltip("Seconds at the end of the respawn delay spent shrinking away.")]
         private float vanishDuration = 0.25f;
         [SerializeField, Tooltip("Horizontal speed range of a grandma knocked out of a player's hands.")]
-        private Vector2 grandmaLaunchSpeed = new Vector2(3f, 6f);
+        private Vector2 grandmaLaunchSpeed = new Vector2(8f, 11f);
         [SerializeField, Tooltip("Upward speed range of a knocked-out grandma.")]
-        private Vector2 grandmaLaunchUp = new Vector2(8f, 11f);
+        private Vector2 grandmaLaunchUp = new Vector2(8f, 10f);
         [SerializeField, Min(0f), Tooltip("Degrees per second she spins while flying.")] private float grandmaSpinSpeed = 900f;
         [SerializeField, Min(0.1f)] private float grandmaGravity = 20f;
 
