@@ -15,6 +15,8 @@ namespace UnCredibles.Minigames.CrossyRoad
         private GameObject[] grandmas = new GameObject[0];
         private float[] respawnTimers = new float[0];
         private readonly List<Flyer> flyers = new List<Flyer>();
+        private readonly List<Walker> walkers = new List<Walker>();
+        private Camera viewCamera;
         private MaterialPropertyBlock colorBlock;
 
         private sealed class Flyer
@@ -23,6 +25,19 @@ namespace UnCredibles.Minigames.CrossyRoad
             public Vector3 Velocity;
             public Vector3 SpinAxis;
         }
+
+        // A delivered grandma: walks off to the nearest side waddling, gone once off screen.
+        private sealed class Walker
+        {
+            public Transform Transform;
+            public Vector3 Direction;
+            public float Age;
+            public float BaseHeight;
+        }
+
+        private const float WalkBobHeight = 0.06f;
+        private const float WalkBobFrequency = 9f;
+        private const float WalkMaxSeconds = 12f;
 
         public int Count => grandmas.Length;
 
@@ -141,6 +156,41 @@ namespace UnCredibles.Minigames.CrossyRoad
             flyer.Transform.gameObject.SetActive(true);
         }
 
+        // Only visual, like Launch: the real grandma already went back to her spot through Return().
+        public void SendOff(Vector3 from)
+        {
+            Walker walker = null;
+            foreach (var candidate in walkers)
+                if (!candidate.Transform.gameObject.activeSelf) { walker = candidate; break; }
+            if (walker == null)
+            {
+                var instance = Instantiate(grandmaPrefab, transform);
+                instance.name = "LeavingGrandma";
+                Tint(instance, colorBlock);
+                var animated = instance.GetComponentInChildren<GrandmaCharacterAnimator>();
+                if (animated != null) animated.SetWalking(true);
+                walker = new Walker { Transform = instance.transform };
+                walkers.Add(walker);
+            }
+
+            // Towards the closer side of the board; from the middle, either side.
+            float offset = from.x - board.transform.position.x;
+            float side = Mathf.Abs(offset) < 0.5f ? (Random.value < 0.5f ? -1f : 1f) : Mathf.Sign(offset);
+            walker.Direction = new Vector3(side, 0f, 0f);
+            walker.Age = 0f;
+            walker.BaseHeight = board.transform.position.y;
+            walker.Transform.SetPositionAndRotation(new Vector3(from.x, walker.BaseHeight, from.z), Quaternion.LookRotation(walker.Direction));
+            walker.Transform.gameObject.SetActive(true);
+        }
+
+        private bool IsOffScreen(Vector3 position)
+        {
+            if (viewCamera == null) viewCamera = Camera.main;
+            if (viewCamera == null) return Mathf.Abs(position.x - board.transform.position.x) > board.HalfWidth + 6f;
+            var viewport = viewCamera.WorldToViewportPoint(position + Vector3.up * 0.6f);
+            return viewport.z < 0f || viewport.x < -0.1f || viewport.x > 1.1f || viewport.y < -0.1f || viewport.y > 1.1f;
+        }
+
         public void Tick(float deltaTime)
         {
             for (int i = 0; i < grandmas.Length; i++)
@@ -159,6 +209,17 @@ namespace UnCredibles.Minigames.CrossyRoad
                 flyer.Transform.Rotate(flyer.SpinAxis, settings.GrandmaSpinSpeed * deltaTime, Space.World);
                 // Gone once she falls below the ground (usually far off screen).
                 if (flyer.Transform.position.y < board.transform.position.y - 2f) flyer.Transform.gameObject.SetActive(false);
+            }
+
+            foreach (var walker in walkers)
+            {
+                if (!walker.Transform.gameObject.activeSelf) continue;
+                walker.Age += deltaTime;
+                var position = walker.Transform.position + walker.Direction * (board.Settings.GrandmaWalkSpeed * deltaTime);
+                position.y = walker.BaseHeight + Mathf.Abs(Mathf.Sin(walker.Age * WalkBobFrequency)) * WalkBobHeight;
+                walker.Transform.position = position;
+                if (walker.Age > WalkMaxSeconds || (walker.Age > 0.5f && IsOffScreen(position)))
+                    walker.Transform.gameObject.SetActive(false);
             }
         }
     }

@@ -28,6 +28,7 @@ namespace UnCredibles.Characters.Editor
         private const string IdleCarryClipName = "AN_Shared_PJ_IdleCarry";
         private const string BackSocketBone = "Socket_Espalda";
         private const string PlayerMaterials = "Assets/_Project/Player/Materials/M_Player_";
+        private const string CrossyMaterials = "Assets/_Project/Minigames/MG_CrossyRoad/Art/M_CR_Player_";
         private const string FigurePath = "Assets/_Project/Player/Prefabs/PF_PlayerFigure";
         private const string CrossyPath = "Assets/_Project/Minigames/MG_CrossyRoad/Prefabs/PF_CR_Player";
         private const string CharacterChild = "PJ";
@@ -41,6 +42,9 @@ namespace UnCredibles.Characters.Editor
         private const float CrossyHeight = 1.7f;    // clearly taller than the 1.18 grandmas and 1.0 cars
         private const float CrossyRunSpeed = 2.2f;  // small avatar moving fast: quicker legs
         private const float CarriedGrandmaHeight = 1f; // a bit smaller than the waiting ones (1.18) so she fits on the back
+        private const float CarriedGrandmaSitMin = -.1f; // range for her bottom relative to the hands
+        private const float CarriedGrandmaSitMax = .3f;
+        private const float CarriedGrandmaSink = .04f; // pressed slightly into the back so no gap shows while bouncing
 
         static PJCharacterSetup()
         {
@@ -83,9 +87,8 @@ namespace UnCredibles.Characters.Editor
             var grandma = GrandmaCharacterSetup.Build(neutral);
             if (grandma == null) return;
 
-            // Colours of each variant, read before the old body parts are removed.
-            var figureColors = ReadVariantColors(FigurePath, "Body", null);
-            var crossyColors = ReadVariantColors(CrossyPath, "Body", "Visual");
+            var figureColors = VariantColors(FigurePath, PlayerMaterials);
+            var crossyColors = VariantColors(CrossyPath, CrossyMaterials);
 
             IntegrateFigure(character);
             IntegrateCrossy(character, grandma);
@@ -350,21 +353,42 @@ namespace UnCredibles.Characters.Editor
                 var model = hero.GetComponentInChildren<Animator>().gameObject;
                 Clip(RunCarryClipName).SampleAnimation(model, 0f);
 
-                var heroPoints = BakedPoints(hero);
-                float back = heroPoints.Where(p => p.y > CrossyHeight * .45f && p.y < CrossyHeight * .75f).Min(p => p.z);
+                float centerX = driver.BackSocket.position.x;
+                var heroPoints = BakedPoints(hero).Where(p => Mathf.Abs(p.x - centerX) < .35f).ToList();
                 float hands = (FindDeep(model.transform, "hand.L").position.y + FindDeep(model.transform, "hand.R").position.y) / 2f;
 
+                // Piggyback: sitting on the hands and resting on the back. Tries a few leans and
+                // heights and keeps the one where her whole front stays closest to his back
+                // (the big head would otherwise keep her body away).
                 var rider = (GameObject)PrefabUtility.InstantiatePrefab(grandma);
                 SceneManager.MoveGameObjectToScene(rider, scene);
                 rider.transform.localScale = Vector3.one * CarriedGrandmaHeight;
-                var riderPoints = BakedPoints(rider);
-                float front = riderPoints.Max(p => p.z);
-                float bottom = riderPoints.Min(p => p.y);
-                // Slightly sunk into the back so no gap shows while bouncing.
-                rider.transform.position = new Vector3(driver.BackSocket.position.x, hands - bottom - .05f, back - front + .06f);
+                const float Slice = .05f;
+                var heroBack = heroPoints.GroupBy(p => Mathf.FloorToInt(p.y / Slice)).ToDictionary(g => g.Key, g => g.Min(p => p.z));
+
+                float bestScore = float.MaxValue, bestLean = 0f, bestLift = 0f, bestGap = 0f;
+                for (float lean = 0f; lean <= 16.1f; lean += 4f) // forward, following the lean of the carry loops
+                {
+                    rider.transform.rotation = Quaternion.Euler(lean, 0f, 0f);
+                    var riderPoints = BakedPoints(rider).Where(p => Mathf.Abs(p.x) < .35f).ToList();
+                    for (float sit = CarriedGrandmaSitMin; sit <= CarriedGrandmaSitMax + .001f; sit += .05f)
+                    {
+                        float lift = hands + sit - riderPoints.Min(p => p.y);
+                        // Distance between both silhouettes, slice by slice.
+                        var gaps = new List<float>();
+                        foreach (var group in riderPoints.GroupBy(p => Mathf.FloorToInt((p.y + lift) / Slice)))
+                            if (heroBack.TryGetValue(group.Key, out float back)) gaps.Add(back - group.Max(p => p.z));
+                        if (gaps.Count < 4) continue;
+                        float gap = gaps.Min();                       // closest without going through
+                        float score = gaps.Average(g => g - gap);     // how far the rest of her stays
+                        if (score >= bestScore) continue;
+                        bestScore = score; bestLean = lean; bestLift = lift; bestGap = gap;
+                    }
+                }
+                rider.transform.SetPositionAndRotation(new Vector3(centerX, bestLift, bestGap + CarriedGrandmaSink), Quaternion.Euler(bestLean, 0f, 0f));
 
                 rider.transform.SetParent(driver.BackSocket, true);
-                Debug.Log($"[PJ] Abuela en la espalda: espalda z={back:F2}, manos y={hands:F2}");
+                Debug.Log($"[PJ] Abuela en la espalda: inclinacion {bestLean:F0}, altura {bestLift:F2}, separacion media {bestScore:F2}");
                 return (rider.transform.localPosition, rider.transform.localRotation, rider.transform.localScale);
             }
             finally { EditorSceneManager.ClosePreviewScene(scene); }
@@ -406,26 +430,20 @@ namespace UnCredibles.Characters.Editor
 
         // ---------- Colour variants ----------
 
-        private static Dictionary<string, Material> ReadVariantColors(string basePath, string bodyName, string under)
+        // Skin of each variant by name (e.g. M_CR_Player_Red), so it does not depend on what
+        // the previous run left in the variant.
+        private static Dictionary<string, Material> VariantColors(string basePath, string materialPrefix)
         {
             var result = new Dictionary<string, Material>();
             foreach (var color in Colors)
             {
-                string path = $"{basePath}_{color}.prefab";
-                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
-                if (prefab == null) continue;
-                var parent = under != null ? prefab.transform.Find(under) : prefab.transform;
-                var oldBody = parent != null ? parent.Find(bodyName) : null;
-                var skin = oldBody != null ? oldBody.GetComponent<Renderer>() : FindSkin(prefab);
-                result[color] = skin != null && skin.sharedMaterial != null
-                    ? skin.sharedMaterial
-                    : AssetDatabase.LoadAssetAtPath<Material>(PlayerMaterials + color + ".mat");
+                if (!File.Exists($"{basePath}_{color}.prefab")) continue;
+                var material = AssetDatabase.LoadAssetAtPath<Material>(materialPrefix + color + ".mat");
+                if (material == null) Debug.LogError("[PJ] Falta el material " + materialPrefix + color);
+                else result[color] = material;
             }
             return result;
         }
-
-        private static Renderer FindSkin(GameObject prefab) =>
-            prefab.GetComponentsInChildren<Renderer>(true).FirstOrDefault(r => r.name == "Cuerpo");
 
         private static void PaintVariants(string basePath, Dictionary<string, Material> colors)
         {
@@ -435,6 +453,8 @@ namespace UnCredibles.Characters.Editor
                 var contents = PrefabUtility.LoadPrefabContents(path);
                 try
                 {
+                    // Each run rebuilds the character, so overrides of the previous one point nowhere.
+                    PrefabUtility.RemoveUnusedOverrides(new[] { contents }, InteractionMode.AutomatedAction);
                     foreach (var renderer in contents.GetComponentsInChildren<Renderer>(true))
                         if (SkinMeshes.Contains(renderer.name))
                             renderer.sharedMaterials = Enumerable.Repeat(pair.Value, renderer.sharedMaterials.Length).ToArray();

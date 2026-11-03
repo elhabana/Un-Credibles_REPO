@@ -95,6 +95,7 @@ namespace UnCredibles.Characters.Editor
             foreach (var parameter in controller.parameters) controller.RemoveParameter(parameter);
             controller.AddParameter("Carried", AnimatorControllerParameterType.Bool);
             controller.AddParameter("Spinning", AnimatorControllerParameterType.Bool);
+            controller.AddParameter("Walking", AnimatorControllerParameterType.Bool);
 
             var machine = controller.layers[0].stateMachine;
             foreach (var child in machine.states) machine.RemoveState(child.state);
@@ -114,15 +115,17 @@ namespace UnCredibles.Characters.Editor
                 transition.duration = duration;
                 foreach (var (mode, parameter) in conditions) transition.AddCondition(mode, 0f, parameter);
             }
+            // The sway is used both on the back and when she walks away after a delivery.
             Link(idle, sway, .15f, (AnimatorConditionMode.If, "Carried"));
-            Link(sway, idle, .15f, (AnimatorConditionMode.IfNot, "Carried"));
+            Link(idle, sway, .15f, (AnimatorConditionMode.If, "Walking"));
+            Link(sway, idle, .15f, (AnimatorConditionMode.IfNot, "Carried"), (AnimatorConditionMode.IfNot, "Walking"));
             Link(idle, spin, 0f, (AnimatorConditionMode.If, "Spinning"));
             Link(sway, spin, 0f, (AnimatorConditionMode.If, "Spinning"));
             Link(spin, idle, .1f, (AnimatorConditionMode.IfNot, "Spinning"));
 
             EditorUtility.SetDirty(controller);
             if (idle.motion == null || sway.motion == null || spin.motion == null) Debug.LogError("[Abuela] Faltan clips en el FBX");
-            else Debug.Log("[Abuela] AC_Shared_Grandma: Idle (rebote) / Sway (en la espalda) / Spin (sale volando)");
+            else Debug.Log("[Abuela] AC_Shared_Grandma: Idle (rebote) / Sway (en la espalda o yendose) / Spin (sale volando)");
             return controller;
         }
 

@@ -16,6 +16,7 @@ namespace UnCredibles.Minigames.CrossyRoad
         private const byte GrandmaLaunchedEvent = 1;
         private const byte FinalRushEvent = 2;
         private const byte ScoreEvent = 3;
+        private const byte GrandmaDeliveredEvent = 4;
 
         [SerializeField] private CrossyRoadBoard board;
         [SerializeField] private CrossyRoadTraffic traffic;
@@ -65,7 +66,7 @@ namespace UnCredibles.Minigames.CrossyRoad
                 float remoteDelta = Time.deltaTime;
                 traffic.TickRemote(remoteDelta);
                 if (popups != null) popups.Tick(remoteDelta);
-                grandmas.Tick(remoteDelta); // only flying grandmas move here
+                grandmas.Tick(remoteDelta); // only flying and leaving grandmas move here
                 oil.TickRemote(remoteDelta);
                 foreach (var avatar in avatars) avatar.TickRemote(remoteDelta);
                 return;
@@ -120,6 +121,12 @@ namespace UnCredibles.Minigames.CrossyRoad
             }
 
             if (avatar.Lane < board.GoalLane) return;
+            // She gets off and walks away to the side.
+            var dropAt = avatar.Position;
+            grandmas.SendOff(dropAt);
+            var delivered = BeginEvent(GrandmaDeliveredEvent);
+            delivered.Write(dropAt.x); delivered.Write(dropAt.y); delivered.Write(dropAt.z);
+            SendEvent();
             grandmas.Return(avatar.CarriedGrandma);
             avatar.SetCarrying(-1);
             AwardPoints(avatar, Settings.PointsPerDelivery * (IsFinalRush ? Settings.FinalRushMultiplier : 1), IsFinalRush);
@@ -245,6 +252,8 @@ namespace UnCredibles.Minigames.CrossyRoad
         {
             if (eventId == GrandmaLaunchedEvent)
                 grandmas.Launch(new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle()));
+            else if (eventId == GrandmaDeliveredEvent)
+                grandmas.SendOff(new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle()));
             else if (eventId == ScoreEvent)
             {
                 int index = reader.ReadByte();

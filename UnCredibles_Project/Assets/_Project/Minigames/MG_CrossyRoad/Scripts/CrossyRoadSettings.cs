@@ -99,6 +99,8 @@ namespace UnCredibles.Minigames.CrossyRoad
         [SerializeField, Tooltip("Teleport back to the spawn lane after a delivery instead of walking back.")]
         private bool returnToSpawnAfterDelivery;
         [SerializeField] private Color grandmaColor = new Color(0.75f, 0.55f, 0.85f);
+        [SerializeField, Min(0.1f), Tooltip("Metres per second a delivered grandma walks off to the side.")]
+        private float grandmaWalkSpeed = 1.8f;
 
         [Header("Traffic")]
         [SerializeField, Min(1f), Tooltip("Lane depths outside the board where cars appear and disappear.")]
@@ -174,6 +176,7 @@ namespace UnCredibles.Minigames.CrossyRoad
         public float GrandmaRespawnDelay => grandmaRespawnDelay;
         public bool ReturnToSpawnAfterDelivery => returnToSpawnAfterDelivery;
         public Color GrandmaColor => grandmaColor;
+        public float GrandmaWalkSpeed => grandmaWalkSpeed;
 
         public float OffscreenMargin => offscreenMargin * cellSize;
         public Color GetCarColor(int index) => carColors.Length > 0 ? carColors[index % carColors.Length] : Color.white;
