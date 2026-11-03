@@ -38,6 +38,7 @@ namespace UnCredibles.Minigames.CrossyRoad
         private const float WalkBobHeight = 0.06f;
         private const float WalkBobFrequency = 9f;
         private const float WalkMaxSeconds = 12f;
+        private const float DropBackOffset = 0.25f; // fraction of a lane past the goal lane centre
 
         public int Count => grandmas.Length;
 
@@ -179,7 +180,9 @@ namespace UnCredibles.Minigames.CrossyRoad
             walker.Direction = new Vector3(side, 0f, 0f);
             walker.Age = 0f;
             walker.BaseHeight = board.transform.position.y;
-            walker.Transform.SetPositionAndRotation(new Vector3(from.x, walker.BaseHeight, from.z), Quaternion.LookRotation(walker.Direction));
+            // Dropped on the far half of the goal lane, clear of the cars on the last road.
+            float z = Mathf.Max(from.z, board.LaneToZ(board.GoalLane) + board.CellSize * DropBackOffset);
+            walker.Transform.SetPositionAndRotation(new Vector3(from.x, walker.BaseHeight, z), Quaternion.LookRotation(walker.Direction));
             walker.Transform.gameObject.SetActive(true);
         }
 
