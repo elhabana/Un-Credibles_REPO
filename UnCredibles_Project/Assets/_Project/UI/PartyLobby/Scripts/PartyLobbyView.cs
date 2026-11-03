@@ -77,7 +77,6 @@ namespace UnCredibles.UI.PartyLobby
         {
             controller.Initialized += HandleInitialized;
             controller.SlotsChanged += RenderAll;
-            controller.CustomizationChanged += RenderAll;
             controller.CountdownTick += HandleCountdownTick;
             controller.CountdownCancelled += HandleCountdownCancelled;
             controller.Notice += ShowNotice;
@@ -88,7 +87,6 @@ namespace UnCredibles.UI.PartyLobby
                 view.AddAIClicked += HandleAddAI;
                 view.InviteClicked += HandleInvite;
                 view.RemoveClicked += HandleRemove;
-                view.PartStepped += controller.StepPart;
             }
         }
 
@@ -96,7 +94,6 @@ namespace UnCredibles.UI.PartyLobby
         {
             controller.Initialized -= HandleInitialized;
             controller.SlotsChanged -= RenderAll;
-            controller.CustomizationChanged -= RenderAll;
             controller.CountdownTick -= HandleCountdownTick;
             controller.CountdownCancelled -= HandleCountdownCancelled;
             controller.Notice -= ShowNotice;
@@ -108,7 +105,6 @@ namespace UnCredibles.UI.PartyLobby
                 view.AddAIClicked -= HandleAddAI;
                 view.InviteClicked -= HandleInvite;
                 view.RemoveClicked -= HandleRemove;
-                view.PartStepped -= controller.StepPart;
             }
         }
 
@@ -171,7 +167,6 @@ namespace UnCredibles.UI.PartyLobby
                 if (info.Occupied) occupied++;
                 bool mine = controller.IsOnline && !controller.IsAuthority && info.Owner == controller.LocalClientId;
                 slotViews[i].Render(info, controller.CanEditSlots, locked, mine, controller.IsOnline);
-                slotViews[i].RenderOutfit(info, controller.PartCatalog, controller.CanCustomize(i) && !locked, controller.SelectedPartRow(i));
             }
             RenderAddPlayerCallout(occupied);
 

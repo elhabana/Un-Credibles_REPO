@@ -8,6 +8,11 @@ namespace UnCredibles.UI.Garage
     public sealed class GaragePlayers : MonoBehaviour
     {
         public const float DepartureSeconds = 2.6f;
+        // The lobby camera steps back so the whole figures (feet and boots included) stand above
+        // the player cards: how much further, where their middle lands on screen, figure height.
+        private const float LobbyZoomOut = 1.4f;
+        private const float FiguresScreenHeight = .64f;
+        private const float FigureHeight = 2.55f;
         public PartyLobbyController lobby;
         // One spot per slot (with its accessory anchors); the slot's figure is placed inside it.
         public GameObject[] avatars;
@@ -47,8 +52,26 @@ namespace UnCredibles.UI.Garage
                 avatars[i].transform.position = positions[i];
                 avatarRotations[i] = avatars[i].transform.rotation;
             }
+            ReframeLobbyCamera();
+            gameObject.AddComponent<LobbyOutfitArrows>().Init(lobby, avatars, outfits);
+
             doorStarts = new Vector3[doorPieces.Length];
             for (int i = 0; i < doorPieces.Length; i++) doorStarts[i] = doorPieces[i].localPosition;
+        }
+
+        // Keeps the lobby viewpoint's rotation and moves it back along it, centred on the figures.
+        private void ReframeLobbyCamera()
+        {
+            var rig = FindFirstObjectByType<GarageCameraRig>();
+            if (rig == null || rig.output == null || rig.viewpoints.Length <= (int)GarageView.Lobby) return;
+            var view = rig.viewpoints[(int)GarageView.Lobby];
+            if (view == null) return;
+            var centre = Vector3.zero;
+            foreach (var start in avatarStarts) centre += start;
+            centre = centre / avatarStarts.Length + Vector3.up * (FigureHeight * .5f);
+            float distance = Vector3.Dot(centre - view.position, view.forward) * LobbyZoomOut;
+            float halfHeight = Mathf.Tan(rig.output.fieldOfView * .5f * Mathf.Deg2Rad) * distance;
+            view.position = centre - view.forward * distance - view.up * ((FiguresScreenHeight - .5f) * 2f * halfHeight);
         }
 
         private void OnEnable()
