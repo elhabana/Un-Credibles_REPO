@@ -2,11 +2,13 @@ using UnityEngine;
 
 namespace UnCredibles.Players
 {
-    // Drives the animated player character (Idle / Run). Whoever moves the avatar only says
-    // whether it is running; the Animator Controller blends between both loops.
+    // Drives the animated player character (Idle / Run, and IdleCarry / RunCarry with a grandma
+    // on the back). Whoever moves the avatar only says whether it runs and whether it carries;
+    // the Animator Controller blends between the loops.
     public sealed class PlayerCharacterAnimator : MonoBehaviour
     {
         private static readonly int RunningId = Animator.StringToHash("Running");
+        private static readonly int CarryingId = Animator.StringToHash("Carrying");
         private static readonly int RunSpeedId = Animator.StringToHash("RunSpeed");
         private const string IdleState = "Idle";
 
@@ -16,7 +18,12 @@ namespace UnCredibles.Players
         [SerializeField, Tooltip("Start the idle at a random point so several characters do not breathe in sync.")]
         private bool randomizeIdlePhase = true;
 
+        [SerializeField, Tooltip("Bone on the back where a carried grandma is attached.")]
+        private Transform backSocket;
+
         public bool IsRunning { get; private set; }
+        public bool IsCarrying { get; private set; }
+        public Transform BackSocket => backSocket;
 
         private void Awake()
         {
@@ -29,7 +36,15 @@ namespace UnCredibles.Players
             // Animator resets its parameters when re-enabled: restore the current state.
             animator.SetFloat(RunSpeedId, runPlaybackSpeed);
             animator.SetBool(RunningId, IsRunning);
-            if (!IsRunning && randomizeIdlePhase) animator.Play(IdleState, 0, Random.value);
+            animator.SetBool(CarryingId, IsCarrying);
+            if (!IsRunning && !IsCarrying && randomizeIdlePhase) animator.Play(IdleState, 0, Random.value);
+        }
+
+        public void SetCarrying(bool carrying)
+        {
+            if (IsCarrying == carrying) return;
+            IsCarrying = carrying;
+            if (animator.isActiveAndEnabled) animator.SetBool(CarryingId, carrying);
         }
 
         public void SetRunning(bool running)

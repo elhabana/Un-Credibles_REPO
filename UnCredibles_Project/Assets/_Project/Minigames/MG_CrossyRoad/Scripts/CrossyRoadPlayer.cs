@@ -15,7 +15,7 @@ namespace UnCredibles.Minigames.CrossyRoad
         [SerializeField] private Transform visual;
         [SerializeField] private Renderer[] bodyRenderers = new Renderer[0];
         [SerializeField] private GameObject carriedGrandma;
-        [SerializeField, Tooltip("Animated character inside Visual (Idle / Run). Without it the old walking bob is used.")]
+        [SerializeField, Tooltip("Animated character inside Visual (Idle / Run / carry loops). Without it the old walking bob is used.")]
         private PlayerCharacterAnimator character;
 
         private CrossyRoadBoard board;
@@ -58,8 +58,9 @@ namespace UnCredibles.Minigames.CrossyRoad
             if (carriedGrandma != null)
             {
                 block.SetColor(BaseColorId, grandmaColor);
-                foreach (var grandmaRenderer in carriedGrandma.GetComponentsInChildren<Renderer>(true))
-                    grandmaRenderer.SetPropertyBlock(block);
+                CrossyRoadGrandmas.Tint(carriedGrandma, block);
+                var riding = carriedGrandma.GetComponentInChildren<GrandmaCharacterAnimator>(true);
+                if (riding != null) riding.SetCarried(true); // sways on the back instead of bouncing
             }
 
             SetCarrying(-1);
@@ -149,6 +150,7 @@ namespace UnCredibles.Minigames.CrossyRoad
             CarriedGrandma = grandmaIndex;
             IsCarrying = grandmaIndex >= 0;
             if (carriedGrandma != null) carriedGrandma.SetActive(IsCarrying);
+            if (character != null) character.SetCarrying(IsCarrying);
         }
 
         // Cartoon death: flattened on the road, then shrinks away at the end of the respawn delay.

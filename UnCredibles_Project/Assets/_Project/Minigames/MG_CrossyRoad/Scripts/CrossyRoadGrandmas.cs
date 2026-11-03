@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using UnCredibles.Players;
 using UnityEngine;
 
 namespace UnCredibles.Minigames.CrossyRoad
@@ -25,6 +26,15 @@ namespace UnCredibles.Minigames.CrossyRoad
 
         public int Count => grandmas.Length;
 
+        // Paints the grandma colour: only the jacket on the animated grandma, everything on the old one.
+        public static void Tint(GameObject grandma, MaterialPropertyBlock block)
+        {
+            var animated = grandma.GetComponentInChildren<GrandmaCharacterAnimator>(true);
+            var renderers = animated != null ? animated.TintedRenderers : grandma.GetComponentsInChildren<Renderer>(true);
+            foreach (var grandmaRenderer in renderers)
+                if (grandmaRenderer != null) grandmaRenderer.SetPropertyBlock(block);
+        }
+
         public void Initialize()
         {
             int count = board.Settings.GrandmaCount;
@@ -38,8 +48,7 @@ namespace UnCredibles.Minigames.CrossyRoad
                 var position = new Vector3(board.SlotToX(i, count), board.transform.position.y, board.LaneToZ(CrossyRoadBoard.PickupLane));
                 var grandma = Instantiate(grandmaPrefab, position, Quaternion.Euler(0f, 180f, 0f), transform);
                 grandma.name = $"Grandma_{i}";
-                foreach (var grandmaRenderer in grandma.GetComponentsInChildren<Renderer>())
-                    grandmaRenderer.SetPropertyBlock(colorBlock);
+                Tint(grandma, colorBlock);
                 grandmas[i] = grandma;
             }
         }
@@ -117,7 +126,9 @@ namespace UnCredibles.Minigames.CrossyRoad
             {
                 var instance = Instantiate(grandmaPrefab, transform);
                 instance.name = "FlyingGrandma";
-                foreach (var flyerRenderer in instance.GetComponentsInChildren<Renderer>()) flyerRenderer.SetPropertyBlock(colorBlock);
+                Tint(instance, colorBlock);
+                var animated = instance.GetComponentInChildren<GrandmaCharacterAnimator>();
+                if (animated != null) animated.SetSpinning(true);
                 flyer = new Flyer { Transform = instance.transform };
                 flyers.Add(flyer);
             }

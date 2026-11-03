@@ -24,6 +24,9 @@ namespace UnCredibles.Characters.Editor
         private const string BrowsMaterialPath = Folder + "/M_Shared_PJ_Brows.mat";
         private const string RunClipName = "AN_Shared_PJ_Run";
         private const string IdleClipName = "AN_Shared_PJ_Idle";
+        private const string RunCarryClipName = "AN_Shared_PJ_RunCarry";
+        private const string IdleCarryClipName = "AN_Shared_PJ_IdleCarry";
+        private const string BackSocketBone = "Socket_Espalda";
         private const string PlayerMaterials = "Assets/_Project/Player/Materials/M_Player_";
         private const string FigurePath = "Assets/_Project/Player/Prefabs/PF_PlayerFigure";
         private const string CrossyPath = "Assets/_Project/Minigames/MG_CrossyRoad/Prefabs/PF_CR_Player";
@@ -37,13 +40,14 @@ namespace UnCredibles.Characters.Editor
         private const float FigureHeight = 2.55f;   // same height as the old garage/podium figure
         private const float CrossyHeight = 1.7f;    // clearly taller than the 1.18 grandmas and 1.0 cars
         private const float CrossyRunSpeed = 2.2f;  // small avatar moving fast: quicker legs
+        private const float CarriedGrandmaHeight = 1f; // a bit smaller than the waiting ones (1.18) so she fits on the back
 
         static PJCharacterSetup()
         {
             EditorApplication.delayCall += () =>
             {
                 if (EditorApplication.isPlayingOrWillChangePlaymode) return;
-                if (File.Exists(ModelPath) && !File.Exists(PrefabPath)) Run();
+                if (File.Exists(ModelPath) && (!File.Exists(PrefabPath) || !File.Exists(GrandmaCharacterSetup.PrefabPath))) Run();
             };
         }
 
@@ -76,18 +80,20 @@ namespace UnCredibles.Characters.Editor
             var brows = MakeMaterial(BrowsMaterialPath, neutral, new Color(.25f, .15f, .1f));
             var controller = BuildController();
             var character = BuildCharacterPrefab(controller, neutral, eyes, brows);
+            var grandma = GrandmaCharacterSetup.Build(neutral);
+            if (grandma == null) return;
 
             // Colours of each variant, read before the old body parts are removed.
             var figureColors = ReadVariantColors(FigurePath, "Body", null);
             var crossyColors = ReadVariantColors(CrossyPath, "Body", "Visual");
 
             IntegrateFigure(character);
-            IntegrateCrossy(character);
+            IntegrateCrossy(character, grandma);
             PaintVariants(FigurePath, figureColors);
             PaintVariants(CrossyPath, crossyColors);
 
             AssetDatabase.SaveAssets();
-            Debug.Log("[PJ] Listo: personaje integrado en figuras (lobby/podio) y en PF_CR_Player.");
+            Debug.Log("[PJ] Listo: personaje integrado en figuras (lobby/podio) y en PF_CR_Player, abuela en PF_CR_Grandma y en la espalda.");
         }
 
         // ---------- Model import ----------
@@ -116,7 +122,9 @@ namespace UnCredibles.Characters.Editor
             }
             foreach (var clip in clips)
             {
-                if (clip.takeName.EndsWith("Run")) clip.name = RunClipName;
+                if (clip.takeName.EndsWith("RunCarry")) clip.name = RunCarryClipName;
+                else if (clip.takeName.EndsWith("IdleCarry")) clip.name = IdleCarryClipName;
+                else if (clip.takeName.EndsWith("Run")) clip.name = RunClipName;
                 else if (clip.takeName.EndsWith("Idle")) clip.name = IdleClipName;
                 clip.loopTime = true;
                 clip.loopPose = false; // first and last frames are already identical
@@ -156,31 +164,48 @@ namespace UnCredibles.Characters.Editor
             if (controller == null) controller = AnimatorController.CreateAnimatorControllerAtPath(ControllerPath);
             foreach (var parameter in controller.parameters) controller.RemoveParameter(parameter);
             controller.AddParameter("Running", AnimatorControllerParameterType.Bool);
+            controller.AddParameter("Carrying", AnimatorControllerParameterType.Bool);
             controller.AddParameter(new AnimatorControllerParameter
             {
                 name = "RunSpeed", type = AnimatorControllerParameterType.Float, defaultFloat = 1f,
             });
 
+            // Four loops, one per (running, carrying) pair; every state can go straight to any other.
             var machine = controller.layers[0].stateMachine;
             foreach (var child in machine.states) machine.RemoveState(child.state);
-            var idle = machine.AddState("Idle", new Vector3(250f, 0f));
-            idle.motion = Clip(IdleClipName);
-            var run = machine.AddState("Run", new Vector3(250f, 90f));
-            run.motion = Clip(RunClipName);
-            run.speedParameterActive = true;
-            run.speedParameter = "RunSpeed";
-            machine.defaultState = idle;
-
-            var toRun = idle.AddTransition(run);
-            toRun.hasExitTime = false; toRun.hasFixedDuration = true; toRun.duration = .15f;
-            toRun.AddCondition(AnimatorConditionMode.If, 0f, "Running");
-            var toIdle = run.AddTransition(idle);
-            toIdle.hasExitTime = false; toIdle.hasFixedDuration = true; toIdle.duration = .2f;
-            toIdle.AddCondition(AnimatorConditionMode.IfNot, 0f, "Running");
+            var states = new (AnimatorState state, bool running, bool carrying)[]
+            {
+                (machine.AddState("Idle", new Vector3(250f, 0f)), false, false),
+                (machine.AddState("Run", new Vector3(250f, 90f)), true, false),
+                (machine.AddState("IdleCarry", new Vector3(520f, 0f)), false, true),
+                (machine.AddState("RunCarry", new Vector3(520f, 90f)), true, true),
+            };
+            states[0].state.motion = Clip(IdleClipName);
+            states[1].state.motion = Clip(RunClipName);
+            states[2].state.motion = Clip(IdleCarryClipName);
+            states[3].state.motion = Clip(RunCarryClipName);
+            machine.defaultState = states[0].state;
+            foreach (var (state, running, _) in states)
+            {
+                if (!running) continue;
+                state.speedParameterActive = true;
+                state.speedParameter = "RunSpeed";
+            }
+            foreach (var from in states)
+                foreach (var to in states)
+                {
+                    if (from.state == to.state) continue;
+                    var transition = from.state.AddTransition(to.state);
+                    transition.hasExitTime = false;
+                    transition.hasFixedDuration = true;
+                    transition.duration = to.running ? .15f : .2f;
+                    transition.AddCondition(to.running ? AnimatorConditionMode.If : AnimatorConditionMode.IfNot, 0f, "Running");
+                    transition.AddCondition(to.carrying ? AnimatorConditionMode.If : AnimatorConditionMode.IfNot, 0f, "Carrying");
+                }
 
             EditorUtility.SetDirty(controller);
-            if (idle.motion == null || run.motion == null) Debug.LogError("[PJ] Faltan clips en el FBX");
-            else Debug.Log("[PJ] AC_Shared_PJ: Idle <-> Run (parametros Running, RunSpeed)");
+            if (states.Any(s => s.state.motion == null)) Debug.LogError("[PJ] Faltan clips en el FBX");
+            else Debug.Log("[PJ] AC_Shared_PJ: Idle / Run / IdleCarry / RunCarry (parametros Running, Carrying, RunSpeed)");
             return controller;
         }
 
@@ -222,6 +247,9 @@ namespace UnCredibles.Characters.Editor
                 var driver = root.AddComponent<PlayerCharacterAnimator>();
                 var so = new SerializedObject(driver);
                 so.FindProperty("animator").objectReferenceValue = animator;
+                var socket = FindDeep(model.transform, BackSocketBone);
+                if (socket == null) Debug.LogError("[PJ] El FBX no tiene el hueso " + BackSocketBone);
+                so.FindProperty("backSocket").objectReferenceValue = socket;
                 so.ApplyModifiedPropertiesWithoutUndo();
 
                 var prefab = PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
@@ -232,6 +260,17 @@ namespace UnCredibles.Characters.Editor
             {
                 EditorSceneManager.ClosePreviewScene(scene);
             }
+        }
+
+        private static Transform FindDeep(Transform parent, string name)
+        {
+            if (parent.name == name) return parent;
+            foreach (Transform child in parent)
+            {
+                var found = FindDeep(child, name);
+                if (found != null) return found;
+            }
+            return null;
         }
 
         private static Renderer Find(GameObject root, string name) =>
@@ -260,35 +299,90 @@ namespace UnCredibles.Characters.Editor
             finally { PrefabUtility.UnloadPrefabContents(contents); }
         }
 
-        private static void IntegrateCrossy(GameObject character)
+        private static void IntegrateCrossy(GameObject character, GameObject grandma)
         {
+            var riding = PlaceOnBack(character, grandma);
             var contents = PrefabUtility.LoadPrefabContents(CrossyPath + ".prefab");
             try
             {
                 var visual = contents.transform.Find("Visual");
-                RemoveChildren(visual, OldCrossyParts.Append(CharacterChild));
+                RemoveChildren(visual, OldCrossyParts.Append(CharacterChild).Append("CarriedGrandma"));
                 var instance = AddCharacter(character, visual, CrossyHeight);
                 var driver = instance.GetComponent<PlayerCharacterAnimator>();
                 var driverSo = new SerializedObject(driver);
                 driverSo.FindProperty("runPlaybackSpeed").floatValue = CrossyRunSpeed;
                 driverSo.ApplyModifiedPropertiesWithoutUndo();
 
-                // The carried grandma rides on top of the head.
-                var carried = visual.Find("CarriedGrandma");
-                if (carried != null) carried.localPosition = new Vector3(0f, CrossyHeight + .08f, 0f);
+                // The carried grandma rides on the back: child of the back bone, so she follows
+                // the bounce and the lean of the carry loops.
+                var carried = (GameObject)PrefabUtility.InstantiatePrefab(grandma, driver.BackSocket);
+                carried.name = "CarriedGrandma";
+                carried.transform.SetLocalPositionAndRotation(riding.position, riding.rotation);
+                carried.transform.localScale = riding.scale;
+                carried.SetActive(false);
 
                 var player = contents.GetComponent("CrossyRoadPlayer");
                 var so = new SerializedObject(player);
                 so.FindProperty("character").objectReferenceValue = driver;
+                so.FindProperty("carriedGrandma").objectReferenceValue = carried;
                 var renderers = so.FindProperty("bodyRenderers");
                 renderers.arraySize = 1;
                 renderers.GetArrayElementAtIndex(0).objectReferenceValue = Find(instance, "Cuerpo");
                 so.ApplyModifiedPropertiesWithoutUndo();
 
                 PrefabUtility.SaveAsPrefabAsset(contents, CrossyPath + ".prefab");
-                Debug.Log("[PJ] PF_CR_Player: personaje de " + CrossyHeight + " de alto, carrera x" + CrossyRunSpeed);
+                Debug.Log("[PJ] PF_CR_Player: personaje de " + CrossyHeight + " de alto, carrera x" + CrossyRunSpeed + ", abuela en la espalda");
             }
             finally { PrefabUtility.UnloadPrefabContents(contents); }
+        }
+
+        // Where the grandma sits relative to the back bone: measured on a temporary copy posed
+        // with the carry loop, her front against the back and her bottom on the hands.
+        private static (Vector3 position, Quaternion rotation, Vector3 scale) PlaceOnBack(GameObject character, GameObject grandma)
+        {
+            var scene = EditorSceneManager.NewPreviewScene();
+            try
+            {
+                var hero = (GameObject)PrefabUtility.InstantiatePrefab(character);
+                SceneManager.MoveGameObjectToScene(hero, scene);
+                hero.transform.localScale = Vector3.one * CrossyHeight;
+                var driver = hero.GetComponent<PlayerCharacterAnimator>();
+                var model = hero.GetComponentInChildren<Animator>().gameObject;
+                Clip(RunCarryClipName).SampleAnimation(model, 0f);
+
+                var heroPoints = BakedPoints(hero);
+                float back = heroPoints.Where(p => p.y > CrossyHeight * .45f && p.y < CrossyHeight * .75f).Min(p => p.z);
+                float hands = (FindDeep(model.transform, "hand.L").position.y + FindDeep(model.transform, "hand.R").position.y) / 2f;
+
+                var rider = (GameObject)PrefabUtility.InstantiatePrefab(grandma);
+                SceneManager.MoveGameObjectToScene(rider, scene);
+                rider.transform.localScale = Vector3.one * CarriedGrandmaHeight;
+                var riderPoints = BakedPoints(rider);
+                float front = riderPoints.Max(p => p.z);
+                float bottom = riderPoints.Min(p => p.y);
+                // Slightly sunk into the back so no gap shows while bouncing.
+                rider.transform.position = new Vector3(driver.BackSocket.position.x, hands - bottom - .05f, back - front + .06f);
+
+                rider.transform.SetParent(driver.BackSocket, true);
+                Debug.Log($"[PJ] Abuela en la espalda: espalda z={back:F2}, manos y={hands:F2}");
+                return (rider.transform.localPosition, rider.transform.localRotation, rider.transform.localScale);
+            }
+            finally { EditorSceneManager.ClosePreviewScene(scene); }
+        }
+
+        // World positions of every vertex in the current (sampled) pose.
+        private static List<Vector3> BakedPoints(GameObject root)
+        {
+            var points = new List<Vector3>();
+            var mesh = new Mesh();
+            foreach (var skinned in root.GetComponentsInChildren<SkinnedMeshRenderer>())
+            {
+                skinned.BakeMesh(mesh, true);
+                var matrix = skinned.transform.localToWorldMatrix; // the baked vertices come without the transform scale
+                points.AddRange(mesh.vertices.Select(v => matrix.MultiplyPoint3x4(v)));
+            }
+            Object.DestroyImmediate(mesh);
+            return points;
         }
 
         private static GameObject AddCharacter(GameObject character, Transform parent, float height)
