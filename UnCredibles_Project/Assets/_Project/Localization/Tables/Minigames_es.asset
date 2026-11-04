@@ -131,6 +131,22 @@ MonoBehaviour:
     m_Localized: Escobazo
     m_Metadata:
       m_Items: []
+  - m_Id: 17129679224835
+    m_Localized: "Lleva a las abuelas al otro lado de la calle. +50 por cada abuela salvada (+100 en los \xFAltimos 30 segundos). Si te atropella un coche pierdes 15 puntos, o 25 si llevabas una abuela. El tr\xE1fico aumenta con el tiempo."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17129679224836
+    m_Localized: "Salta el churro gigante (puede cambiar de sentido) y ag\xE1chate para esquivar las pelotas de playa. El \xFAltimo que quede en pie gana la ronda. Se juegan 3 rondas."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17129679224837
+    m_Localized: "Corta el c\xE9sped para llenar bolsas que arrastras detr\xE1s como una cola. Solo punt\xFAan cuando las vac\xEDas en tu contenedor, en tu esquina del jard\xEDn. Atraviesa la cola de un rival para soltar sus bolsas o emb\xEDstelo con el turbo para que las pierda. En el frenes\xED final todo el c\xE9sped vuelve a crecer y cada bolsa vale m\xE1s."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17129679224838
+    m_Localized: "Mu\xE9vete por el garaje y da escobazos a los ratones. Cada rat\xF3n vale 1 punto y el dorado vale 5; si caen varios de un escobazo, los puntos se multiplican. Si le das a un rival, lo aturdes un momento. Gana quien tenga m\xE1s puntos a los 90 segundos."
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

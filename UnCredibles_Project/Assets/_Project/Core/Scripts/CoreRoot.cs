@@ -238,7 +238,17 @@ namespace UnCredibles.Core
                 if (slot.Input == phone) Players.SetConnected(slot.SlotIndex, connected);
         }
 
-        private void HandleMinigameStarted(IMinigame minigame) => GameFlow.ChangeState(GameState.Minigame);
+        private void HandleMinigameStarted(IMinigame minigame)
+        {
+            minigame.StateChanged += HandleMinigameStateChanged;
+            GameFlow.ChangeState(GameState.Minigame);
+        }
+
+        // The rules card ends when the countdown starts: phones go from "Ready" to the minigame controls.
+        private void HandleMinigameStateChanged(MinigameState state)
+        {
+            if (state == MinigameState.Countdown) ResendPhoneHint();
+        }
 
         // What BatPad phones show for each moment of the game: instruction, button names, exit button.
         private void UpdatePhoneHint(GameState previous, GameState current)
@@ -309,6 +319,13 @@ namespace UnCredibles.Core
         // "phone.<id>.a" / ".b" for the buttons (missing = that button does nothing there).
         private BatPadService.PhoneHint PhoneMinigameHint()
         {
+            if (minigames.ActiveMinigame?.State == MinigameState.Waiting) // rules card on screen
+                return new BatPadService.PhoneHint
+                {
+                    Text = L10n.Get(L10n.UI, "phone.rules"),
+                    A = L10n.Get(L10n.UI, "phone.a_ready"),
+                    Pulse = true,
+                };
             var data = minigames.ActiveData;
             var hint = new BatPadService.PhoneHint { Text = L10n.Get(L10n.UI, "phone.minigame") };
             if (data == null) return hint;

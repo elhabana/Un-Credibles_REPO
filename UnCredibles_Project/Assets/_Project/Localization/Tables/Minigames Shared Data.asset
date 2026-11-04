@@ -150,6 +150,22 @@ MonoBehaviour:
     m_Metadata:
       m_Items:
       - rid: 889587773146660867
+  - m_Id: 17129679224835
+    m_Key: rules.crossy_road
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17129679224836
+    m_Key: rules.churro
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17129679224837
+    m_Key: rules.mowthelawn
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17129679224838
+    m_Key: rules.garage_mice
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

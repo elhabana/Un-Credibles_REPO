@@ -496,6 +496,14 @@ MonoBehaviour:
     m_Localized: Close
     m_Metadata:
       m_Items: []
+  - m_Id: 6263442617401346
+    m_Localized: "Read the rules on screen and press Ready"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6263442617401347
+    m_Localized: "WAITING"
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

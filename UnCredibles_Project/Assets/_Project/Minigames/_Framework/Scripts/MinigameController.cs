@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using UnCredibles.Players;
+using UnCredibles.Players.Inputs;
 using UnityEngine;
 
 namespace UnCredibles.Minigames
@@ -32,6 +33,7 @@ namespace UnCredibles.Minigames
         private float nextSnapshotTime;
         private int lastCountdown = -1;
         private int lastTimerSeconds = -1;
+        private readonly bool[] ready = new bool[PlayerRegistry.MaxPlayers]; // same order as Players
 
         public MinigameData Data => data;
         public MinigameState State { get; private set; } = MinigameState.None;
@@ -50,6 +52,12 @@ namespace UnCredibles.Minigames
         public event Action<MinigameState> StateChanged;
         public event Action<int> CountdownTick; // 3, 2, 1 ... and 0 for START.
         public event Action<IReadOnlyList<MinigameResult>> Finished;
+
+        // Rules card: before the countdown every connected human presses Jump to say they read the rules.
+        // No time limit, on purpose. Bots, disconnected players and debug sessions never wait.
+        public bool AwaitingReady { get; private set; }
+        public bool IsReady(int playerIndex) => ready[playerIndex];
+        public event Action ReadyChanged;
 
         protected virtual void Start() => MinigameHost.TryHandOff(this);
 
@@ -74,14 +82,14 @@ namespace UnCredibles.Minigames
             if (scoreManager != null) scoreManager.ResetScores(players);
             ConnectNetwork();
             OnInitialize(context);
+            if (!IsDebugSession) gameObject.AddComponent<MinigameRulesCard>().Setup(this);
             SetState(MinigameState.Waiting);
         }
 
         public void StartCountdown()
         {
-            if (IsReplica || State != MinigameState.Waiting) return;
-            SetState(MinigameState.Countdown);
-            countdownRoutine = StartCoroutine(CountdownRoutine());
+            if (IsReplica || State != MinigameState.Waiting || countdownRoutine != null) return;
+            countdownRoutine = StartCoroutine(IsDebugSession ? CountdownRoutine() : ReadyThenCountdown());
         }
 
         public void StartGame()
@@ -176,8 +184,45 @@ namespace UnCredibles.Minigames
             if (sendStream.Length > 0) network.SendSnapshot(sendStream.GetBuffer(), (int)sendStream.Length);
         }
 
+        private IEnumerator ReadyThenCountdown()
+        {
+            Array.Clear(ready, 0, ready.Length);
+            AwaitingReady = true;
+            ReadyChanged?.Invoke();
+            SendHud();
+            yield return null; // a press from the frame the card appears does not count
+            while (!UpdateReady()) yield return null;
+            AwaitingReady = false;
+            ReadyChanged?.Invoke();
+            yield return CountdownRoutine();
+        }
+
+        // Marks new Jump presses; true once nobody who can still press is missing.
+        private bool UpdateReady()
+        {
+            bool changed = false;
+            bool everyone = true;
+            for (int i = 0; i < players.Count; i++)
+            {
+                var player = players[i];
+                if (!ready[i] && (player.IsAI || (player.Input != null && player.Input.WasPressed(PlayerAction.Jump))))
+                {
+                    ready[i] = true;
+                    changed = true;
+                }
+                if (!ready[i] && player.IsConnected && player.Input != null) everyone = false;
+            }
+            if (changed)
+            {
+                ReadyChanged?.Invoke();
+                SendHud();
+            }
+            return everyone;
+        }
+
         private IEnumerator CountdownRoutine()
         {
+            SetState(MinigameState.Countdown);
             int seconds = data != null ? data.CountdownSeconds : 3;
             var wait = new WaitForSeconds(1f);
             for (int i = seconds; i > 0; i--)
@@ -201,6 +246,7 @@ namespace UnCredibles.Minigames
 
         private void StopCountdown()
         {
+            AwaitingReady = false;
             if (countdownRoutine == null) return;
             StopCoroutine(countdownRoutine);
             countdownRoutine = null;
@@ -266,7 +312,7 @@ namespace UnCredibles.Minigames
             sendStream.SetLength(0);
         }
 
-        // HUD layout: state, countdown, timer, scores (playerId, score), results (playerId, score, placement).
+        // HUD layout: state, countdown, timer, awaiting ready, players (playerId, score, ready), results (playerId, score, placement).
         private void SendHud()
         {
             if (!IsNetworkHost || State < MinigameState.Waiting) return;
@@ -274,12 +320,14 @@ namespace UnCredibles.Minigames
             sendWriter.Write((byte)State);
             sendWriter.Write((short)lastCountdown);
             sendWriter.Write((short)lastTimerSeconds);
+            sendWriter.Write(AwaitingReady);
 
             sendWriter.Write((byte)players.Count);
-            foreach (var player in players)
+            for (int i = 0; i < players.Count; i++)
             {
-                sendWriter.Write(player.PlayerId);
-                sendWriter.Write(scoreManager != null ? scoreManager.GetScore(player.PlayerId) : 0);
+                sendWriter.Write(players[i].PlayerId);
+                sendWriter.Write(scoreManager != null ? scoreManager.GetScore(players[i].PlayerId) : 0);
+                sendWriter.Write(ready[i]);
             }
 
             sendWriter.Write((byte)results.Count);
@@ -298,14 +346,24 @@ namespace UnCredibles.Minigames
             var state = (MinigameState)reader.ReadByte();
             int countdown = reader.ReadInt16();
             int timerSeconds = reader.ReadInt16();
+            bool awaitingReady = reader.ReadBoolean();
 
+            bool readyChanged = awaitingReady != AwaitingReady;
+            AwaitingReady = awaitingReady;
             int scoreCount = reader.ReadByte();
             for (int i = 0; i < scoreCount; i++)
             {
                 int playerId = reader.ReadInt32();
                 int score = reader.ReadInt32();
+                bool isReady = reader.ReadBoolean();
                 if (scoreManager != null) scoreManager.SetScore(playerId, score);
+                if (i < ready.Length && ready[i] != isReady)
+                {
+                    ready[i] = isReady;
+                    readyChanged = true;
+                }
             }
+            if (readyChanged) ReadyChanged?.Invoke();
 
             int resultCount = reader.ReadByte();
             var received = new MinigameResult[resultCount];

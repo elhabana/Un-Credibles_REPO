@@ -542,6 +542,14 @@ MonoBehaviour:
     m_Key: lobby.phone_close
     m_Metadata:
       m_Items: []
+  - m_Id: 6263442617401346
+    m_Key: phone.rules
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6263442617401347
+    m_Key: rules.waiting
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

@@ -494,6 +494,14 @@ MonoBehaviour:
     m_Localized: Cerrar
     m_Metadata:
       m_Items: []
+  - m_Id: 6263442617401346
+    m_Localized: "Lee las reglas en la pantalla y pulsa Listo"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6263442617401347
+    m_Localized: "ESPERANDO"
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []
