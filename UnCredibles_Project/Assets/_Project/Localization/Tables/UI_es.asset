@@ -400,6 +400,10 @@ MonoBehaviour:
     m_Localized: CANCELAR
     m_Metadata:
       m_Items: []
+  - m_Id: 35710362058756
+    m_Localized: "PULSA CUALQUIER BOTÓN"
+    m_Metadata:
+      m_Items: []
   - m_Id: 6070755196928000
     m_Localized: Personaje
     m_Metadata:
@@ -500,6 +504,14 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 6263442617401347
     m_Localized: "ESPERANDO"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6263442617401348
+    m_Localized: "PAUSA"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6263442617401349
+    m_Localized: "ESC / START: continuar    CTRL / B: salir al men\xFA"
     m_Metadata:
       m_Items: []
   references:

@@ -47,6 +47,27 @@ namespace UnCredibles.Tests
         }
 
         [Test]
+        public void RestoreHumanGivesTheSlotBackFromTheBot()
+        {
+            var registry = new PlayerRegistry();
+            var phone = new AIInput(); // stands in for the phone's input
+            registry.TryAddPlayer(PlayerType.PrestoPadPlayer, phone, "Lola", out var slot);
+            int id = slot.PlayerId;
+            registry.ReplaceWithAI(slot.SlotIndex, new AIInput());
+
+            Assert.IsTrue(registry.RestoreHuman(slot.SlotIndex, PlayerType.PrestoPadPlayer, phone));
+            Assert.AreEqual(id, slot.PlayerId);
+            Assert.AreEqual("Lola", slot.PlayerName);
+            Assert.AreSame(phone, slot.Input);
+            Assert.AreEqual(PlayerType.PrestoPadPlayer, slot.PlayerType);
+            Assert.AreEqual(SlotState.Occupied, slot.State);
+            Assert.IsTrue(slot.IsConnected);
+            Assert.IsFalse(slot.IsReady);
+            // Only a bot's slot can be taken back.
+            Assert.IsFalse(registry.RestoreHuman(slot.SlotIndex, PlayerType.PrestoPadPlayer, new AIInput()));
+        }
+
+        [Test]
         public void InvitingSlotIsSkippedWhenAutoAssigning()
         {
             var registry = new PlayerRegistry();

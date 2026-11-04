@@ -134,7 +134,7 @@ namespace UnCredibles.UI.Garage.Editor
             var serialized=new SerializedObject(view); var slots=serialized.FindProperty("slotViews"); slots.arraySize=4;
             for(int i=0;i<4;i++) slots.GetArrayElementAtIndex(i).objectReferenceValue=cards[i];
             serialized.ApplyModifiedPropertiesWithoutUndo();
-            var players=lobbyRoot.AddComponent<GaragePlayers>(); players.lobby=controller; players.avatars=avatars; players.doorPieces=doorPieces;
+            var players=lobbyRoot.AddComponent<GaragePlayers>(); players.lobby=controller; players.avatars=avatars; // the door that opens is found at runtime (SM_GarageDoor.001)
             players.figures=AssetDatabase.LoadAssetAtPath<PlayerFigureSet>("Assets/_Project/Player/ScriptableObjects/SO_PlayerFigures.asset");
             front.detailPanels=new GameObject[3];
             var tvCanvas=new GameObject("Settings on TV",typeof(RectTransform),typeof(Canvas),typeof(GraphicRaycaster));

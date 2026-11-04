@@ -67,10 +67,13 @@ namespace UnCredibles.Minigames.CrossyRoad
 
             colorBlock = new MaterialPropertyBlock();
             colorBlock.SetColor(BaseColorId, board.Settings.GrandmaColor);
+            // Waiting grandmas look at the road they want to cross (the model faces +Z).
+            var facingRoad = Quaternion.LookRotation(new Vector3(0f, 0f,
+                Mathf.Sign(board.LaneToZ(board.GoalLane) - board.LaneToZ(CrossyRoadBoard.PickupLane))));
             for (int i = 0; i < count; i++)
             {
                 var position = new Vector3(board.SlotToX(i, count), board.transform.position.y, board.LaneToZ(CrossyRoadBoard.PickupLane));
-                var grandma = Instantiate(grandmaPrefab, position, Quaternion.Euler(0f, 180f, 0f), transform);
+                var grandma = Instantiate(grandmaPrefab, position, facingRoad, transform);
                 grandma.name = $"Grandma_{i}";
                 Tint(grandma, colorBlock);
                 grandmas[i] = grandma;

@@ -24,13 +24,14 @@ namespace UnCredibles.UI.PartyLobby
 
         // A match needs at least two players in the room; bots count.
         private const int MinPlayers = 2;
-        // A phone that drops in the lobby keeps its slot this long (screen lock, app switch, Wi-Fi blip).
-        private const float PhoneReconnectSeconds = 10f;
+        // A player whose phone or gamepad drops in the lobby keeps the slot this long (screen lock, app switch,
+        // Wi-Fi blip, controller out of battery).
+        private const float AwaySeconds = 10f;
 
         private readonly Dictionary<InputDevice, int> deviceSlots = new Dictionary<InputDevice, int>();
         private readonly int[] joinFrame = new int[PlayerRegistry.MaxPlayers];
-        private readonly Dictionary<BatPadInput, float> phoneTimeouts = new Dictionary<BatPadInput, float>();
-        private readonly List<BatPadInput> expiredPhones = new List<BatPadInput>();
+        private readonly Dictionary<IPlayerInput, float> awayTimeouts = new Dictionary<IPlayerInput, float>();
+        private readonly List<IPlayerInput> expired = new List<IPlayerInput>();
         private readonly LobbySlotInfo[] slotInfos = new LobbySlotInfo[PlayerRegistry.MaxPlayers];
         private CoreRoot core;
         private BatPadService batPad;
@@ -112,13 +113,8 @@ namespace UnCredibles.UI.PartyLobby
             }
             joinListener = InputSystem.onAnyButtonPress.Call(HandleAnyButton);
 
-            WaitForDisconnectedPhones();
-            if (UsesPhones)
-            {
-                batPad.PhoneDisconnected += HandlePhoneDisconnected;
-                batPad.PhoneReconnected += HandlePhoneReconnected;
-                batPad.OpenRoom(PhoneRoomCode);
-            }
+            WaitForAwayPlayers();
+            if (UsesPhones) batPad.OpenRoom(PhoneRoomCode);
 
             Initialized?.Invoke();
             EvaluateCountdown();
@@ -137,15 +133,10 @@ namespace UnCredibles.UI.PartyLobby
                 room.SlotsChanged -= HandleRemoteSlots;
                 room.CountdownReceived -= HandleRemoteCountdown;
             }
-            if (batPad != null)
-            {
-                batPad.PhoneDisconnected -= HandlePhoneDisconnected;
-                batPad.PhoneReconnected -= HandlePhoneReconnected;
-            }
             Players = null;
             deviceSlots.Clear();
-            phoneTimeouts.Clear();
-            expiredPhones.Clear();
+            awayTimeouts.Clear();
+            expired.Clear();
         }
 
         // Lobby input of the players of this machine: Jump toggles Ready, Pause un-readies or leaves,
@@ -160,7 +151,7 @@ namespace UnCredibles.UI.PartyLobby
                 return;
             }
             DressNewPlayers();
-            RemoveExpiredPhones();
+            RemoveExpiredAway();
             if (UsesPhones) JoinPressingPhones();
             foreach (var slot in Players.Slots)
             {
@@ -441,37 +432,40 @@ namespace UnCredibles.UI.PartyLobby
             }
         }
 
-        // CoreRoot already marked the slot as Disconnected; the phone gets a few seconds to come back.
-        private void HandlePhoneDisconnected(BatPadInput phone)
+        // CoreRoot marks a slot Disconnected when its phone or gamepad drops; the player gets a few seconds
+        // to come back. Called for every slot change, so it also sees them come back.
+        private void TrackAway(PlayerSlot slot)
         {
-            var slot = FindSlot(phone);
-            if (slot == null) return;
-            Players.SetReady(slot.SlotIndex, false); // no countdown without it
-            phoneTimeouts[phone] = Time.unscaledTime + PhoneReconnectSeconds;
-        }
-
-        private void HandlePhoneReconnected(BatPadInput phone) => phoneTimeouts.Remove(phone);
-
-        // Phones that dropped during the match get the same time to come back once the lobby opens.
-        private void WaitForDisconnectedPhones()
-        {
-            foreach (var slot in Players.Slots)
-                if (slot.Input is BatPadInput { IsConnected: false } phone)
-                    phoneTimeouts[phone] = Time.unscaledTime + PhoneReconnectSeconds;
-        }
-
-        private void RemoveExpiredPhones()
-        {
-            if (phoneTimeouts.Count == 0) return;
-            expiredPhones.Clear();
-            foreach (var pair in phoneTimeouts)
-                if (Time.unscaledTime >= pair.Value) expiredPhones.Add(pair.Key);
-
-            foreach (var phone in expiredPhones)
+            if (slot.Input == null) return;
+            if (slot.IsConnected || !slot.IsOccupied || slot.IsAI)
             {
-                phoneTimeouts.Remove(phone);
-                var slot = FindSlot(phone);
-                if (slot != null && !phone.IsConnected) RemovePlayer(slot.SlotIndex);
+                awayTimeouts.Remove(slot.Input);
+                return;
+            }
+            if (awayTimeouts.ContainsKey(slot.Input)) return;
+            awayTimeouts[slot.Input] = Time.unscaledTime + AwaySeconds;
+            Players.SetReady(slot.SlotIndex, false); // no countdown without them
+        }
+
+        // Players who dropped during the match get the same time to come back once the lobby opens.
+        private void WaitForAwayPlayers()
+        {
+            if (!IsAuthority) return; // an online client only mirrors the host's slots
+            foreach (var slot in Players.Slots) TrackAway(slot);
+        }
+
+        private void RemoveExpiredAway()
+        {
+            if (awayTimeouts.Count == 0) return;
+            expired.Clear();
+            foreach (var pair in awayTimeouts)
+                if (Time.unscaledTime >= pair.Value) expired.Add(pair.Key);
+
+            foreach (var controller in expired)
+            {
+                awayTimeouts.Remove(controller);
+                var slot = FindSlot(controller);
+                if (slot != null && !slot.IsConnected) RemovePlayer(slot.SlotIndex);
             }
         }
 
@@ -498,6 +492,9 @@ namespace UnCredibles.UI.PartyLobby
 
         private void HandleSlotChanged(PlayerSlot slot)
         {
+            TrackAway(slot);
+            // A gamepad that took its slot back from a bot comes with a fresh input: map the device again.
+            if (slot.Input is DeviceInput { Device: not null } device) deviceSlots[device.Device] = slot.SlotIndex;
             RefreshSlotInfos();
             EvaluateCountdown();
         }
@@ -572,7 +569,7 @@ namespace UnCredibles.UI.PartyLobby
         {
             deviceSlots.Clear();
             foreach (var slot in Players.Slots)
-                if (slot.Input is DeviceInput device) deviceSlots[device.Device] = slot.SlotIndex;
+                if (slot.Input is DeviceInput { Device: not null } device) deviceSlots[device.Device] = slot.SlotIndex;
             UnreadyHumans(); // coming back from a match: humans confirm Ready again
             if (!HasHost()) AssignHost();
         }

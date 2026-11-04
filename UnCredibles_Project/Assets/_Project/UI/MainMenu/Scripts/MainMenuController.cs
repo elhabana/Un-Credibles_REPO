@@ -5,6 +5,7 @@ using UnityEngine.UI;
 using TMPro;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.Utilities;
 using UnityEngine.Localization.Components;
 
 namespace UnCredibles.UI.MainMenu
@@ -26,6 +27,16 @@ namespace UnCredibles.UI.MainMenu
         private Button quitButton;
         private Button quitAccept;
         private Button quitCancel;
+        // Title screen: only the first time the menu opens in a session, not when coming back from a party.
+        private const float TitleRevealSeconds = .25f;
+        private static bool titleSeen;
+        private TMP_Text pressStart;
+        private bool titlePressed;
+        private float titleReveal = TitleRevealSeconds;
+        private readonly System.Collections.Generic.List<GameObject> titleHidden = new System.Collections.Generic.List<GameObject>();
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetTitle() => titleSeen = false; // also with domain reload off in the editor
 
         private void Awake()
         {
@@ -45,10 +56,54 @@ namespace UnCredibles.UI.MainMenu
             }
             connectionStatus.text = "";
             ShowMultiplayerSetup(false);
+            if (!titleSeen) BuildTitle();
+        }
+
+        private void BuildTitle()
+        {
+            pressStart = Instantiate(settingsButton.GetComponentInChildren<TMP_Text>(true), mainPanel.transform.parent);
+            var localized = pressStart.GetComponent<LocalizeStringEvent>();
+            if (localized != null) Destroy(localized);
+            pressStart.name = "Press Start";
+            pressStart.raycastTarget = false;
+            pressStart.text = UnCredibles.Localization.L10n.Get(UnCredibles.Localization.L10n.UI, "menu.press_start");
+            pressStart.enableAutoSizing = false;
+            pressStart.fontSize = 60;
+            pressStart.alignment = TextAlignmentOptions.Center;
+            var rect = pressStart.rectTransform;
+            rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(.5f, .5f);
+            rect.anchoredPosition = new Vector2(0f, -((RectTransform)mainPanel.transform.parent).rect.height * .3f);
+            rect.sizeDelta = new Vector2(1000f, 90f);
+            // The logo stays; only the home buttons wait (ACEPTAR / CANCELAR stay closed).
+            foreach (Transform child in mainPanel.transform)
+                if (child.GetComponent<Button>() != null && child.gameObject.activeSelf) titleHidden.Add(child.gameObject);
+            InputSystem.onAnyButtonPress.CallOnce(_ => titlePressed = true);
+        }
+
+        // Keeps the buttons hidden and the prompt blinking until any key, click or pad button.
+        // The buttons appear a moment later so that same press does not also click JUGAR LOCAL.
+        private bool UpdateTitle()
+        {
+            foreach (var hidden in titleHidden) hidden.SetActive(false);
+            if (titlePressed) titleReveal -= Time.unscaledDeltaTime;
+            float pop = titlePressed ? 1f + (1f - titleReveal / TitleRevealSeconds) * .3f : 1f;
+            pressStart.transform.localScale = new Vector3(pop, pop, 1f);
+            var color = pressStart.color;
+            color.a = titlePressed ? Mathf.Clamp01(titleReveal / TitleRevealSeconds) : .6f + .4f * Mathf.Sin(Time.unscaledTime * 4f);
+            pressStart.color = color;
+            if (titleReveal > 0f) return true;
+
+            titleSeen = true;
+            Destroy(pressStart.gameObject);
+            pressStart = null;
+            foreach (var hidden in titleHidden) hidden.SetActive(true);
+            ShowMultiplayerSetup(false); // shows the buttons with JUGAR LOCAL selected
+            return false;
         }
 
         private void Update()
         {
+            if (pressStart != null && UpdateTitle()) return;
             if (multiplayerSetupPanel.activeInHierarchy &&
                 ((Gamepad.current != null && Gamepad.current.buttonEast.wasPressedThisFrame) ||
                  (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)))

@@ -404,6 +404,10 @@ MonoBehaviour:
     m_Localized: CANCEL
     m_Metadata:
       m_Items: []
+  - m_Id: 35710362058756
+    m_Localized: PRESS ANY BUTTON
+    m_Metadata:
+      m_Items: []
   - m_Id: 6070755196928000
     m_Localized: Character
     m_Metadata:
@@ -502,6 +506,14 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 6263442617401347
     m_Localized: "WAITING"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6263442617401348
+    m_Localized: "PAUSED"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6263442617401349
+    m_Localized: "ESC / START: resume    CTRL / B: quit to menu"
     m_Metadata:
       m_Items: []
   references:

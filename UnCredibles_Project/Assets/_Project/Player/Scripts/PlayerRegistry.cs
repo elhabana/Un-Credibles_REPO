@@ -112,6 +112,22 @@ namespace UnCredibles.Players
             return true;
         }
 
+        // A human who left mid-match came back: they take their slot back from the bot (same PlayerId and score).
+        public bool RestoreHuman(int index, PlayerType type, IPlayerInput input)
+        {
+            if (!IsOccupied(index) || !slots[index].IsAI || input == null ||
+                type == PlayerType.Empty || type == PlayerType.AIPlayer) return false;
+            var slot = slots[index];
+            if (slot.Input != input) slot.Input?.Dispose();
+            slot.Input = input;
+            slot.PlayerType = type;
+            slot.State = SlotState.Occupied;
+            slot.IsConnected = true;
+            slot.IsReady = false; // back in the lobby they confirm Ready again, like any human
+            SlotChanged?.Invoke(slot);
+            return true;
+        }
+
         // Online clients only: copies one slot of the host so names, ids and slot order match on
         // every machine. The input is a placeholder; the host is the one that simulates.
         public void MirrorSlot(int index, int playerId, PlayerType type, SlotState state, string playerName,

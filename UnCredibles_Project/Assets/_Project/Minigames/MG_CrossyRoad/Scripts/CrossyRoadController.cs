@@ -29,6 +29,7 @@ namespace UnCredibles.Minigames.CrossyRoad
         private readonly List<CrossyRoadAIBrain> brains = new List<CrossyRoadAIBrain>(PlayerRegistry.MaxPlayers);
         private readonly float[] respawnTimers = new float[PlayerRegistry.MaxPlayers];
         private System.Func<Vector3, CrossyRoadPlayer, bool> isMoveBlocked;
+        private CrossyRoadJuice juice;
 
         public bool IsFinalRush { get; private set; }
         public event System.Action FinalRushStarted;
@@ -40,6 +41,8 @@ namespace UnCredibles.Minigames.CrossyRoad
         {
             isMoveBlocked = IsMoveBlocked;
             board.Build();
+            juice = gameObject.AddComponent<CrossyRoadJuice>();
+            juice.Setup(board);
             traffic.Initialize(!IsReplica); // an online client gets its cars from the host
             grandmas.Initialize();
             oil.Initialize();
@@ -60,6 +63,7 @@ namespace UnCredibles.Minigames.CrossyRoad
 
         private void Update()
         {
+            if (juice != null) juice.Tick(avatars, IsFinalRush && IsPlaying); // effects only, same on host and clients
             if (IsReplica)
             {
                 // Online client: everything comes from the host, we only keep it moving smoothly.

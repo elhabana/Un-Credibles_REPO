@@ -20,6 +20,7 @@ namespace UnCredibles.Minigames.CrossyRoad
         private bool built;
 
         public CrossyRoadSettings Settings => settings;
+        public Renderer GoalTile { get; private set; }
         public int LaneCount => settings.LaneCount;
         public int GoalLane => settings.LaneCount - 1;
         public float CellSize => settings.CellSize;
@@ -71,6 +72,7 @@ namespace UnCredibles.Minigames.CrossyRoad
                 if (laneMaterial != null) tileRenderer.sharedMaterial = laneMaterial;
                 block.SetColor(BaseColorId, LaneColor(lane));
                 tileRenderer.SetPropertyBlock(block);
+                if (lane == GoalLane) GoalTile = tileRenderer;
             }
         }
 

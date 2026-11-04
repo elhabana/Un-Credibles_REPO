@@ -6,6 +6,7 @@ using UnCredibles.Players;
 using UnCredibles.Players.Inputs;
 using UnCredibles.Networking;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using UnCredibles.Localization;
 
@@ -32,6 +33,13 @@ namespace UnCredibles.Core
         private IPlayerInput onlineInput; // online client: the controller sent to the host
         private float nextInputSend;
         private bool wasOnlineHost;
+        // Per slot: the bot that plays for a player whose controller dropped, whose controller it was,
+        // what kind of player they were and when the bot takes over (0 = not pending).
+        private readonly AIInput[] standIns = new AIInput[PlayerRegistry.MaxPlayers];
+        private readonly IPlayerInput[] standInOwners = new IPlayerInput[PlayerRegistry.MaxPlayers];
+        private readonly PlayerType[] standInTypes = new PlayerType[PlayerRegistry.MaxPlayers];
+        private readonly float[] standInAt = new float[PlayerRegistry.MaxPlayers];
+        private const float AwayBotDelay = 10f;
         private readonly List<MinigameData> votedMinigames = new List<MinigameData>(3);
         private readonly List<MinigameData> voteCandidates = new List<MinigameData>();
         private readonly Dictionary<int, int> votes = new Dictionary<int, int>();
@@ -110,6 +118,7 @@ namespace UnCredibles.Core
             minigames.MinigameFinished += HandleMinigameFinished;
             batPad.PhoneDisconnected += HandlePhoneDisconnected;
             batPad.PhoneReconnected += HandlePhoneReconnected;
+            InputSystem.onDeviceChange += HandleDeviceChange;
             GameFlow.StateChanged += UpdatePhoneHint;
             L10n.LanguageChanged += ResendPhoneHint;
         }
@@ -153,6 +162,8 @@ namespace UnCredibles.Core
             Match.CancelMatch();
             ClearVote();
             Players.Clear();
+            System.Array.Clear(standInOwners, 0, standInOwners.Length);
+            System.Array.Clear(standInAt, 0, standInAt.Length);
             batPad.SendByeToAll(); // phones show "thanks for playing"
             batPad.ClearSlots(); // phones stay connected but have to join again from the lobby
             sceneFlow.LoadContent(GameScenes.MainMenu, () => GameFlow.ChangeState(GameState.MainMenu));
@@ -172,6 +183,9 @@ namespace UnCredibles.Core
                 return false;
             }
             Match.StartMatch(playersBuffer, rounds);
+            // A controller lost during the lobby's last seconds gets the same 10 s before its bot.
+            foreach (var slot in Players.Slots)
+                if (slot.IsOccupied && !slot.IsAI && !slot.IsConnected) ScheduleStandIn(slot);
             // Direct one-round starts remain useful for editor smoke tests.
             if (rounds != VotedRounds) return StartNextRound();
             GameFlow.ChangeState(GameState.Voting);
@@ -221,21 +235,116 @@ namespace UnCredibles.Core
             minigames.MinigameFinished -= HandleMinigameFinished;
             batPad.PhoneDisconnected -= HandlePhoneDisconnected;
             batPad.PhoneReconnected -= HandlePhoneReconnected;
+            InputSystem.onDeviceChange -= HandleDeviceChange;
             GameFlow.StateChanged -= UpdatePhoneHint;
             L10n.LanguageChanged -= ResendPhoneHint;
             Players.Clear();
             Instance = null;
         }
 
-        // A phone that drops keeps its slot (and score) as Disconnected until it comes back;
-        // the lobby frees the slot if it takes too long.
-        private void HandlePhoneDisconnected(BatPadInput phone) => SetPhoneConnected(phone, false);
-        private void HandlePhoneReconnected(BatPadInput phone) => SetPhoneConnected(phone, true);
+        private bool InLobby => GameFlow.State == GameState.MainMenu || GameFlow.State == GameState.PartyLobby;
 
-        private void SetPhoneConnected(BatPadInput phone, bool connected)
+        // A player whose controller drops (a phone, or a gamepad unplugged or out of battery) keeps the slot as
+        // Disconnected. In the lobby, the lobby frees it if it takes too long. During a match, if they are still
+        // away after AwayBotDelay, a bot plays for them (same PlayerId and score) until the controller comes back.
+        private void MarkAway(PlayerSlot slot)
+        {
+            Players.SetConnected(slot.SlotIndex, false);
+            if (!InLobby) ScheduleStandIn(slot);
+        }
+
+        private void ScheduleStandIn(PlayerSlot slot)
+        {
+            standInOwners[slot.SlotIndex] = slot.Input;
+            standInTypes[slot.SlotIndex] = slot.PlayerType;
+            standInAt[slot.SlotIndex] = Time.unscaledTime + AwayBotDelay;
+        }
+
+        private void ReplaceLatePlayers()
+        {
+            for (int i = 0; i < standInAt.Length; i++)
+            {
+                if (standInAt[i] <= 0f || (!InLobby && Time.unscaledTime < standInAt[i])) continue;
+                bool late = !InLobby; // back in the lobby, the lobby's own timeout decides
+                standInAt[i] = 0f;
+                var slot = Players.Slots[i];
+                if (!late || slot.IsConnected || slot.Input == null || slot.Input != standInOwners[i]) continue;
+                // One stand-in per slot, reused: minigame AI brains stay bound to the AIInput they were given.
+                standIns[i] ??= input.CreateAIInput();
+                Players.ReplaceWithAI(i, standIns[i]);
+            }
+        }
+
+        private bool BotStandsInFor(int index, System.Func<IPlayerInput, bool> isOwner) =>
+            standIns[index] != null && Players.Slots[index].Input == standIns[index] &&
+            standInOwners[index] != null && isOwner(standInOwners[index]);
+
+        // The controller is back: before the bot came in it just goes on; after, it takes the slot back from the bot.
+        private void MarkBack(int index, IPlayerInput controller)
+        {
+            standInAt[index] = 0f;
+            if (Players.Slots[index].Input == standIns[index] && standIns[index] != null)
+            {
+                standInOwners[index] = null;
+                Players.RestoreHuman(index, standInTypes[index], controller);
+            }
+            else Players.SetConnected(index, true);
+        }
+
+        private void HandlePhoneDisconnected(BatPadInput phone)
+        {
+            if (TryGetSlot(phone, out var slot)) MarkAway(slot);
+        }
+
+        private void HandlePhoneReconnected(BatPadInput phone)
+        {
+            if (TryGetSlot(phone, out var slot))
+            {
+                MarkBack(slot.SlotIndex, phone);
+                return;
+            }
+            int index = phone.SlotIndex;
+            if (index >= 0 && index < PlayerRegistry.MaxPlayers && BotStandsInFor(index, owner => owner == phone))
+                MarkBack(index, phone);
+            else if (index != BatPadInput.NoSlot) batPad.AssignSlot(phone, BatPadInput.NoSlot); // its slot is gone
+        }
+
+        // Gamepads (and keyboards) that are unplugged or lose their wireless link, and come back.
+        private void HandleDeviceChange(InputDevice device, InputDeviceChange change)
+        {
+            bool lost = change == InputDeviceChange.Disconnected || change == InputDeviceChange.Removed;
+            bool back = change == InputDeviceChange.Reconnected || change == InputDeviceChange.Added;
+            if (!lost && !back) return;
+            for (int i = 0; i < PlayerRegistry.MaxPlayers; i++)
+            {
+                var slot = Players.Slots[i];
+                bool ownDevice = slot.Input is DeviceInput own && own.Device == device;
+                if (lost && ownDevice && slot.IsConnected) MarkAway(slot);
+                else if (back && ownDevice && !slot.IsConnected) MarkBack(i, slot.Input);
+                else if (back && BotStandsInFor(i, owner => owner is DeviceInput gone && gone.Device == device))
+                {
+                    // The old input was disposed when the bot came in: the device gets a fresh one.
+                    var fresh = device switch
+                    {
+                        Gamepad gamepad => input.CreateGamepadInput(gamepad),
+                        Keyboard => input.CreateKeyboardInput(),
+                        _ => null,
+                    };
+                    if (fresh != null) MarkBack(i, fresh);
+                }
+            }
+        }
+
+        private bool TryGetSlot(IPlayerInput controller, out PlayerSlot found)
         {
             foreach (var slot in Players.Slots)
-                if (slot.Input == phone) Players.SetConnected(slot.SlotIndex, connected);
+            {
+                if (slot.Input != controller) continue;
+                found = slot;
+                return true;
+            }
+            found = null;
+            return false;
         }
 
         private void HandleMinigameStarted(IMinigame minigame)
@@ -344,6 +453,7 @@ namespace UnCredibles.Core
 
         private void Update()
         {
+            ReplaceLatePlayers();
             if (GameFlow.Session != SessionMode.Online)
             {
                 if (GameFlow.State == GameState.Voting) UpdateVote();

@@ -82,6 +82,8 @@ namespace UnCredibles.Minigames
             if (scoreManager != null) scoreManager.ResetScores(players);
             ConnectNetwork();
             OnInitialize(context);
+            // The HUD shows the whole time from the start (rules card, countdown), not the scene's placeholder.
+            if (roundTimer != null && data != null && data.Duration > 0f) roundTimer.Show(Mathf.CeilToInt(data.Duration));
             if (!IsDebugSession) gameObject.AddComponent<MinigameRulesCard>().Setup(this);
             SetState(MinigameState.Waiting);
         }
@@ -378,7 +380,7 @@ namespace UnCredibles.Minigames
             if (timerSeconds != lastTimerSeconds && roundTimer != null)
             {
                 lastTimerSeconds = timerSeconds;
-                if (timerSeconds >= 0) roundTimer.ShowRemote(timerSeconds);
+                if (timerSeconds >= 0) roundTimer.Show(timerSeconds);
             }
             if (state == State) return;
 

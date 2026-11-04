@@ -11,28 +11,45 @@ namespace UnCredibles.UI.Garage
         // The lobby camera steps back so the whole figures (feet and boots included) stand above
         // the player cards: how much further, where their middle lands on screen, figure height.
         private const float LobbyZoomOut = 1.4f;
-        private const float FiguresScreenHeight = .6f; // helmets stay clear of the buttons at the top
-        private const float FigureHeight = 2.55f;
-        // Figures closer than this touch each other (the head is about 1.1 wide) and leave no
-        // room for the outfit arrows between them: spread them out around the same middle.
+        private const float FiguresScreenHeight = .55f; // helmets stay clear of the buttons at the top
+        // Figures (and the clothes on them) at human size next to the 3.8 m garage door.
+        private const float FigureScale = .65f;
+        private const float FigureHeight = 2.55f * FigureScale;
+        // Looking slightly down from a bit higher up.
+        private const float LobbyPitch = 8f;
+        // Figures closer than this touch each other (the head is about 1.1 wide at full size) and leave no
+        // room for the outfit arrows between them: spread them out around the middle of the garage.
         private const float FigureSpacing = 1.95f; // also lines them up over their cards
+        // How far past the door the players run when they leave (out of the garage, into the light).
+        private const float ExitPastDoor = 3f;
+        // Width of a figure at its scale, plus air: two figures side by side never closer than this.
+        private const float FigureWidth = 1.1f * FigureScale + .25f;
+        // When the door is too narrow for everyone side by side, they go through one after another, this far apart in time.
+        private const float QueueDelay = .3f;
+        private const float RunStart = .45f; // the door is already half up
+        // The door panel of the garage model that rises when the players leave; found by name when left empty.
+        private static readonly string[] GarageDoorNames = { "SM_GarageDoor.001", "GarageDoor.001", "garagedoor.001" };
+        public Transform garageDoor;
         public PartyLobbyController lobby;
         // One spot per slot (with its accessory anchors); the slot's figure is placed inside it.
         public GameObject[] avatars;
         public PlayerFigureSet figures;
-        // The garage door and its slats: they rise together when the players leave.
-        public Transform[] doorPieces;
+        private Bounds doorOpening; // where the real door is, how wide and how tall
+        private bool hasGarageDoor;
+        private Vector3 garageDoorStart;
+        private float[] runDelays; // per figure: who goes through the door first
+        private float[] exitLanes; // per figure: its Z while going through the door
         private Vector3[] avatarStarts;
         // Animated character inside each figure (Idle while waiting, Run when the door opens).
         private PlayerCharacterAnimator[] characters;
         // Helmet, outfit and boots of each figure, changed from the lobby cards.
         private PlayerCharacterOutfit[] outfits;
         private Quaternion[] avatarRotations;
-        private Vector3[] doorStarts;
         private Coroutine departure;
 
         private void Awake()
         {
+            FindGarageDoor();
             var positions = new Vector3[avatars.Length];
             characters = new PlayerCharacterAnimator[avatars.Length];
             outfits = new PlayerCharacterOutfit[avatars.Length];
@@ -42,13 +59,14 @@ namespace UnCredibles.UI.Garage
                 // Figures face +Z; turn them to the lobby camera, on the side of the mask anchor.
                 var figure = Instantiate(figures.For(i), avatars[i].transform, false);
                 figure.transform.localRotation = Quaternion.Euler(0f, 90f, 0f);
+                figure.transform.localScale *= FigureScale; // helmets, outfits and boots hang from its bones
                 characters[i] = figure.GetComponentInChildren<PlayerCharacterAnimator>();
                 outfits[i] = figure.GetComponentInChildren<PlayerCharacterOutfit>();
                 if (outfits[i] != null && lobby.PartCatalog == null) lobby.PartCatalog = outfits[i].Catalog;
             }
             // The lobby camera faces west: increasing Z runs from screen left to right.
             System.Array.Sort(positions, (a, b) => a.z.CompareTo(b.z));
-            SpreadOut(positions);
+            SpreadOut(positions, GarageMiddleZ());
             avatarStarts = positions;
             avatarRotations = new Quaternion[avatars.Length];
             for (int i = 0; i < avatars.Length; i++)
@@ -57,26 +75,83 @@ namespace UnCredibles.UI.Garage
                 avatarRotations[i] = avatars[i].transform.rotation;
             }
             ReframeLobbyCamera();
+            PlanExit();
             gameObject.AddComponent<LobbyOutfitArrows>().Init(lobby, avatars, outfits);
-
-            doorStarts = new Vector3[doorPieces.Length];
-            for (int i = 0; i < doorPieces.Length; i++) doorStarts[i] = doorPieces[i].localPosition;
         }
 
-        private static void SpreadOut(Vector3[] positions)
+        // The garage model's door panel, and the box it fills (the opening the players run through).
+        private void FindGarageDoor()
         {
-            if (positions.Length < 2) return;
-            float spacing = float.MaxValue;
-            var centre = Vector3.zero;
-            for (int i = 0; i < positions.Length; i++)
+            if (garageDoor == null)
+                foreach (var candidate in FindObjectsByType<Transform>(FindObjectsSortMode.None))
+                    if (System.Array.Exists(GarageDoorNames, n => string.Equals(n, candidate.name, System.StringComparison.OrdinalIgnoreCase)))
+                    {
+                        garageDoor = candidate;
+                        break;
+                    }
+            if (garageDoor == null)
             {
-                centre += positions[i];
-                if (i > 0) spacing = Mathf.Min(spacing, Vector3.Distance(positions[i], positions[i - 1]));
+                Debug.LogWarning("[GaragePlayers] No garage door (SM_GarageDoor.001) in the scene: the players run west.", this);
+                return;
             }
-            if (spacing >= FigureSpacing || spacing <= 0f) return;
-            centre /= positions.Length;
+            var renderers = garageDoor.GetComponentsInChildren<Renderer>();
+            if (renderers.Length == 0) return;
+            doorOpening = renderers[0].bounds;
+            foreach (var part in renderers) doorOpening.Encapsulate(part.bounds);
+            garageDoorStart = garageDoor.position;
+            hasGarageDoor = true;
+        }
+
+        // Where the garage door stands (west of the players); without one, 4 m ahead of them.
+        private float DoorX() => hasGarageDoor ? doorOpening.center.x : avatarStarts[0].x - 4f;
+
+        // The middle of the garage door: the line is centred on it, and so is the lobby camera.
+        private float GarageMiddleZ()
+        {
+            if (hasGarageDoor) return doorOpening.center.z;
+            float z = 0f;
+            foreach (var avatar in avatars) z += avatar.transform.position.z;
+            return z / Mathf.Max(1, avatars.Length);
+        }
+
+        // Each figure goes through the door in its own lane. If the door is too narrow for the four side
+        // by side, the lanes squeeze together and the ones in the middle go first, one after another,
+        // so two figures are never level and close at the same time.
+        private void PlanExit()
+        {
+            int count = avatarStarts.Length;
+            runDelays = new float[count];
+            exitLanes = new float[count];
+            float middle = GarageMiddleZ();
+            float room = hasGarageDoor ? doorOpening.size.z - FigureWidth : float.MaxValue;
+            float spacing = count > 1 ? Mathf.Min(FigureSpacing, room / (count - 1)) : 0f;
+            bool queue = spacing < FigureWidth;
+            float first = -(count - 1) * .5f;
+            for (int i = 0; i < count; i++)
+            {
+                exitLanes[i] = middle + (first + i) * Mathf.Max(0f, spacing);
+                if (!queue) continue;
+                // One turn each, middle figures first: count who is closer to the middle (left wins a tie).
+                int turn = 0;
+                for (int other = 0; other < count; other++)
+                {
+                    float mine = Mathf.Abs(first + i), theirs = Mathf.Abs(first + other);
+                    if (theirs < mine || (theirs == mine && other < i)) turn++;
+                }
+                runDelays[i] = turn * QueueDelay;
+            }
+        }
+
+        // Evenly spaced line, FigureSpacing apart, centred on the garage (the spots keep their depth and height).
+        private static void SpreadOut(Vector3[] positions, float middleZ)
+        {
+            if (positions.Length == 0) return;
+            float x = 0f;
+            foreach (var position in positions) x += position.x;
+            x /= positions.Length;
+            float first = -(positions.Length - 1) * .5f;
             for (int i = 0; i < positions.Length; i++)
-                positions[i] = centre + (positions[i] - centre) * (FigureSpacing / spacing);
+                positions[i] = new Vector3(x, positions[i].y, middleZ + (first + i) * FigureSpacing);
         }
 
         // Keeps the lobby viewpoint's rotation and moves it back along it, centred on the figures.
@@ -86,6 +161,7 @@ namespace UnCredibles.UI.Garage
             if (rig == null || rig.output == null || rig.viewpoints.Length <= (int)GarageView.Lobby) return;
             var view = rig.viewpoints[(int)GarageView.Lobby];
             if (view == null) return;
+            view.rotation = Quaternion.Euler(LobbyPitch, view.eulerAngles.y, 0f);
             var centre = Vector3.zero;
             foreach (var start in avatarStarts) centre += start;
             centre = centre / avatarStarts.Length + Vector3.up * (FigureHeight * .5f);
@@ -123,23 +199,33 @@ namespace UnCredibles.UI.Garage
         private IEnumerator PlayDeparture()
         {
             float elapsed = 0f;
+            // Into their door lane before reaching the door, through it, and out the other side.
+            float doorX = DoorX();
+            float exitX = doorX - ExitPastDoor;
+            float doorRise = doorOpening.size.y + .1f;
             while (elapsed < DepartureSeconds)
             {
                 elapsed += Time.deltaTime;
                 float open = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / .95f));
-                for (int i = 0; i < doorPieces.Length; i++)
-                    doorPieces[i].localPosition = doorStarts[i] + Vector3.up * (open * 4.2f);
+                if (hasGarageDoor) garageDoor.position = garageDoorStart + Vector3.up * (open * doorRise);
 
-                float run = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((elapsed - .45f) / 1.8f));
                 for (int i = 0; i < avatars.Length; i++)
                 {
                     if (!avatars[i].activeSelf) continue;
                     var start = avatarStarts[i];
                     var character = characters[i];
-                    if (character != null && elapsed >= .45f) character.SetRunning(true);
+                    float begin = RunStart + runDelays[i];
+                    // Quick start, full speed through the door (no slowing down at the end).
+                    float run = Mathf.Clamp01((elapsed - begin) / (DepartureSeconds - begin));
+                    run = run * run * (2f - run);
+                    if (character != null && elapsed >= begin) character.SetRunning(true);
+                    float x = Mathf.Lerp(start.x, exitX, run);
+                    // Lined up with its lane by the time it reaches the door frame.
+                    float toDoor = Mathf.Clamp01(Mathf.InverseLerp(start.x, doorX + FigureWidth, x));
+                    float z = Mathf.Lerp(start.z, exitLanes[i], Mathf.SmoothStep(0f, 1f, toDoor));
                     // The animated run already bounces; the old figures fake it with a hop.
                     float hop = character != null ? start.y : Mathf.Sin(run * Mathf.PI * 12f) * .08f;
-                    avatars[i].transform.position = new Vector3(start.x - 1.9f * run, hop, start.z);
+                    avatars[i].transform.position = new Vector3(x, hop, z);
                     // The face is on the spot's +X (mask anchor); turn it to the door, west.
                     avatars[i].transform.rotation = Quaternion.Slerp(avatarRotations[i],
                         Quaternion.Euler(0f, 180f, 0f), Mathf.Clamp01(run * 4f));
@@ -153,8 +239,7 @@ namespace UnCredibles.UI.Garage
         {
             if (departure != null) StopCoroutine(departure);
             departure = null;
-            for (int i = 0; i < doorPieces.Length; i++)
-                if (doorPieces[i] != null) doorPieces[i].localPosition = doorStarts[i]; // already destroyed when the scene closes
+            if (hasGarageDoor && garageDoor != null) garageDoor.position = garageDoorStart; // already destroyed when the scene closes
             for (int i = 0; i < avatars.Length; i++)
             {
                 if (avatars[i] == null) continue;

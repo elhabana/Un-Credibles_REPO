@@ -1,5 +1,6 @@
 using UnCredibles.Players;
 using UnityEngine;
+using UnityEngine.Video;
 
 namespace UnCredibles.Minigames
 {
@@ -15,6 +16,8 @@ namespace UnCredibles.Minigames
         [SerializeField, Range(1, PlayerRegistry.MaxPlayers)] private int minPlayers = 1;
         [SerializeField, Range(1, PlayerRegistry.MaxPlayers)] private int maxPlayers = PlayerRegistry.MaxPlayers;
         [SerializeField] private Sprite thumbnail;
+        [Tooltip("Short gameplay loop (5-10 s, 16:9, no sound needed) played on the rules card. Empty = the thumbnail.")]
+        [SerializeField] private VideoClip preview;
         [SerializeField] private AudioClip music;
         [SerializeField, TextArea(3, 8)] private string rules;
 
@@ -26,6 +29,7 @@ namespace UnCredibles.Minigames
         public int MinPlayers => minPlayers;
         public int MaxPlayers => maxPlayers;
         public Sprite Thumbnail => thumbnail;
+        public VideoClip Preview => preview;
         public AudioClip Music => music;
         public string Rules => rules;
 

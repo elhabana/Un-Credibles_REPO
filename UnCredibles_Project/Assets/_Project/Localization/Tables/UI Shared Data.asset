@@ -490,6 +490,10 @@ MonoBehaviour:
     m_Metadata:
       m_Items:
       - rid: 889587774307958788
+  - m_Id: 35710362058756
+    m_Key: menu.press_start
+    m_Metadata:
+      m_Items: []
   - m_Id: 6070755247259657
     m_Key: part.Casco_Abierto
     m_Metadata:
@@ -548,6 +552,14 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 6263442617401347
     m_Key: rules.waiting
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6263442617401348
+    m_Key: pause.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6263442617401349
+    m_Key: pause.hint
     m_Metadata:
       m_Items: []
   m_Metadata:
