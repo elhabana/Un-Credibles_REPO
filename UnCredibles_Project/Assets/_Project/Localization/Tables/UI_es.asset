@@ -481,6 +481,19 @@ MonoBehaviour:
     m_Localized: 'ARRIBA / ABAJO: casco, ropa o botas     IZQUIERDA / DERECHA: cambiar'
     m_Metadata:
       m_Items: []
+  - m_Id: 6263442562875392
+    m_Localized: "Conectarse con el m\xF3vil"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6263442617401344
+    m_Localized: "Escanea el c\xF3digo con la c\xE1mara del m\xF3vil para usarlo
+      como mando"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6263442617401345
+    m_Localized: Cerrar
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

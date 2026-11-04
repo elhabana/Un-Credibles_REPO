@@ -484,6 +484,18 @@ MonoBehaviour:
     m_Localized: 'UP / DOWN: helmet, outfit or boots     LEFT / RIGHT: change'
     m_Metadata:
       m_Items: []
+  - m_Id: 6263442562875392
+    m_Localized: Connect with your phone
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6263442617401344
+    m_Localized: Scan the code with your phone camera to use it as a controller
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6263442617401345
+    m_Localized: Close
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

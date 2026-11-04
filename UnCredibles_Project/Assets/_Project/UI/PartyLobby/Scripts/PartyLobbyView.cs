@@ -26,12 +26,18 @@ namespace UnCredibles.UI.PartyLobby
         private bool locked;
         private Texture2D batPadQrTexture;
         private TMP_Text addPlayerCallout; // blinking "another player? gamepad or QR" above the QR
+        // The small QR is replaced by a "connect with your phone" button that opens it big.
+        private Button phoneButton;
+        private GameObject phoneOverlay;
+        private RawImage bigQr;
+        private TMP_Text phoneButtonLabel, phoneScanText, phoneCloseLabel;
 
         private void Awake()
         {
             for (int i = 0; i < slotViews.Length; i++) slotViews[i].Setup(i);
             countdownText.gameObject.SetActive(false);
             CreateAddPlayerCallout();
+            CreatePhonePanel();
             RenderBatPad();
         }
 
@@ -64,8 +70,86 @@ namespace UnCredibles.UI.PartyLobby
         // Only while someone can still join here: the QR is up, a slot is free and the match is not starting.
         private void RenderAddPlayerCallout(int occupied)
         {
-            bool show = batPadQr.gameObject.activeSelf && !locked && occupied < PlayerRegistry.MaxPlayers;
+            bool show = batPadQrTexture != null && !locked && occupied < PlayerRegistry.MaxPlayers;
             addPlayerCallout.gameObject.SetActive(show);
+            phoneButton.gameObject.SetActive(show);
+            if (!show) phoneOverlay.SetActive(false);
+        }
+
+        // Built at runtime, like the callout: a button where the small QR was, and a dark panel
+        // with the QR big enough to scan from the sofa.
+        private void CreatePhonePanel()
+        {
+            var parent = batPadQr.transform.parent;
+            var qrRect = (RectTransform)batPadQr.transform;
+
+            phoneButton = PlainButton(parent, out phoneButtonLabel, 24f);
+            var buttonRect = (RectTransform)phoneButton.transform;
+            buttonRect.anchorMin = buttonRect.anchorMax = qrRect.anchorMin;
+            buttonRect.sizeDelta = new Vector2(330f, 76f);
+            buttonRect.anchoredPosition = qrRect.anchoredPosition + new Vector2(-50f, 0f); // its text fits on screen
+            phoneButton.onClick.AddListener(() =>
+            {
+                phoneOverlay.transform.SetAsLastSibling(); // above the cards and the outfit arrows
+                phoneOverlay.SetActive(true);
+            });
+
+            phoneOverlay = new GameObject("Phone QR Panel", typeof(RectTransform), typeof(Image));
+            var overlay = (RectTransform)phoneOverlay.transform;
+            overlay.SetParent(parent, false);
+            overlay.anchorMin = Vector2.zero; overlay.anchorMax = Vector2.one;
+            overlay.offsetMin = overlay.offsetMax = Vector2.zero;
+            phoneOverlay.GetComponent<Image>().color = new Color(0f, 0f, 0f, .9f); // also blocks clicks behind
+
+            bigQr = new GameObject("Big QR", typeof(RectTransform), typeof(RawImage)).GetComponent<RawImage>();
+            bigQr.rectTransform.SetParent(overlay, false);
+            bigQr.rectTransform.sizeDelta = new Vector2(560f, 560f);
+            bigQr.rectTransform.anchoredPosition = new Vector2(0f, 40f);
+
+            phoneScanText = Instantiate(batPadText, overlay);
+            phoneScanText.gameObject.SetActive(true);
+            phoneScanText.rectTransform.anchorMin = phoneScanText.rectTransform.anchorMax = new Vector2(.5f, .5f);
+            phoneScanText.rectTransform.sizeDelta = new Vector2(1500f, 60f);
+            phoneScanText.rectTransform.anchoredPosition = new Vector2(0f, 370f);
+            phoneScanText.fontSize = 32f;
+            phoneScanText.textWrappingMode = TextWrappingModes.NoWrap;
+            phoneScanText.alignment = TextAlignmentOptions.Center;
+
+            var close = PlainButton(overlay, out phoneCloseLabel, 28f);
+            var closeRect = (RectTransform)close.transform;
+            closeRect.anchorMin = closeRect.anchorMax = new Vector2(.5f, .5f);
+            closeRect.sizeDelta = new Vector2(280f, 70f);
+            closeRect.anchoredPosition = new Vector2(0f, -300f);
+            close.onClick.AddListener(() => phoneOverlay.SetActive(false));
+
+            batPadQr.gameObject.SetActive(false);
+            phoneButton.gameObject.SetActive(false);
+            phoneOverlay.SetActive(false);
+            SetPhoneTexts();
+        }
+
+        // Same look as the lobby buttons, with a plain label (the copied one is translated
+        // to its own text).
+        private Button PlainButton(Transform parent, out TMP_Text label, float fontSize)
+        {
+            var button = Instantiate(backButton, parent);
+            button.onClick = new Button.ButtonClickedEvent();
+            foreach (var old in button.GetComponentsInChildren<TMP_Text>(true)) Destroy(old.gameObject);
+            label = Instantiate(batPadText, button.transform);
+            label.gameObject.SetActive(true);
+            label.rectTransform.anchorMin = Vector2.zero; label.rectTransform.anchorMax = Vector2.one;
+            label.rectTransform.offsetMin = label.rectTransform.offsetMax = Vector2.zero;
+            label.fontSize = fontSize;
+            label.fontStyle = FontStyles.Bold;
+            label.alignment = TextAlignmentOptions.Center;
+            return button;
+        }
+
+        private void SetPhoneTexts()
+        {
+            phoneButtonLabel.text = L10n.Get(L10n.UI, "lobby.phone_connect");
+            phoneScanText.text = L10n.Get(L10n.UI, "lobby.phone_scan");
+            phoneCloseLabel.text = L10n.Get(L10n.UI, "lobby.phone_close");
         }
 
         private void OnDestroy()
@@ -133,6 +217,7 @@ namespace UnCredibles.UI.PartyLobby
         private void HandleLanguageChanged()
         {
             addPlayerCallout.text = L10n.Get(L10n.UI, "lobby.add_player");
+            SetPhoneTexts();
             RenderBatPad();
             if (controller.Players != null) ShowHint();
         }
@@ -149,7 +234,8 @@ namespace UnCredibles.UI.PartyLobby
             batPadQrTexture = url != null ? QrTexture.Create(url) : null;
 
             batPadQr.texture = batPadQrTexture;
-            batPadQr.gameObject.SetActive(batPadQrTexture != null);
+            bigQr.texture = batPadQrTexture;
+            if (batPadQrTexture == null) phoneOverlay.SetActive(false);
             // Once the QR is up the callout above it explains it, so the caption only says "connecting".
             batPadText.gameObject.SetActive(usesPhones && url == null);
             batPadText.text = L10n.Get(L10n.UI, "lobby.batpad_connecting");
