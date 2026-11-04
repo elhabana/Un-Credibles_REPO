@@ -18,7 +18,7 @@ namespace UnCredibles.UI.Voting
         private TMP_Text heading;
         private TMP_Text timer;
         private TMP_Text hint;
-        private readonly TMP_Text[] stops = new TMP_Text[3];
+        private readonly TMP_Text[] stops = new TMP_Text[CoreRoot.VotedRounds];
         private readonly List<Card> cards = new List<Card>();
         private int renderedCandidateCount = -1;
 
@@ -114,7 +114,7 @@ namespace UnCredibles.UI.Voting
             Place(route.rectTransform, 0, 195, 1580, 130);
             var road = Panel("Camino", route.transform, new Color(.36f, .49f, .50f));
             Place(road.rectTransform, 0, 0, 1020, 4);
-            for (int i = 0; i < 3; i++)
+            for (int i = 0; i < stops.Length; i++)
             {
                 stops[i] = Label("Parada " + (i + 1), route.transform, "?", 29, TextAlignmentOptions.Center);
                 Place(stops[i].rectTransform, (i - 1) * 500, 0, 480, 100);
@@ -139,7 +139,7 @@ namespace UnCredibles.UI.Voting
             }
 
             int round = core.VotedMinigames.Count;
-            heading.text = round >= 3 ? L10n.Get(L10n.UI, "vote.route_decided") : L10n.Format(L10n.UI, "vote.round", round + 1, 3);
+            heading.text = round >= CoreRoot.VotedRounds ? L10n.Get(L10n.UI, "vote.route_decided") : L10n.Format(L10n.UI, "vote.round", round + 1, CoreRoot.VotedRounds);
             for (int i = 0; i < stops.Length; i++)
             {
                 string name = i < round ? MinigameName(core.VotedMinigames[i]) : i == round ? L10n.Get(L10n.UI, "vote.voting") : L10n.Get(L10n.UI, "vote.undecided");
@@ -173,7 +173,7 @@ namespace UnCredibles.UI.Voting
                     votes == 1 ? L10n.Get(L10n.UI, "vote.one_vote") : votes > 1 ? L10n.Format(L10n.UI, "vote.votes", votes) : L10n.Get(L10n.UI, "vote.available");
                 card.button.interactable = !picked && core.CanChangeVote;
             }
-            hint.text = round >= 3 ? L10n.Get(L10n.UI, "vote.route_decided") :
+            hint.text = round >= CoreRoot.VotedRounds ? L10n.Get(L10n.UI, "vote.route_decided") :
                 L10n.Get(L10n.UI, "vote.hint_full");
         }
 

@@ -364,6 +364,8 @@ namespace UnCredibles.Networking
             reader.ReadValueSafe(out float y);
             reader.ReadValueSafe(out byte pressed);
             reader.ReadValueSafe(out byte held);
+            // ClampMagnitude keeps NaN: a tampered stick would turn the player's position into NaN.
+            if (float.IsNaN(x) || float.IsNaN(y) || float.IsInfinity(x) || float.IsInfinity(y)) return;
             if (clientSlots.TryGetValue(sender, out int slotIndex) && players.Slots[slotIndex].Input is NetworkInput input)
                 input.Apply(new Vector2(x, y), pressed, held);
         }

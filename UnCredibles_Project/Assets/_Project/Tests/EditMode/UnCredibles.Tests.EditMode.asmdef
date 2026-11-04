@@ -6,7 +6,10 @@
         "UnityEditor.TestRunner",
         "UnCredibles.Player",
         "UnCredibles.Minigames",
-        "UnCredibles.Core"
+        "UnCredibles.Core",
+        "UnCredibles.Networking",
+        "Unity.Netcode.Runtime",
+        "Unity.Collections"
     ],
     "includePlatforms": [
         "Editor"

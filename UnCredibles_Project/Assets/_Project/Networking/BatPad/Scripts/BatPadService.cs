@@ -233,7 +233,7 @@ namespace UnCredibles.BatPad
                     resumeKey = msg.key;
                     retriesWithoutRoom = 0;
                     ControllerUrl = $"{serverUrl.TrimEnd('/')}/?room={msg.room}&key={msg.key}";
-                    GUIUtility.systemCopyBuffer = ControllerUrl;
+                    if (Application.isEditor) GUIUtility.systemCopyBuffer = ControllerUrl; // never clobber a player's clipboard
                     Debug.Log($"[BatPad] Room {msg.room} ready. Controller URL (copied to clipboard): {ControllerUrl}", this);
                     RoomChanged?.Invoke();
                     break;
