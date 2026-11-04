@@ -10955,6 +10955,10 @@ MonoBehaviour:
   - {fileID: 436477754}
   - {fileID: 839253062}
   duration: 0.8
+  dashDuration: 0.45
+  dashFovKick: 14
+  dashRoll: 5
+  dashSound: {fileID: 8300000, guid: 354c49d67678161448162c408042cf63, type: 3}
 --- !u!4 &1181163441
 Transform:
   m_ObjectHideFlags: 0
