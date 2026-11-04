@@ -6,28 +6,28 @@ using UnityEngine.UI;
 
 namespace UnCredibles.UI.Garage
 {
-    // Arrows next to each lobby figure, at the part they change: the head (helmet), the chest
-    // (outfit) and the feet (boots). They follow the figure on screen; the row a player has
-    // picked with the stick is highlighted.
+    // White arrows beside each lobby figure, at the part they change: the head (helmet), the
+    // body (outfit) and the feet (boots). They follow the figure on screen; the row a player
+    // has picked with the stick pulses and glows.
     public sealed class LobbyOutfitArrows : MonoBehaviour
     {
-        private static readonly Color Ink = new Color(.06f, .08f, .12f, .88f);
-        private static readonly Color Highlight = new Color(.95f, .65f, .2f, 1f);
         private static readonly CharacterPartSlot[] Parts = { CharacterPartSlot.Helmet, CharacterPartSlot.Outfit, CharacterPartSlot.Boots };
-        // Distance from the middle of each part to its arrows (character 1 unit tall) and extra
-        // pixels. The figures stand close together, so the head arrows sit on the head itself and
-        // the others right at the edge of the chest and the feet: each pair stays on its figure.
-        private static readonly float[] Offsets = { .13f, .11f, .1f };
-        private static readonly float[] Gaps = { 0f, 8f, 8f };
-        private const float HeadArrowHeight = .7f; // from the base of the skull to the top, where helmets are
-        private const float ArrowSize = 38f;
+        // Distance from the middle of each part to its arrows (character 1 unit tall): just
+        // outside the head, the arms and the feet. Plus a few pixels of air.
+        private static readonly float[] Offsets = { .25f, .24f, .14f }; // the head one clears helmet brims too
+        private const float Gap = 12f;
+        private const float ArrowSize = 44f;
+        private static readonly Color Idle = new Color(1f, 1f, 1f, .5f);
+        private static readonly Color Lit = new Color(1f, .93f, .62f, 1f);
+        private static readonly Color GlowColor = new Color(1f, .78f, .3f, .9f);
 
         private PartyLobbyController lobby;
         private GameObject[] avatars;
         private PlayerCharacterOutfit[] outfits;
         private Transform[,] anchorsA;
         private Transform[,] anchorsB;
-        private Button[,,] arrows; // figure, part, side (0 left, 1 right)
+        private RectTransform[,,] arrows; // figure, part, side (0 left, 1 right)
+        private TextMeshProUGUI[,,] labels;
         private RectTransform area;
         private Canvas canvas;
 
@@ -40,13 +40,14 @@ namespace UnCredibles.UI.Garage
             canvas = GetComponentInParent<Canvas>().rootCanvas;
             anchorsA = new Transform[avatars.Length, Parts.Length];
             anchorsB = new Transform[avatars.Length, Parts.Length];
-            arrows = new Button[avatars.Length, Parts.Length, 2];
+            arrows = new RectTransform[avatars.Length, Parts.Length, 2];
+            labels = new TextMeshProUGUI[avatars.Length, Parts.Length, 2];
             for (int i = 0; i < avatars.Length; i++)
             {
                 if (outfits[i] != null)
                 {
                     var bones = outfits[i].GetComponentsInChildren<Transform>(true);
-                    // Head: between the base of the skull and the top of the head.
+                    // Head: halfway between the base of the skull and the top of the head.
                     anchorsA[i, 0] = Bone(bones, "spine.006"); anchorsB[i, 0] = Bone(bones, "Socket_Cabeza");
                     anchorsA[i, 1] = Bone(bones, "spine.002"); anchorsB[i, 1] = anchorsA[i, 1];
                     anchorsA[i, 2] = Bone(bones, "foot.L"); anchorsB[i, 2] = Bone(bones, "foot.R");
@@ -55,7 +56,7 @@ namespace UnCredibles.UI.Garage
                     for (int side = 0; side < 2; side++)
                     {
                         int figure = i, part = p, step = side == 0 ? -1 : 1;
-                        arrows[i, p, side] = Arrow(side == 0 ? "<" : ">", () => lobby.StepPart(figure, Parts[part], step));
+                        arrows[i, p, side] = Arrow(side == 0 ? "<" : ">", () => lobby.StepPart(figure, Parts[part], step), out labels[i, p, side]);
                     }
             }
         }
@@ -67,34 +68,46 @@ namespace UnCredibles.UI.Garage
             return null;
         }
 
-        private Button Arrow(string text, System.Action onClick)
+        // Clickable, but only the white arrow shows: the button image is fully transparent.
+        private RectTransform Arrow(string text, System.Action onClick, out TextMeshProUGUI label)
         {
             var rect = new GameObject("Outfit arrow " + text, typeof(RectTransform), typeof(Image), typeof(Button)).GetComponent<RectTransform>();
             rect.SetParent(area, false);
             rect.sizeDelta = new Vector2(ArrowSize, ArrowSize);
-            rect.GetComponent<Image>().color = Ink;
+            rect.GetComponent<Image>().color = Color.clear;
             var button = rect.GetComponent<Button>();
+            button.transition = Selectable.Transition.None;
             button.navigation = new Navigation { mode = Navigation.Mode.None }; // players use their own pads
             button.onClick.AddListener(() => onClick());
-            var label = new GameObject("Text", typeof(RectTransform)).AddComponent<TextMeshProUGUI>();
+            label = new GameObject("Text", typeof(RectTransform)).AddComponent<TextMeshProUGUI>();
             label.rectTransform.SetParent(rect, false);
             label.rectTransform.anchorMin = Vector2.zero; label.rectTransform.anchorMax = Vector2.one;
             label.rectTransform.offsetMin = label.rectTransform.offsetMax = Vector2.zero;
             label.font = TMP_Settings.defaultFontAsset;
             label.text = text;
-            label.fontSize = 26f;
+            label.fontSize = 46f;
             label.fontStyle = FontStyles.Bold;
             label.alignment = TextAlignmentOptions.Center;
-            label.color = Color.white;
             label.raycastTarget = false;
+            // Own material: a thin dark outline so it reads on any background, and a glow that
+            // only lights up on the selected row.
+            var material = label.fontMaterial;
+            material.EnableKeyword("OUTLINE_ON");
+            material.SetFloat(ShaderUtilities.ID_OutlineWidth, .12f);
+            material.SetColor(ShaderUtilities.ID_OutlineColor, new Color(0f, 0f, 0f, .6f));
+            material.EnableKeyword("GLOW_ON");
+            material.SetColor(ShaderUtilities.ID_GlowColor, GlowColor);
+            material.SetFloat(ShaderUtilities.ID_GlowOuter, .6f);
+            material.SetFloat(ShaderUtilities.ID_GlowPower, 0f);
             rect.gameObject.SetActive(false);
-            return button;
+            return rect;
         }
 
         private void LateUpdate()
         {
             if (lobby == null) return;
             var view = Camera.main;
+            float pulse = .5f + .5f * Mathf.Sin(Time.unscaledTime * 6f);
             for (int i = 0; i < avatars.Length; i++)
             {
                 bool show = view != null && lobby.Players != null && avatars[i] != null && avatars[i].activeInHierarchy
@@ -102,24 +115,30 @@ namespace UnCredibles.UI.Garage
                 int selected = show ? lobby.SelectedPartRow(i) : -1;
                 for (int p = 0; p < Parts.Length; p++)
                 {
-                    bool placed = show && Place(view, i, p);
+                    bool lit = p == selected;
+                    bool placed = show && Place(view, i, p, lit ? pulse * 6f : 0f);
                     for (int side = 0; side < 2; side++)
                     {
                         var arrow = arrows[i, p, side];
                         if (arrow.gameObject.activeSelf != placed) arrow.gameObject.SetActive(placed);
-                        if (placed) arrow.image.color = p == selected ? Highlight : Ink;
+                        if (!placed) continue;
+                        var label = labels[i, p, side];
+                        label.color = lit ? Color.Lerp(Color.white, Lit, pulse) : Idle;
+                        label.fontMaterial.SetFloat(ShaderUtilities.ID_GlowPower, lit ? .35f + .35f * pulse : 0f);
+                        arrow.localScale = Vector3.one * (lit ? 1.05f + .12f * pulse : .85f);
                     }
                 }
             }
         }
 
-        // Puts both arrows of a part beside it on screen; false when it cannot be seen.
-        private bool Place(Camera view, int figure, int part)
+        // Puts both arrows of a part beside it on screen (pushed `nudge` pixels further out);
+        // false when it cannot be seen.
+        private bool Place(Camera view, int figure, int part, float nudge)
         {
             var a = anchorsA[figure, part];
             var b = anchorsB[figure, part];
             if (a == null || b == null) return false;
-            var point = part == 0 ? Vector3.Lerp(a.position, b.position, HeadArrowHeight) : (a.position + b.position) * .5f;
+            var point = (a.position + b.position) * .5f;
             float halfWidth = Offsets[part] * outfits[figure].transform.lossyScale.y;
 
             var centre = view.WorldToScreenPoint(point);
@@ -128,9 +147,9 @@ namespace UnCredibles.UI.Garage
             var uiCamera = canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera;
             RectTransformUtility.ScreenPointToLocalPointInRectangle(area, centre, uiCamera, out var local);
             RectTransformUtility.ScreenPointToLocalPointInRectangle(area, edge, uiCamera, out var localEdge);
-            float offset = Mathf.Abs(localEdge.x - local.x) + Gaps[part];
-            ((RectTransform)arrows[figure, part, 0].transform).anchoredPosition = AnchoredFromLocal(local + Vector2.left * offset);
-            ((RectTransform)arrows[figure, part, 1].transform).anchoredPosition = AnchoredFromLocal(local + Vector2.right * offset);
+            float offset = Mathf.Abs(localEdge.x - local.x) + Gap + nudge;
+            arrows[figure, part, 0].anchoredPosition = AnchoredFromLocal(local + Vector2.left * offset);
+            arrows[figure, part, 1].anchoredPosition = AnchoredFromLocal(local + Vector2.right * offset);
             return true;
         }
 

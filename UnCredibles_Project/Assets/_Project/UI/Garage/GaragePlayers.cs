@@ -11,8 +11,11 @@ namespace UnCredibles.UI.Garage
         // The lobby camera steps back so the whole figures (feet and boots included) stand above
         // the player cards: how much further, where their middle lands on screen, figure height.
         private const float LobbyZoomOut = 1.4f;
-        private const float FiguresScreenHeight = .64f;
+        private const float FiguresScreenHeight = .6f; // helmets stay clear of the buttons at the top
         private const float FigureHeight = 2.55f;
+        // Figures closer than this touch each other (the head is about 1.1 wide) and leave no
+        // room for the outfit arrows between them: spread them out around the same middle.
+        private const float FigureSpacing = 1.95f; // also lines them up over their cards
         public PartyLobbyController lobby;
         // One spot per slot (with its accessory anchors); the slot's figure is placed inside it.
         public GameObject[] avatars;
@@ -45,6 +48,7 @@ namespace UnCredibles.UI.Garage
             }
             // The lobby camera faces west: increasing Z runs from screen left to right.
             System.Array.Sort(positions, (a, b) => a.z.CompareTo(b.z));
+            SpreadOut(positions);
             avatarStarts = positions;
             avatarRotations = new Quaternion[avatars.Length];
             for (int i = 0; i < avatars.Length; i++)
@@ -57,6 +61,22 @@ namespace UnCredibles.UI.Garage
 
             doorStarts = new Vector3[doorPieces.Length];
             for (int i = 0; i < doorPieces.Length; i++) doorStarts[i] = doorPieces[i].localPosition;
+        }
+
+        private static void SpreadOut(Vector3[] positions)
+        {
+            if (positions.Length < 2) return;
+            float spacing = float.MaxValue;
+            var centre = Vector3.zero;
+            for (int i = 0; i < positions.Length; i++)
+            {
+                centre += positions[i];
+                if (i > 0) spacing = Mathf.Min(spacing, Vector3.Distance(positions[i], positions[i - 1]));
+            }
+            if (spacing >= FigureSpacing || spacing <= 0f) return;
+            centre /= positions.Length;
+            for (int i = 0; i < positions.Length; i++)
+                positions[i] = centre + (positions[i] - centre) * (FigureSpacing / spacing);
         }
 
         // Keeps the lobby viewpoint's rotation and moves it back along it, centred on the figures.
