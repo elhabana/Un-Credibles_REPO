@@ -153,7 +153,8 @@ namespace UnCredibles.UI.Garage
         {
             if (departure != null) StopCoroutine(departure);
             departure = null;
-            for (int i = 0; i < doorPieces.Length; i++) doorPieces[i].localPosition = doorStarts[i];
+            for (int i = 0; i < doorPieces.Length; i++)
+                if (doorPieces[i] != null) doorPieces[i].localPosition = doorStarts[i]; // already destroyed when the scene closes
             for (int i = 0; i < avatars.Length; i++)
             {
                 if (avatars[i] == null) continue;
