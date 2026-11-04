@@ -77,14 +77,13 @@ namespace UnCredibles.Minigames.CrossyRoad
             if (IsPlaying && !IsFinalRush && Timer != null && Timer.IsRunning && Timer.Remaining <= Settings.FinalRushSeconds)
                 StartFinalRush();
 
-            // Cars already drive during the countdown so the scene feels alive.
-            if (State == MinigameState.Waiting || State == MinigameState.Countdown || IsPlaying)
-                traffic.Tick(Time.deltaTime, IsPlaying);
+            // Cars drive in every state (countdown, results) so the scene never freezes; hits only count while playing.
+            float deltaTime = Time.deltaTime;
+            traffic.Tick(deltaTime, IsPlaying);
+            grandmas.Tick(deltaTime); // flying and leaving grandmas finish their move after the end too
             if (!IsPlaying) return;
             EnsureBrains(); // an online player who left is now a bot
 
-            float deltaTime = Time.deltaTime;
-            grandmas.Tick(deltaTime);
             oil.Tick(deltaTime);
             foreach (var brain in brains) brain.Tick(deltaTime); // before avatars read their input
 

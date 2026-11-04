@@ -145,7 +145,8 @@ namespace UnCredibles.UI.Results
             if (remaining <= 0f || AnyHumanPressed(PlayerAction.Jump))
             {
                 leaving = true;
-                core.StartNextRound();
+                // No next minigame could load: back to the lobby instead of hanging on this screen.
+                if (!core.StartNextRound()) core.ReturnToLobby();
                 return;
             }
 

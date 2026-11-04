@@ -15,6 +15,8 @@ namespace UnCredibles.Players
         [SerializeField] private Animator animator;
         [SerializeField, Min(.1f), Tooltip("Run clip playback multiplier, to match how fast the avatar moves.")]
         private float runPlaybackSpeed = 1f;
+        [SerializeField, Min(.1f), Tooltip("Same for the run-while-carrying clip (its steps are shorter).")]
+        private float runCarryPlaybackSpeed = 1f;
         [SerializeField, Tooltip("Start the idle at a random point so several characters do not breathe in sync.")]
         private bool randomizeIdlePhase = true;
 
@@ -28,23 +30,27 @@ namespace UnCredibles.Players
         private void Awake()
         {
             if (animator == null) animator = GetComponentInChildren<Animator>();
-            animator.SetFloat(RunSpeedId, runPlaybackSpeed);
+            animator.SetFloat(RunSpeedId, RunSpeed);
         }
 
         private void OnEnable()
         {
             // Animator resets its parameters when re-enabled: restore the current state.
-            animator.SetFloat(RunSpeedId, runPlaybackSpeed);
+            animator.SetFloat(RunSpeedId, RunSpeed);
             animator.SetBool(RunningId, IsRunning);
             animator.SetBool(CarryingId, IsCarrying);
             if (!IsRunning && !IsCarrying && randomizeIdlePhase) animator.Play(IdleState, 0, Random.value);
         }
 
+        private float RunSpeed => IsCarrying ? runCarryPlaybackSpeed : runPlaybackSpeed;
+
         public void SetCarrying(bool carrying)
         {
             if (IsCarrying == carrying) return;
             IsCarrying = carrying;
-            if (animator.isActiveAndEnabled) animator.SetBool(CarryingId, carrying);
+            if (!animator.isActiveAndEnabled) return;
+            animator.SetBool(CarryingId, carrying);
+            animator.SetFloat(RunSpeedId, RunSpeed); // Run and RunCarry share the parameter
         }
 
         public void SetRunning(bool running)
@@ -58,7 +64,7 @@ namespace UnCredibles.Players
         public void SetRunPlaybackSpeed(float speed)
         {
             runPlaybackSpeed = Mathf.Max(.1f, speed);
-            if (animator.isActiveAndEnabled) animator.SetFloat(RunSpeedId, runPlaybackSpeed);
+            if (animator.isActiveAndEnabled) animator.SetFloat(RunSpeedId, RunSpeed);
         }
     }
 }

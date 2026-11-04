@@ -40,6 +40,7 @@ namespace UnCredibles.Core
         private float voteDeadline;
         private bool voteFinalizing;
         private int voteGeneration;
+        private Coroutine resultsRoutine;
         private int nextVoteBallotId;
         private int voteBallotId;
         private const float VoteSeconds = 12f;
@@ -145,6 +146,7 @@ namespace UnCredibles.Core
             onlineInput?.Dispose();
             onlineInput = null;
             GameFlow.SetSession(SessionMode.Local);
+            StopResultsRoutine();
             minigames.ExitActiveMinigame();
             Match.CancelMatch();
             ClearVote();
@@ -197,6 +199,7 @@ namespace UnCredibles.Core
         public void ReturnToLobby()
         {
             if (IsOnlineHost) Room.SendScene(GameScenes.PartyLobby, (byte)GameState.PartyLobby);
+            StopResultsRoutine();
             minigames.ExitActiveMinigame();
             Match.CancelMatch();
             ClearVote();
@@ -361,13 +364,22 @@ namespace UnCredibles.Core
         {
             if (IsOnlineClient) return; // the host decides what comes next
             Match.RegisterResults(data, results);
-            StartCoroutine(ShowResultsRoutine());
+            StopResultsRoutine();
+            resultsRoutine = StartCoroutine(ShowResultsRoutine());
+        }
+
+        // Leaving the match during the pause must not load the Results scene afterwards.
+        private void StopResultsRoutine()
+        {
+            if (resultsRoutine != null) StopCoroutine(resultsRoutine);
+            resultsRoutine = null;
         }
 
         // Leave the minigame's own results on screen for a moment, then show the match standings.
         private IEnumerator ShowResultsRoutine()
         {
             yield return new WaitForSeconds(minigameResultsSeconds);
+            resultsRoutine = null;
             minigames.ExitActiveMinigame();
             GameFlow.ChangeState(Match.IsRunning ? GameState.Results : GameState.FinalResults);
             if (IsOnlineHost)
