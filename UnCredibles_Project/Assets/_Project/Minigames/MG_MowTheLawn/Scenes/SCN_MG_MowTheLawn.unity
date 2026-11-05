@@ -2263,6 +2263,7 @@ MonoBehaviour:
   angles:
   - name: Dolly_bajo
     player: -1
+    targetName: 
     position: {x: -4, y: 0.55, z: -9.5}
     euler: {x: 4, y: 15, z: 0}
     lookOffset: {x: 0, y: 0.8, z: 0}
@@ -2276,6 +2277,7 @@ MonoBehaviour:
     eulerDrift: {x: 0, y: -0.8, z: 0}
   - name: Grua
     player: -1
+    targetName: 
     position: {x: 0, y: 4.5, z: -10.5}
     euler: {x: 20, y: 0, z: 0}
     lookOffset: {x: 0, y: 0.8, z: 0}
@@ -2289,6 +2291,7 @@ MonoBehaviour:
     eulerDrift: {x: 0.3, y: -1.2, z: 0}
   - name: Lateral_Verde
     player: 2
+    targetName: 
     position: {x: 3.6, y: 1.1, z: 0}
     euler: {x: 10, y: -90, z: 0}
     lookOffset: {x: 0, y: 0.8, z: 0}
@@ -2302,6 +2305,7 @@ MonoBehaviour:
     eulerDrift: {x: 0, y: 0, z: 0}
   - name: Lateral_Rojo
     player: 0
+    targetName: 
     position: {x: -3.6, y: 1.1, z: 0}
     euler: {x: 10, y: 90, z: 0}
     lookOffset: {x: 0, y: 0.8, z: 0}
@@ -2315,6 +2319,7 @@ MonoBehaviour:
     eulerDrift: {x: 0, y: 0, z: 0}
   - name: Frente_Amarillo
     player: 3
+    targetName: 
     position: {x: 0, y: 1.8, z: -6.2}
     euler: {x: 11, y: 0, z: 0}
     lookOffset: {x: 0, y: 0.8, z: 0}
@@ -2326,10 +2331,122 @@ MonoBehaviour:
     lockRotation: 1
     drift: {x: 0, y: 0, z: 0}
     eulerDrift: {x: 0, y: 0, z: 0}
+  - name: Choque_Rojo
+    player: 0
+    targetName: 
+    position: {x: 0, y: 9, z: -10}
+    euler: {x: 0, y: 0, z: 0}
+    lookOffset: {x: 0, y: 0.3, z: 0}
+    fov: 40
+    smoothing: 0.5
+    local: 0
+    turnSmoothing: 0.6
+    orbitSpeed: 0
+    lockRotation: 0
+    drift: {x: 0, y: 0, z: 0}
+    eulerDrift: {x: 0, y: 0, z: 0}
+  - name: Choque_Azul
+    player: 1
+    targetName: 
+    position: {x: 0, y: 9, z: -10}
+    euler: {x: 0, y: 0, z: 0}
+    lookOffset: {x: 0, y: 0.3, z: 0}
+    fov: 40
+    smoothing: 0.5
+    local: 0
+    turnSmoothing: 0.6
+    orbitSpeed: 0
+    lockRotation: 0
+    drift: {x: 0, y: 0, z: 0}
+    eulerDrift: {x: 0, y: 0, z: 0}
+  - name: Choque_Verde
+    player: 2
+    targetName: 
+    position: {x: 0, y: 9, z: -10}
+    euler: {x: 0, y: 0, z: 0}
+    lookOffset: {x: 0, y: 0.3, z: 0}
+    fov: 40
+    smoothing: 0.5
+    local: 0
+    turnSmoothing: 0.6
+    orbitSpeed: 0
+    lockRotation: 0
+    drift: {x: 0, y: 0, z: 0}
+    eulerDrift: {x: 0, y: 0, z: 0}
+  - name: Choque_Amarillo
+    player: 3
+    targetName: 
+    position: {x: 0, y: 9, z: -10}
+    euler: {x: 0, y: 0, z: 0}
+    lookOffset: {x: 0, y: 0.3, z: 0}
+    fov: 40
+    smoothing: 0.5
+    local: 0
+    turnSmoothing: 0.6
+    orbitSpeed: 0
+    lockRotation: 0
+    drift: {x: 0, y: 0, z: 0}
+    eulerDrift: {x: 0, y: 0, z: 0}
+  - name: Contenedor_Rojo
+    player: -1
+    targetName: 
+    position: {x: -17.1, y: 3.4, z: -10.8}
+    euler: {x: 22.679138, y: 49.236404, z: 0}
+    lookOffset: {x: 0, y: 0.8, z: 0}
+    fov: 46
+    smoothing: 0.25
+    local: 0
+    turnSmoothing: 0.6
+    orbitSpeed: 0
+    lockRotation: 0
+    drift: {x: 0, y: 0, z: 0}
+    eulerDrift: {x: 0, y: 0, z: 0}
+  - name: Contenedor_Azul
+    player: -1
+    targetName: 
+    position: {x: 17.1, y: 3.4, z: -10.8}
+    euler: {x: 22.679138, y: 310.7636, z: 0}
+    lookOffset: {x: 0, y: 0.8, z: 0}
+    fov: 46
+    smoothing: 0.25
+    local: 0
+    turnSmoothing: 0.6
+    orbitSpeed: 0
+    lockRotation: 0
+    drift: {x: 0, y: 0, z: 0}
+    eulerDrift: {x: 0, y: 0, z: 0}
+  - name: Contenedor_Verde
+    player: -1
+    targetName: 
+    position: {x: -17.1, y: 3.4, z: 10.8}
+    euler: {x: 22.679144, y: 130.76361, z: 0}
+    lookOffset: {x: 0, y: 0.8, z: 0}
+    fov: 46
+    smoothing: 0.25
+    local: 0
+    turnSmoothing: 0.6
+    orbitSpeed: 0
+    lockRotation: 0
+    drift: {x: 0, y: 0, z: 0}
+    eulerDrift: {x: 0, y: 0, z: 0}
+  - name: Contenedor_Amarillo
+    player: -1
+    targetName: 
+    position: {x: 17.1, y: 3.4, z: 10.8}
+    euler: {x: 22.679144, y: 229.23639, z: 0}
+    lookOffset: {x: 0, y: 0.8, z: 0}
+    fov: 46
+    smoothing: 0.25
+    local: 0
+    turnSmoothing: 0.6
+    orbitSpeed: 0
+    lockRotation: 0
+    drift: {x: 0, y: 0, z: 0}
+    eulerDrift: {x: 0, y: 0, z: 0}
   exposure: 0.35
   skyColour: {r: 0.56, g: 0.76, b: 0.95, a: 1}
   captureSeconds: 0
-  captureTake: P10-12_Mow_t4
+  captureTake: P10-12_Mow_t5
   watchProperties:
   - IsStunned
   - BagCount
