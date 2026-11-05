@@ -18,6 +18,13 @@ namespace UnCredibles.Minigames.CrossyRoad
         private float maxWidth = 1.3f;
         [SerializeField, Min(1f), Tooltip("How much the model may be stretched lengthwise to fill a long lane.")]
         private float maxStretch = 1.3f;
+        [SerializeField, Min(0f), Tooltip("Narrowest the model may be, in metres (0 = off). A big vehicle (the oil truck) is scaled " +
+            "up to this width even if it then runs longer than its lane, by up to Max Overhang.")]
+        private float minWidth;
+        [SerializeField, Min(0f), Tooltip("Metres the model may run past the lane length to reach Min Width (split between both ends).")]
+        private float maxOverhang = 1f;
+        [SerializeField, Min(.1f), Tooltip("Extra height multiplier, to make a big vehicle stand taller than the cars.")]
+        private float heightBoost = 1f;
 
         private readonly Dictionary<Transform, Bounds> sizes = new();
         private Transform current;
@@ -43,8 +50,14 @@ namespace UnCredibles.Minigames.CrossyRoad
             float byLength = lane.x / Mathf.Max(.01f, size.size.z);
             float byWidth = maxWidth / Mathf.Max(.01f, size.size.x);
             float scale = Mathf.Min(byLength, byWidth);
+            if (minWidth > 0f)
+            {
+                float byMinWidth = Mathf.Min(minWidth, maxWidth) / Mathf.Max(.01f, size.size.x);
+                float byOverhang = (lane.x + maxOverhang) / Mathf.Max(.01f, size.size.z);
+                scale = Mathf.Max(scale, Mathf.Min(byMinWidth, byOverhang));
+            }
             float stretch = Mathf.Clamp(byLength / scale, 1f, maxStretch);
-            fit.localScale = new Vector3(scale * stretch / Mathf.Max(.01f, lane.x), scale / Mathf.Max(.01f, lane.y),
+            fit.localScale = new Vector3(scale * stretch / Mathf.Max(.01f, lane.x), scale * heightBoost / Mathf.Max(.01f, lane.y),
                 scale / Mathf.Max(.01f, lane.z));
             current.localRotation = Quaternion.Euler(0f, 90f, 0f);
             current.localScale = Vector3.one;

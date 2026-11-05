@@ -10,6 +10,9 @@ namespace UnCredibles.Minigames.CrossyRoad
     {
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
         private const float CarDepthRatio = 0.7f; // car depth relative to the lane depth
+        // The oil truck model is drawn bigger than a car and may run up to ~1 m past its lane slot
+        // (CrossyRoadVehicleModel.maxOverhang): its hit box reaches that far out at each end too.
+        private const float OilTruckExtraReach = 0.5f;
 
         [SerializeField] private CrossyRoadBoard board;
         [SerializeField] private Transform carPrefab;
@@ -187,8 +190,9 @@ namespace UnCredibles.Minigames.CrossyRoad
             foreach (var car in lane.Cars)
             {
                 float future = car.X + lane.Velocity * lookAhead;
-                float min = Mathf.Min(car.X, future) - reach;
-                float max = Mathf.Max(car.X, future) + reach;
+                float carReach = car.IsOilTruck ? reach + OilTruckExtraReach : reach;
+                float min = Mathf.Min(car.X, future) - carReach;
+                float max = Mathf.Max(car.X, future) + carReach;
                 if (x > min && x < max) return true;
             }
             return false;
@@ -224,7 +228,7 @@ namespace UnCredibles.Minigames.CrossyRoad
                 float reach = lane.HalfLength + radius;
                 float travel = lane.Velocity * seconds;
                 foreach (var car in lane.Cars)
-                    if (Mathf.Abs(car.X + travel - x) < reach) return true;
+                    if (Mathf.Abs(car.X + travel - x) < (car.IsOilTruck ? reach + OilTruckExtraReach : reach)) return true;
             }
             return false;
         }
