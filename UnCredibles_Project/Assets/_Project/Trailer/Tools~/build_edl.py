@@ -102,7 +102,7 @@ SHOTS = [
         (MW + "Grua.mp4", 40.0), (GM + "Sala_tres_cuartos.mp4", 25.0)], None, 4, [
         ("sfx_car_horn_double.mp3", 0.2, -11, {}),
         ("sfx_crowd_cheer.mp3", 0.5, -12, {"dur": 1.8, "fade": 0.6})]),
-    ("17", "Podio - clasificacion final", "P17_Podio_t4.mp4", 0.0, ("until", 70.0), [
+    ("17", "Podio - clasificacion final", "P17_Podio_t5.mp4", 0.0, ("until", 70.0), [
         ("sfx_points_positive.mp3", 0.0, -3, {}),
         ("sfx_tada_fanfare.mp3", 0.5, -6, {}),
         ("sfx_crowd_cheer.mp3", 0.6, -7, {"dur": 3.4, "fade": 0.8}),
