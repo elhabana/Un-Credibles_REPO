@@ -139,8 +139,13 @@ def main():
         os.chdir(cwd)
 
     versus = os.path.join(OUT, f"UNCREDIBLES_Previs_{version}_vs_animatica.mp4")
-    run(["-i", edl["guide_audio"], "-i", clean, "-filter_complex",
-         f"[0:v]scale=960:540,setsar=1,fps={fps}[a];[1:v]scale=960:540,setsar=1[b];[a][b]hstack=2[v]",
+    guide_duration = float(subprocess.check_output(["ffprobe", "-v", "error", "-show_entries", "format=duration",
+                                                    "-of", "default=nw=1:nk=1", edl["guide_audio"]], text=True))
+    guide_padding = max(0.0, t - guide_duration)
+    guide_pad = f",tpad=stop_mode=clone:stop_duration={guide_padding:.3f}" if guide_padding > 0 else ""
+    graph = (f"[0:v]scale=960:540,setsar=1,fps={fps}{guide_pad},trim=duration={t:.3f},setpts=PTS-STARTPTS[a];"
+             f"[1:v]scale=960:540,setsar=1,fps={fps},trim=duration={t:.3f},setpts=PTS-STARTPTS[b];[a][b]hstack=2[v]")
+    run(["-i", edl["guide_audio"], "-i", clean, "-filter_complex", graph,
          "-map", "[v]", "-map", "1:a?", "-c:v", "libx264", "-preset", "medium", "-crf", "20", "-pix_fmt", "yuv420p",
          "-c:a", "aac", "-t", f"{t:.3f}", versus])
     print(clean)

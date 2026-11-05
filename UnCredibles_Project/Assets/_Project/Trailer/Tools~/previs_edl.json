@@ -1,84 +1,588 @@
 {
-  "title": "UN-CREDIBLES - Previs 3D del trailer",
-  "fps": 24,
-  "width": 1920,
-  "height": 1080,
-  "guide_audio": "C:/Users/haban/Downloads/ANIMATICA_MarioMarquina_CristianRivero(Habana)/ANIMATICA_MarioMarquina_CristianRivero(Habana)/UN_CREDIBLES_Trailer_Animatica.mp4",
-  "notes": "Times in seconds. 'in' is the time inside the take; 'speed' < 1 slows the clip down. Takes live in ~/Downloads/UN-CREDIBLES_Previs_Tomas (outside the repo). Audio files live in its Audio/ folder (Pixabay, free licence, no attribution needed). 'at' is the time in the trailer; SFX times come from the takes' _events.txt. Music: 107.7 BPM, shifted 0.14 s so the drums kick in on the cut to gameplay (8.0 s). Each minigame mixes a readable gameplay shot with calm, concrete shots (fixed cameras or slow follows); montage cuts last 4 beats.",
-  "audio": {
-    "music": { "file": "music_B_UpliftingActionSportRock_ikoliks.mp3", "at": 0.0, "in": 0.14, "gain_db": -4,
-      "duck": [ [0.0, 4.0, -6], [46.5, 53.0, -3], [49.6, 50.8, -14], [68.0, 72.0, -10] ], "fade_out": [71.4, 1.6] },
-    "sfx": [
-      { "file": "sfx_garage_door_opening.mp3", "at": 0.3, "dur": 4.2, "gain_db": -2, "fade": 0.6, "note": "01 la persiana sube" },
-      { "file": "sfx_running_floor.mp3", "at": 4.0, "dur": 2.0, "gain_db": -3, "fade": 0.4, "note": "02 pasos" },
-      { "file": "sfx_whoosh.mp3", "at": 5.6, "gain_db": -4, "note": "02>03 al rotulo" },
-      { "file": "sfx_whoosh.mp3", "at": 7.6, "gain_db": -5, "note": "03>04 al gameplay" },
-      { "file": "sfx_cinematic_impact.mp3", "at": 8.0, "gain_db": -9, "note": "04 entra la bateria" },
-      { "file": "sfx_traffic_city.mp3", "at": 8.0, "dur": 12.0, "gain_db": -11, "fade": 0.5, "note": "04-06 trafico" },
-      { "file": "sfx_car_horn_double.mp3", "at": 9.3, "gain_db": -6, "note": "04 bocinas" },
-      { "file": "sfx_car_horn_double.mp3", "at": 11.2, "gain_db": -10, "note": "04 bocina lejana" },
-      { "file": "sfx_cartoon_slide.mp3", "at": 13.85, "dur": 2.0, "gain_db": -2, "fade": 0.4, "note": "05 resbalon (rojo 14,17)" },
-      { "file": "sfx_tire_screech.mp3", "at": 16.3, "gain_db": -6, "note": "06 frenazo" },
-      { "file": "sfx_tada_fanfare.mp3", "at": 16.95, "gain_db": -3, "note": "06 el rojo llega a la acera con su abuela (21,50)" },
-      { "file": "sfx_points_positive.mp3", "at": 18.8, "gain_db": -6, "note": "06 llega el azul (23,33)" },
-      { "file": "sfx_whoosh.mp3", "at": 19.75, "gain_db": -6, "note": ">07 piscina" },
-      { "file": "sfx_pool_water.mp3", "at": 20.0, "dur": 12.0, "gain_db": -9, "fade": 0.5, "note": "07-09 piscina" },
-      { "file": "sfx_cartoon_boing.mp3", "at": 25.15, "gain_db": -3, "note": "08 salto (rojo 2,00)" },
-      { "file": "sfx_water_splash.mp3", "at": 29.2, "dur": 1.2, "gain_db": -9, "fade": 0.3, "note": "09a chapoteo previo" },
-      { "file": "sfx_big_splash.mp3", "at": 30.55, "gain_db": 1, "note": "09b bomba: la salpicadura cubre la camara" },
-      { "file": "sfx_whoosh.mp3", "at": 31.75, "gain_db": -6, "note": ">10 jardin" },
-      { "file": "sfx_lawn_mower.mp3", "at": 32.0, "dur": 12.0, "gain_db": -11, "fade": 0.6, "note": "10-12 motores" },
-      { "file": "sfx_cartoon_impact.mp3", "at": 38.75, "gain_db": -1, "note": "11 choque: el verde pierde 7 bolsas (26,00)" },
-      { "file": "sfx_bag_drop.mp3", "at": 38.9, "gain_db": -3, "note": "11 caen las bolsas" },
-      { "file": "sfx_bag_drop.mp3", "at": 42.2, "gain_db": -7, "note": "12 bolsas al contenedor" },
-      { "file": "sfx_points_positive.mp3", "at": 42.35, "gain_db": -4, "note": "12 entrega del rojo (19,13)" },
-      { "file": "sfx_whoosh.mp3", "at": 43.75, "gain_db": -6, "note": ">13 almacen" },
-      { "file": "sfx_mouse_squeaks.mp3", "at": 44.0, "dur": 8.0, "gain_db": -7, "fade": 0.5, "note": "13-14 ratones" },
-      { "file": "sfx_running_floor.mp3", "at": 44.2, "dur": 3.5, "gain_db": -10, "fade": 0.4, "note": "13 carrera" },
-      { "file": "sfx_cartoon_bonk.mp3", "at": 49.95, "gain_db": 2, "note": "14 escobazo al rojo (21,79), la musica se corta" },
-      { "file": "sfx_dizzy_whistle.mp3", "at": 52.05, "dur": 3.9, "gain_db": -3, "fade": 0.6, "note": "15 aturdido" },
-      { "file": "sfx_cinematic_impact.mp3", "at": 56.0, "gain_db": -6, "note": "16 arranca el montaje" },
-      { "file": "sfx_cartoon_slide.mp3", "at": 56.25, "dur": 1.2, "gain_db": -4, "fade": 0.3, "note": "16a resbalones en la carretera" },
-      { "file": "sfx_water_splash.mp3", "at": 59.4, "dur": 1.2, "gain_db": -3, "fade": 0.3, "note": "16b dos eliminados al agua (29,46)" },
-      { "file": "sfx_cartoon_impact.mp3", "at": 61.15, "gain_db": -3, "note": "16c choque de cortacespedes (35,21)" },
-      { "file": "sfx_cartoon_bonk.mp3", "at": 63.78, "gain_db": -2, "note": "16d dos aturdidos a la vez (18,88)" },
-      { "file": "sfx_car_horn_double.mp3", "at": 65.2, "gain_db": -10, "note": "16e pantalla partida" },
-      { "file": "sfx_crowd_cheer.mp3", "at": 66.2, "dur": 1.8, "gain_db": -12, "fade": 0.6, "note": "16e sube al climax" },
-      { "file": "sfx_points_positive.mp3", "at": 68.1, "gain_db": -3, "note": "17 confirmacion" },
-      { "file": "sfx_tada_fanfare.mp3", "at": 68.5, "gain_db": -6, "note": "17 fanfarria" },
-      { "file": "sfx_crowd_cheer.mp3", "at": 68.6, "dur": 3.3, "gain_db": -7, "fade": 0.8, "note": "17 ovacion" },
-      { "file": "sfx_whoosh.mp3", "at": 71.6, "gain_db": -5, "note": "17>18 al logo" },
-      { "file": "sfx_cinematic_impact.mp3", "at": 72.1, "gain_db": 0, "note": "18 golpe final del logo" },
-      { "file": "sfx_crowd_cheer.mp3", "at": 72.3, "dur": 2.4, "gain_db": -14, "fade": 1.2, "note": "18 cola de la ovacion" }
+ "title": "UN-CREDIBLES - Previs 3D del trailer",
+ "fps": 24,
+ "width": 1920,
+ "height": 1080,
+ "guide_audio": "C:/Users/haban/Downloads/ANIMATICA_MarioMarquina_CristianRivero(Habana)/ANIMATICA_MarioMarquina_CristianRivero(Habana)/UN_CREDIBLES_Trailer_Animatica.mp4",
+ "notes": "Generated by build_edl.py: edit SHOTS there, not this file. Every gameplay cut lands on the music's beat (107.7 BPM); the drums kick in at 10 s on the cut to the road.",
+ "audio": {
+  "music": {
+   "file": "music_B_UpliftingActionSportRock_ikoliks.mp3",
+   "at": 1.86,
+   "in": 0.0,
+   "gain_db": -4,
+   "duck": [
+    [
+     0.0,
+     6.6,
+     -6
+    ],
+    [
+     6.5,
+     9.95,
+     -2
+    ],
+    [
+     67.958,
+     72.208,
+     -9
+    ],
+    [
+     49.113,
+     50.363,
+     -16
     ]
+   ],
+   "fade_out": [
+    74.208,
+    2.0
+   ]
   },
-  "shots": [
-    { "shot": "01", "label": "Garaje - la persiana se abre", "take": "P01-02_Garaje_t1.mp4", "in": 0.0, "dur": 4.0 },
-    { "shot": "02", "label": "Garaje - los heroes salen corriendo", "take": "P01-02_Garaje_t1.mp4", "in": 4.0, "dur": 2.0 },
-    { "shot": "03", "label": "Rotulo - presentacion del reto", "take": "P03-18_Titulos_t1.mp4", "in": 0.0, "dur": 2.0 },
-    { "shot": "04", "label": "Paso de peatones - cruce con las abuelas (fijo)", "take": "P04-06_CrossyRoad_t5_Calle_sur.mp4", "in": 0.0, "dur": 4.0 },
-    { "shot": "05", "label": "Paso de peatones - resbalon en aceite", "take": "P04-06_CrossyRoad_t4_Lateral_Rojo.mp4", "in": 12.3, "dur": 4.0 },
-    { "shot": "06", "label": "Paso de peatones - las abuelas llegan a la acera (fijo)", "take": "P04-06_CrossyRoad_t5_Acera_norte.mp4", "in": 20.5, "dur": 4.0 },
-    { "shot": "07", "label": "Piscina - presentacion del churro giratorio (juego)", "take": "P07-09_Churro_t3_Alta_tres_cuartos.mp4", "in": 0.5, "dur": 4.0 },
-    { "shot": "08", "label": "Piscina - salto para evitar el churro (fijo)", "take": "P07-09_Churro_t3_Fija_Rojo.mp4", "in": 0.8, "dur": 4.0 },
-    { "shot": "09a", "label": "Piscina - el nino se lanza en bomba", "take": "P07-09_Churro_t3_Agua_general.mp4", "in": 32.4, "dur": 2.625 },
-    { "shot": "09b", "label": "Piscina - la salpicadura cubre la camara", "take": "P07-09_Churro_t3_Juego.mp4", "in": 35.0, "dur": 1.375 },
-    { "shot": "10", "label": "Jardin - cortacespedes y filas de bolsas (juego)", "take": "P10-12_Mow_t3_Juego.mp4", "in": 22.5, "dur": 4.0 },
-    { "shot": "11", "label": "Jardin - choque y perdida de carga", "take": "P10-12_Mow_t3_Cerca_Verde.mp4", "in": 23.2, "dur": 4.0 },
-    { "shot": "12", "label": "Jardin - entrega de bolsas", "take": "P10-12_Mow_t3_Suave_Rojo.mp4", "in": 16.8, "dur": 4.0 },
-    { "shot": "13", "label": "Almacen - los heroes persiguen ratones (juego)", "take": "P13-15_Mice_t3_Sala_tres_cuartos.mp4", "in": 4.0, "dur": 4.0 },
-    { "shot": "14", "label": "Almacen - escobazo al companero", "take": "P13-15_Mice_t3_Suave_Rojo.mp4", "in": 19.8, "dur": 4.0 },
-    { "shot": "15", "label": "Almacen - companero aturdido (camara lenta)", "take": "P13-15_Mice_t3_Suave_Azul.mp4", "in": 24.8, "dur": 4.0, "speed": 0.333 },
-    { "shot": "16a", "label": "Montaje - resbalones en la carretera", "take": "P04-06_CrossyRoad_t5_Acera_norte.mp4", "in": 26.5, "dur": 2.25 },
-    { "shot": "16b", "label": "Montaje - dos eliminados en la piscina", "take": "P07-09_Churro_t3_Alta_tres_cuartos.mp4", "in": 28.3, "dur": 2.2083333 },
-    { "shot": "16c", "label": "Montaje - choque de cortacespedes", "take": "P10-12_Mow_t3_Juego.mp4", "in": 34.5, "dur": 2.25 },
-    { "shot": "16d", "label": "Montaje - escobazos en el almacen", "take": "P13-15_Mice_t3_Sala_tres_cuartos.mp4", "in": 17.8, "dur": 2.2083333 },
-    { "shot": "16e", "label": "Montaje - pantalla partida: los cuatro minijuegos", "split": [
-        { "take": "P04-06_CrossyRoad_t5_Juego.mp4", "in": 21.0 },
-        { "take": "P07-09_Churro_t3_Fija_Verde.mp4", "in": 10.0 },
-        { "take": "P10-12_Mow_t3_Suave_Amarillo.mp4", "in": 20.0 },
-        { "take": "P13-15_Mice_t3_Suave_Verde.mp4", "in": 30.0 } ], "dur": 3.0833333 },
-    { "shot": "17", "label": "Podio - clasificacion final", "take": "P17_Podio_t2.mp4", "in": 0.0, "dur": 4.0 },
-    { "shot": "18", "label": "Logotipo - UN-CREDIBLES y eslogan", "take": "P03-18_Titulos_t1.mp4", "in": 2.0, "dur": 3.0 }
+  "sfx": [
+   {
+    "file": "sfx_garage_door_opening.mp3",
+    "at": 0.4,
+    "gain_db": -2,
+    "note": "01",
+    "dur": 3.2,
+    "fade": 0.6
+   },
+   {
+    "file": "sfx_running_floor.mp3",
+    "at": 2.9,
+    "gain_db": -3,
+    "note": "01",
+    "dur": 2.6,
+    "fade": 0.6
+   },
+   {
+    "file": "sfx_whoosh.mp3",
+    "at": 5.6,
+    "gain_db": -3,
+    "note": "01"
+   },
+   {
+    "file": "sfx_whoosh.mp3",
+    "at": 9.7,
+    "gain_db": -5,
+    "note": "03"
+   },
+   {
+    "file": "sfx_cinematic_impact.mp3",
+    "at": 10.0,
+    "gain_db": -9,
+    "note": "04"
+   },
+   {
+    "file": "sfx_traffic_city.mp3",
+    "at": 10.0,
+    "gain_db": -11,
+    "note": "04",
+    "dur": 11.1,
+    "fade": 0.5
+   },
+   {
+    "file": "sfx_car_horn_double.mp3",
+    "at": 11.3,
+    "gain_db": -6,
+    "note": "04"
+   },
+   {
+    "file": "sfx_car_horn_double.mp3",
+    "at": 13.4,
+    "gain_db": -11,
+    "note": "04"
+   },
+   {
+    "file": "sfx_cartoon_slide.mp3",
+    "at": 15.408,
+    "gain_db": -2,
+    "note": "05",
+    "dur": 2.0,
+    "fade": 0.4
+   },
+   {
+    "file": "sfx_tire_screech.mp3",
+    "at": 16.758,
+    "gain_db": -7,
+    "note": "05"
+   },
+   {
+    "file": "sfx_tada_fanfare.mp3",
+    "at": 18.692,
+    "gain_db": -3,
+    "note": "06"
+   },
+   {
+    "file": "sfx_points_positive.mp3",
+    "at": 19.592,
+    "gain_db": -7,
+    "note": "06"
+   },
+   {
+    "file": "sfx_whoosh.mp3",
+    "at": 20.875,
+    "gain_db": -6,
+    "note": "07"
+   },
+   {
+    "file": "sfx_pool_water.mp3",
+    "at": 21.125,
+    "gain_db": -9,
+    "note": "07",
+    "dur": 11.1,
+    "fade": 0.5
+   },
+   {
+    "file": "sfx_cartoon_boing.mp3",
+    "at": 26.242,
+    "gain_db": -3,
+    "note": "08"
+   },
+   {
+    "file": "sfx_water_splash.mp3",
+    "at": 28.242,
+    "gain_db": -12,
+    "note": "08",
+    "dur": 0.8,
+    "fade": 0.3
+   },
+   {
+    "file": "sfx_cartoon_slide.mp3",
+    "at": 29.858,
+    "gain_db": -12,
+    "note": "09a",
+    "dur": 1.2,
+    "fade": 0.3
+   },
+   {
+    "file": "sfx_big_splash.mp3",
+    "at": 31.117,
+    "gain_db": 1,
+    "note": "09b"
+   },
+   {
+    "file": "sfx_whoosh.mp3",
+    "at": 32.042,
+    "gain_db": -6,
+    "note": "10"
+   },
+   {
+    "file": "sfx_lawn_mower.mp3",
+    "at": 32.292,
+    "gain_db": -10,
+    "note": "10",
+    "dur": 11.1,
+    "fade": 0.6
+   },
+   {
+    "file": "sfx_cartoon_impact.mp3",
+    "at": 38.188,
+    "gain_db": -1,
+    "note": "11"
+   },
+   {
+    "file": "sfx_bag_drop.mp3",
+    "at": 38.308,
+    "gain_db": -3,
+    "note": "11"
+   },
+   {
+    "file": "sfx_bag_drop.mp3",
+    "at": 41.933,
+    "gain_db": -7,
+    "note": "12"
+   },
+   {
+    "file": "sfx_points_positive.mp3",
+    "at": 42.033,
+    "gain_db": -4,
+    "note": "12"
+   },
+   {
+    "file": "sfx_whoosh.mp3",
+    "at": 43.167,
+    "gain_db": -6,
+    "note": "13"
+   },
+   {
+    "file": "sfx_mouse_squeaks.mp3",
+    "at": 43.417,
+    "gain_db": -7,
+    "note": "13",
+    "dur": 6.7,
+    "fade": 0.5
+   },
+   {
+    "file": "sfx_running_floor.mp3",
+    "at": 43.617,
+    "gain_db": -10,
+    "note": "13",
+    "dur": 3.5,
+    "fade": 0.4
+   },
+   {
+    "file": "sfx_cartoon_bonk.mp3",
+    "at": 49.463,
+    "gain_db": 2,
+    "note": "14"
+   },
+   {
+    "file": "sfx_dizzy_whistle.mp3",
+    "at": 50.667,
+    "gain_db": -3,
+    "note": "15",
+    "dur": 3.8,
+    "fade": 0.6
+   },
+   {
+    "file": "sfx_cinematic_impact.mp3",
+    "at": 54.583,
+    "gain_db": -6,
+    "note": "16a"
+   },
+   {
+    "file": "sfx_cartoon_slide.mp3",
+    "at": 55.033,
+    "gain_db": -4,
+    "note": "16a",
+    "dur": 0.8,
+    "fade": 0.2
+   },
+   {
+    "file": "sfx_cartoon_boing.mp3",
+    "at": 56.208,
+    "gain_db": -4,
+    "note": "16b"
+   },
+   {
+    "file": "sfx_cartoon_impact.mp3",
+    "at": 57.792,
+    "gain_db": -4,
+    "note": "16c"
+   },
+   {
+    "file": "sfx_cartoon_bonk.mp3",
+    "at": 58.447,
+    "gain_db": -2,
+    "note": "16d"
+   },
+   {
+    "file": "sfx_car_horn_double.mp3",
+    "at": 59.042,
+    "gain_db": -10,
+    "note": "16e"
+   },
+   {
+    "file": "sfx_water_splash.mp3",
+    "at": 60.367,
+    "gain_db": -5,
+    "note": "16f",
+    "dur": 0.5,
+    "fade": 0.2
+   },
+   {
+    "file": "sfx_cartoon_bonk.mp3",
+    "at": 62.725,
+    "gain_db": -6,
+    "note": "16h"
+   },
+   {
+    "file": "sfx_car_horn_double.mp3",
+    "at": 65.908,
+    "gain_db": -11,
+    "note": "16k"
+   },
+   {
+    "file": "sfx_crowd_cheer.mp3",
+    "at": 66.208,
+    "gain_db": -12,
+    "note": "16k",
+    "dur": 1.8,
+    "fade": 0.6
+   },
+   {
+    "file": "sfx_points_positive.mp3",
+    "at": 67.958,
+    "gain_db": -3,
+    "note": "17"
+   },
+   {
+    "file": "sfx_tada_fanfare.mp3",
+    "at": 68.458,
+    "gain_db": -6,
+    "note": "17"
+   },
+   {
+    "file": "sfx_crowd_cheer.mp3",
+    "at": 68.558,
+    "gain_db": -7,
+    "note": "17",
+    "dur": 3.4,
+    "fade": 0.8
+   },
+   {
+    "file": "sfx_whoosh.mp3",
+    "at": 71.908,
+    "gain_db": -5,
+    "note": "17"
+   },
+   {
+    "file": "sfx_cinematic_impact.mp3",
+    "at": 72.308,
+    "gain_db": 0,
+    "note": "18"
+   },
+   {
+    "file": "sfx_crowd_cheer.mp3",
+    "at": 72.508,
+    "gain_db": -14,
+    "note": "18",
+    "dur": 2.6,
+    "fade": 1.2
+   }
   ]
+ },
+ "shots": [
+  {
+   "shot": "01",
+   "label": "Garaje - la persiana se abre y salen corriendo hacia la luz",
+   "dur": 6.5,
+   "at": 0.0,
+   "take": "P01_Garaje_t2.mp4",
+   "in": 0.0
+  },
+  {
+   "shot": "03",
+   "label": "Rotulo - presentacion del reto",
+   "dur": 3.5,
+   "at": 6.5,
+   "take": "P03-18_Titulos_t2.mp4",
+   "in": 0.0
+  },
+  {
+   "shot": "04",
+   "label": "Paso de peatones - cruce con las abuelas (grua)",
+   "dur": 4.458333,
+   "at": 10.0,
+   "take": "P04-06_CrossyRoad_t6_Grua.mp4",
+   "in": 1.0
+  },
+  {
+   "shot": "05",
+   "label": "Paso de peatones - resbalon en aceite",
+   "dur": 3.333333,
+   "at": 14.458,
+   "take": "P04-06_CrossyRoad_t6_Lateral_Rojo.mp4",
+   "in": 9.6
+  },
+  {
+   "shot": "06",
+   "label": "Paso de peatones - las abuelas llegan a la acera",
+   "dur": 3.333333,
+   "at": 17.792,
+   "take": "P04-06_CrossyRoad_t6_Llegada_dolly.mp4",
+   "in": 10.3
+  },
+  {
+   "shot": "07",
+   "label": "Piscina - presentacion del churro giratorio",
+   "dur": 3.916667,
+   "at": 21.125,
+   "take": "P07-09_Churro_t4_Alta_tres_cuartos.mp4",
+   "in": 0.5
+  },
+  {
+   "shot": "08",
+   "label": "Piscina - salto para evitar el churro",
+   "dur": 3.916667,
+   "at": 25.042,
+   "take": "P07-09_Churro_t4_Fija_Rojo.mp4",
+   "in": 4.3
+  },
+  {
+   "shot": "09a",
+   "label": "Piscina - el nino se lanza en bomba",
+   "dur": 2.208333,
+   "at": 28.958,
+   "take": "P07-09_Churro_t4_Alta_tres_cuartos.mp4",
+   "in": 54.75
+  },
+  {
+   "shot": "09b",
+   "label": "Piscina - la salpicadura cubre la camara",
+   "dur": 1.125,
+   "at": 31.167,
+   "take": "P07-09_Churro_t4_Juego.mp4",
+   "in": 56.98
+  },
+  {
+   "shot": "10",
+   "label": "Jardin - cortacespedes y filas de bolsas (dolly bajo)",
+   "dur": 3.916667,
+   "at": 32.292,
+   "take": "P10-12_Mow_t4_Dolly_bajo.mp4",
+   "in": 19.0
+  },
+  {
+   "shot": "11",
+   "label": "Jardin - choque y perdida de carga",
+   "dur": 3.875,
+   "at": 36.208,
+   "take": "P10-12_Mow_t4_Frente_Amarillo.mp4",
+   "in": 18.4
+  },
+  {
+   "shot": "12",
+   "label": "Jardin - entrega de bolsas",
+   "dur": 3.333333,
+   "at": 40.083,
+   "take": "P10-12_Mow_t4_Lateral_Verde.mp4",
+   "in": 22.6
+  },
+  {
+   "shot": "13",
+   "label": "Almacen - los heroes persiguen ratones",
+   "dur": 3.916667,
+   "at": 43.417,
+   "take": "P13-15_Mice_t4_Sala_tres_cuartos.mp4",
+   "in": 8.0
+  },
+  {
+   "shot": "14",
+   "label": "Almacen - el verde le da un escobazo al rojo",
+   "dur": 3.333333,
+   "at": 47.333,
+   "take": "P13-15_Mice_t4_Cerca_Verde.mp4",
+   "in": 33.25
+  },
+  {
+   "shot": "15",
+   "label": "Almacen - el rojo se queda aturdido",
+   "dur": 3.916667,
+   "at": 50.667,
+   "take": "P13-15_Mice_t4_Cerca_Rojo.mp4",
+   "in": 35.45
+  },
+  {
+   "shot": "16a",
+   "label": "Montaje - resbalon con abuela",
+   "dur": 1.125,
+   "at": 54.583,
+   "take": "P04-06_CrossyRoad_t6_Lateral_Azul.mp4",
+   "in": 16.7
+  },
+  {
+   "shot": "16b",
+   "label": "Montaje - salto en la piscina",
+   "dur": 1.083333,
+   "at": 55.708,
+   "take": "P07-09_Churro_t4_Fija_Rojo.mp4",
+   "in": 8.2
+  },
+  {
+   "shot": "16c",
+   "label": "Montaje - cortacesped con seis bolsas",
+   "dur": 1.125,
+   "at": 56.792,
+   "take": "P10-12_Mow_t4_Lateral_Rojo.mp4",
+   "in": 32.0
+  },
+  {
+   "shot": "16d",
+   "label": "Montaje - escobazo al azul",
+   "dur": 1.125,
+   "at": 57.917,
+   "take": "P13-15_Mice_t4_Cerca_Azul.mp4",
+   "in": 22.6
+  },
+  {
+   "shot": "16e",
+   "label": "Montaje - trafico desde la grua",
+   "dur": 1.125,
+   "at": 59.042,
+   "take": "P04-06_CrossyRoad_t6_Grua.mp4",
+   "in": 27.0
+  },
+  {
+   "shot": "16f",
+   "label": "Montaje - eliminado en la piscina",
+   "dur": 1.083333,
+   "at": 60.167,
+   "take": "P07-09_Churro_t4_Agua_dolly.mp4",
+   "in": 24.3
+  },
+  {
+   "shot": "16g",
+   "label": "Montaje - siete bolsas",
+   "dur": 1.125,
+   "at": 61.25,
+   "take": "P10-12_Mow_t4_Grua.mp4",
+   "in": 52.9
+  },
+  {
+   "shot": "16h",
+   "label": "Montaje - aturdido en el almacen",
+   "dur": 1.125,
+   "at": 62.375,
+   "take": "P13-15_Mice_t4_Sala_tres_cuartos.mp4",
+   "in": 44.2
+  },
+  {
+   "shot": "16i",
+   "label": "Montaje - llegada a la acera",
+   "dur": 1.125,
+   "at": 63.5,
+   "take": "P04-06_CrossyRoad_t6_Llegada_dolly.mp4",
+   "in": 22.0
+  },
+  {
+   "shot": "16j",
+   "label": "Montaje - cortacespedes a ras de cesped",
+   "dur": 1.083333,
+   "at": 64.625,
+   "take": "P10-12_Mow_t4_Dolly_bajo.mp4",
+   "in": 38.0
+  },
+  {
+   "shot": "16k",
+   "label": "Montaje - pantalla partida: los cuatro minijuegos",
+   "dur": 2.25,
+   "at": 65.708,
+   "split": [
+    {
+     "take": "P04-06_CrossyRoad_t6_Grua.mp4",
+     "in": 30.0
+    },
+    {
+     "take": "P07-09_Churro_t4_Alta_tres_cuartos.mp4",
+     "in": 20.0
+    },
+    {
+     "take": "P10-12_Mow_t4_Grua.mp4",
+     "in": 40.0
+    },
+    {
+     "take": "P13-15_Mice_t4_Sala_tres_cuartos.mp4",
+     "in": 25.0
+    }
+   ]
+  },
+  {
+   "shot": "17",
+   "label": "Podio - clasificacion final",
+   "dur": 4.25,
+   "at": 67.958,
+   "take": "P17_Podio_t3.mp4",
+   "in": 0.0
+  },
+  {
+   "shot": "18",
+   "label": "Logotipo - UN-CREDIBLES y eslogan",
+   "dur": 5.0,
+   "at": 72.208,
+   "take": "P03-18_Titulos_t2.mp4",
+   "in": 3.5
+  }
+ ]
 }
