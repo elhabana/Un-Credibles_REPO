@@ -359,10 +359,12 @@ namespace UnCredibles.Minigames.CrossyRoad
         private Car CreateCar(bool oilTruck)
         {
             var instance = Instantiate(oilTruck ? oilTruckPrefab : carPrefab, transform);
+            // Modelled cars only tint their body panels (not glass, wheels or lights).
+            var model = instance.GetComponent<CrossyRoadVehicleModel>();
             return new Car
             {
                 Transform = instance,
-                Renderers = instance.GetComponentsInChildren<Renderer>(),
+                Renderers = model != null ? model.Paint : instance.GetComponentsInChildren<Renderer>(),
                 IsOilTruck = oilTruck,
                 Truck = oilTruck ? instance.GetComponent<CrossyRoadOilTruck>() : null,
             };
