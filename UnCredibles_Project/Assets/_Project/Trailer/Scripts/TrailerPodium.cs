@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Reflection;
 using UnCredibles.UI.Results;
 using UnityEngine;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 
 namespace UnCredibles.Trailer
 {
@@ -54,9 +56,13 @@ namespace UnCredibles.Trailer
                 spot.intensity = 30f;
                 spot.color = new Color(1f, .88f, .65f);
                 spot.shadows = LightShadows.Soft;
+                // A little more bias than the default: the flat pedestal tops showed shadow acne under the spot.
+                spot.shadowBias = .2f;
+                spot.shadowNormalBias = .8f;
             }
 
             MattePedestals();
+            DisableAmbientOcclusion();
             CollectRisers();
 
             var cam = output.transform;
@@ -88,22 +94,52 @@ namespace UnCredibles.Trailer
         private readonly List<Riser> risers = new();
         private float startHeight;
 
-        // The medal materials are glossy and mirror the dark backdrop; give the trailer copies a satin finish.
+        // The medal and stage materials are glossy and mirror the dark backdrop and the spot; give the trailer
+        // copies (pedestals, rims, crown and the PF_Podium_Stage floor, all M_Podium_*) a flat satin finish
+        // without specular highlights or environment reflections.
         private static void MattePedestals()
         {
-            var podium = GameObject.Find("Final podium");
-            if (podium == null) return;
-            foreach (var renderer in podium.GetComponentsInChildren<Renderer>())
+            foreach (var renderer in FindObjectsByType<MeshRenderer>(FindObjectsSortMode.None))
             {
-                if (renderer is not MeshRenderer) continue;
+                if (renderer.sharedMaterial == null || !renderer.sharedMaterial.name.StartsWith("M_Podium")) continue;
                 foreach (var material in renderer.materials)
                 {
                     if (material.HasProperty("_Metallic")) material.SetFloat("_Metallic", 0f);
-                    if (material.HasProperty("_Smoothness")) material.SetFloat("_Smoothness", .25f);
+                    if (material.HasProperty("_Smoothness")) material.SetFloat("_Smoothness", .12f);
                     if (material.HasProperty("_EnvironmentReflections")) material.SetFloat("_EnvironmentReflections", 0f);
+                    if (material.HasProperty("_SpecularHighlights")) material.SetFloat("_SpecularHighlights", 0f);
                     material.EnableKeyword("_ENVIRONMENTREFLECTIONS_OFF");
+                    material.EnableKeyword("_SPECULARHIGHLIGHTS_OFF");
                 }
             }
+        }
+
+        // The PC renderer's SSAO paints noisy dark blotches on the big flat pedestal tops around the figures'
+        // feet. Switched off while the podium is filmed and restored afterwards (it is a shared renderer asset).
+        private readonly List<ScriptableRendererFeature> disabledFeatures = new();
+
+        private void DisableAmbientOcclusion()
+        {
+            if (GraphicsSettings.currentRenderPipeline is not UniversalRenderPipelineAsset pipeline) return;
+            var field = typeof(UniversalRenderPipelineAsset).GetField("m_RendererDataList", BindingFlags.Instance | BindingFlags.NonPublic);
+            if (field?.GetValue(pipeline) is not ScriptableRendererData[] renderers) return;
+            foreach (var data in renderers)
+            {
+                if (data == null) continue;
+                foreach (var feature in data.rendererFeatures)
+                    if (feature != null && feature.isActive && feature.GetType().Name == "ScreenSpaceAmbientOcclusion")
+                    {
+                        feature.SetActive(false);
+                        disabledFeatures.Add(feature);
+                    }
+            }
+        }
+
+        private void OnDestroy()
+        {
+            foreach (var feature in disabledFeatures)
+                if (feature != null) feature.SetActive(true);
+            disabledFeatures.Clear();
         }
 
         private void CollectRisers()
