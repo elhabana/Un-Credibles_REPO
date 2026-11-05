@@ -23,8 +23,8 @@
      -2
     ],
     [
-     67.958,
-     72.208,
+     65.708,
+     70.0,
      -9
     ],
     [
@@ -34,7 +34,7 @@
     ]
    ],
    "fade_out": [
-    74.208,
+    72.0,
     2.0
    ]
   },
@@ -49,11 +49,12 @@
    },
    {
     "file": "sfx_running_floor.mp3",
-    "at": 2.9,
+    "at": 4.2,
     "gain_db": -3,
     "note": "01",
-    "dur": 2.6,
-    "fade": 0.6
+    "dur": 1.25,
+    "fade": 0.4,
+    "tempo": 1.12
    },
    {
     "file": "sfx_whoosh.mp3",
@@ -95,27 +96,27 @@
    },
    {
     "file": "sfx_cartoon_slide.mp3",
-    "at": 15.408,
+    "at": 14.658,
     "gain_db": -2,
     "note": "05",
-    "dur": 2.0,
-    "fade": 0.4
+    "dur": 1.2,
+    "fade": 0.3
    },
    {
-    "file": "sfx_tire_screech.mp3",
-    "at": 16.758,
-    "gain_db": -7,
-    "note": "05"
+    "file": "sfx_car_horn_double.mp3",
+    "at": 16.475,
+    "gain_db": -8,
+    "note": "06"
    },
    {
     "file": "sfx_tada_fanfare.mp3",
-    "at": 18.692,
+    "at": 17.455,
     "gain_db": -3,
     "note": "06"
    },
    {
     "file": "sfx_points_positive.mp3",
-    "at": 19.592,
+    "at": 18.205,
     "gain_db": -7,
     "note": "06"
    },
@@ -177,25 +178,25 @@
    },
    {
     "file": "sfx_cartoon_impact.mp3",
-    "at": 38.188,
+    "at": 37.778,
     "gain_db": -1,
     "note": "11"
    },
    {
     "file": "sfx_bag_drop.mp3",
-    "at": 38.308,
+    "at": 37.908,
     "gain_db": -3,
     "note": "11"
    },
    {
     "file": "sfx_bag_drop.mp3",
-    "at": 41.933,
+    "at": 41.683,
     "gain_db": -7,
     "note": "12"
    },
    {
     "file": "sfx_points_positive.mp3",
-    "at": 42.033,
+    "at": 42.183,
     "gain_db": -4,
     "note": "12"
    },
@@ -243,7 +244,7 @@
    },
    {
     "file": "sfx_cartoon_slide.mp3",
-    "at": 55.033,
+    "at": 54.763,
     "gain_db": -4,
     "note": "16a",
     "dur": 0.8,
@@ -289,13 +290,13 @@
    },
    {
     "file": "sfx_car_horn_double.mp3",
-    "at": 65.908,
+    "at": 63.7,
     "gain_db": -11,
     "note": "16k"
    },
    {
     "file": "sfx_crowd_cheer.mp3",
-    "at": 66.208,
+    "at": 64.0,
     "gain_db": -12,
     "note": "16k",
     "dur": 1.8,
@@ -303,19 +304,19 @@
    },
    {
     "file": "sfx_points_positive.mp3",
-    "at": 67.958,
+    "at": 65.708,
     "gain_db": -3,
     "note": "17"
    },
    {
     "file": "sfx_tada_fanfare.mp3",
-    "at": 68.458,
+    "at": 66.208,
     "gain_db": -6,
     "note": "17"
    },
    {
     "file": "sfx_crowd_cheer.mp3",
-    "at": 68.558,
+    "at": 66.308,
     "gain_db": -7,
     "note": "17",
     "dur": 3.4,
@@ -323,19 +324,19 @@
    },
    {
     "file": "sfx_whoosh.mp3",
-    "at": 71.908,
+    "at": 69.658,
     "gain_db": -5,
     "note": "17"
    },
    {
     "file": "sfx_cinematic_impact.mp3",
-    "at": 72.308,
+    "at": 70.1,
     "gain_db": 0,
     "note": "18"
    },
    {
     "file": "sfx_crowd_cheer.mp3",
-    "at": 72.508,
+    "at": 70.3,
     "gain_db": -14,
     "note": "18",
     "dur": 2.6,
@@ -365,24 +366,24 @@
    "label": "Paso de peatones - cruce con las abuelas (grua)",
    "dur": 4.458333,
    "at": 10.0,
-   "take": "P04-06_CrossyRoad_t6_Grua.mp4",
-   "in": 1.0
+   "take": "P04-06_CrossyRoad_t8_Grua.mp4",
+   "in": 8.0
   },
   {
    "shot": "05",
    "label": "Paso de peatones - resbalon en aceite",
-   "dur": 3.333333,
+   "dur": 1.666667,
    "at": 14.458,
-   "take": "P04-06_CrossyRoad_t6_Lateral_Rojo.mp4",
-   "in": 9.6
+   "take": "P04-06_CrossyRoad_t8_Resbalon_Rojo.mp4",
+   "in": 8.3
   },
   {
    "shot": "06",
    "label": "Paso de peatones - las abuelas llegan a la acera",
-   "dur": 3.333333,
-   "at": 17.792,
-   "take": "P04-06_CrossyRoad_t6_Llegada_dolly.mp4",
-   "in": 10.3
+   "dur": 5.0,
+   "at": 16.125,
+   "take": "P04-06_CrossyRoad_t8_Llegada_dolly.mp4",
+   "in": 11.0
   },
   {
    "shot": "07",
@@ -418,27 +419,27 @@
   },
   {
    "shot": "10",
-   "label": "Jardin - cortacespedes y filas de bolsas (dolly bajo)",
+   "label": "Jardin - cortacespedes y filas de bolsas (grua)",
    "dur": 3.916667,
    "at": 32.292,
-   "take": "P10-12_Mow_t4_Dolly_bajo.mp4",
-   "in": 19.0
+   "take": "P10-12_Mow_t4_Grua.mp4",
+   "in": 29.3
   },
   {
    "shot": "11",
    "label": "Jardin - choque y perdida de carga",
    "dur": 3.875,
    "at": 36.208,
-   "take": "P10-12_Mow_t4_Frente_Amarillo.mp4",
-   "in": 18.4
+   "take": "P10-12_Mow_t5_Choque_Amarillo.mp4",
+   "in": 35.6
   },
   {
    "shot": "12",
    "label": "Jardin - entrega de bolsas",
    "dur": 3.333333,
    "at": 40.083,
-   "take": "P10-12_Mow_t4_Lateral_Verde.mp4",
-   "in": 22.6
+   "take": "P10-12_Mow_t5_Contenedor_Rojo.mp4",
+   "in": 28.9
   },
   {
    "shot": "13",
@@ -469,8 +470,8 @@
    "label": "Montaje - resbalon con abuela",
    "dur": 1.125,
    "at": 54.583,
-   "take": "P04-06_CrossyRoad_t6_Lateral_Azul.mp4",
-   "in": 16.7
+   "take": "P04-06_CrossyRoad_t8_Lateral_Azul.mp4",
+   "in": 19.7
   },
   {
    "shot": "16b",
@@ -501,8 +502,8 @@
    "label": "Montaje - trafico desde la grua",
    "dur": 1.125,
    "at": 59.042,
-   "take": "P04-06_CrossyRoad_t6_Grua.mp4",
-   "in": 27.0
+   "take": "P04-06_CrossyRoad_t8_Grua.mp4",
+   "in": 33.6
   },
   {
    "shot": "16f",
@@ -529,30 +530,14 @@
    "in": 44.2
   },
   {
-   "shot": "16i",
-   "label": "Montaje - llegada a la acera",
-   "dur": 1.125,
-   "at": 63.5,
-   "take": "P04-06_CrossyRoad_t6_Llegada_dolly.mp4",
-   "in": 22.0
-  },
-  {
-   "shot": "16j",
-   "label": "Montaje - cortacespedes a ras de cesped",
-   "dur": 1.083333,
-   "at": 64.625,
-   "take": "P10-12_Mow_t4_Dolly_bajo.mp4",
-   "in": 38.0
-  },
-  {
    "shot": "16k",
    "label": "Montaje - pantalla partida: los cuatro minijuegos",
-   "dur": 2.25,
-   "at": 65.708,
+   "dur": 2.208333,
+   "at": 63.5,
    "split": [
     {
-     "take": "P04-06_CrossyRoad_t6_Grua.mp4",
-     "in": 30.0
+     "take": "P04-06_CrossyRoad_t8_Grua.mp4",
+     "in": 39.6
     },
     {
      "take": "P07-09_Churro_t4_Alta_tres_cuartos.mp4",
@@ -571,16 +556,16 @@
   {
    "shot": "17",
    "label": "Podio - clasificacion final",
-   "dur": 4.25,
-   "at": 67.958,
-   "take": "P17_Podio_t3.mp4",
+   "dur": 4.291667,
+   "at": 65.708,
+   "take": "P17_Podio_t4.mp4",
    "in": 0.0
   },
   {
    "shot": "18",
    "label": "Logotipo - UN-CREDIBLES y eslogan",
    "dur": 5.0,
-   "at": 72.208,
+   "at": 70.0,
    "take": "P03-18_Titulos_t2.mp4",
    "in": 3.5
   }

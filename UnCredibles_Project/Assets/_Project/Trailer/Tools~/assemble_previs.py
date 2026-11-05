@@ -59,18 +59,21 @@ def build_audio(edl, total, out):
 
     music = audio["music"]
     inputs += ["-ss", str(music.get("in", 0.0)), "-i", os.path.join(folder, music["file"])]
-    chain = f"[0:a]{stereo},volume={music.get('gain_db', 0)}dB"
+    # Delay first, so the ducks and the fade are written in trailer time.
+    delay = int(music.get("at", 0.0) * 1000)
+    chain = f"[0:a]{stereo},adelay={delay}:all=1,asetpts=PTS-STARTPTS,volume={music.get('gain_db', 0)}dB"
     for start, end, db in music.get("duck", []):
         chain += f",volume={db}dB:enable='between(t,{start},{end})'"
     if "fade_out" in music:
         chain += f",afade=t=out:st={music['fade_out'][0]}:d={music['fade_out'][1]}"
-    delay = int(music.get("at", 0.0) * 1000)
-    chains.append(chain + f",adelay={delay}:all=1[m]")
+    chains.append(chain + "[m]")
     labels.append("[m]")
 
     for i, sfx in enumerate(audio["sfx"], start=1):
         inputs += ["-i", os.path.join(folder, sfx["file"])]
-        chain = f"[{i}:a]{stereo},atrim=start={sfx.get('in', 0.0)}"
+        # 'tempo' speeds the effect up (atempo, pitch kept) before trimming, so 'in' and 'dur' are sped-up time.
+        tempo = f",atempo={sfx['tempo']}" if sfx.get("tempo", 1.0) != 1.0 else ""
+        chain = f"[{i}:a]{stereo}{tempo},atrim=start={sfx.get('in', 0.0)}"
         if "dur" in sfx:
             chain += f":duration={sfx['dur']}"
         chain += f",asetpts=PTS-STARTPTS,volume={sfx.get('gain_db', 0)}dB"
