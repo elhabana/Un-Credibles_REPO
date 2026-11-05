@@ -46,9 +46,9 @@ namespace UnCredibles.Characters.Editor
         private const float FigureHeight = 2.55f;   // same height as the old garage/podium figure
         private const float CrossyHeight = 1.7f;    // clearly taller than the 1.18 grandmas and 1.0 cars
         // Small avatar moving fast: quicker legs. Matching the planted foot to 6.5 m/s would need x8 (blurry legs),
-        // so this keeps the cadence tuned with the old 18-frame Run (x2.2) on the 24-frame clip.
-        private const float CrossyRunSpeed = 2.9f;
-        private const float CrossyRunCarrySpeed = 3f; // shorter steps at 5 m/s: between same cadence (x2.1) and same slide (x4.4)
+        // so this keeps a near-original cadence and accepts some foot slide.
+        private const float CrossyRunSpeed = 1.5f;
+        private const float CrossyRunCarrySpeed = 1.55f; // shorter steps at 5 m/s, so a touch quicker than the plain run
         private const float CarriedGrandmaHeight = 1f; // a bit smaller than the waiting ones (1.18) so she fits on top
         private const float CarriedGrandmaSink = .1f;  // into the head, so her skirt and not only her shoes touches it
 

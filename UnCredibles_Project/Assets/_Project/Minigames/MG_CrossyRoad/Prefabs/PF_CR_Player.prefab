@@ -152,11 +152,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6007661539926961660, guid: 6e7b38287d92ff044b1bc2dafcfcda7f, type: 3}
       propertyPath: runPlaybackSpeed
-      value: 2.9
+      value: 1.5
       objectReference: {fileID: 0}
     - target: {fileID: 6007661539926961660, guid: 6e7b38287d92ff044b1bc2dafcfcda7f, type: 3}
       propertyPath: runCarryPlaybackSpeed
-      value: 3
+      value: 1.55
       objectReference: {fileID: 0}
     - target: {fileID: 8232949972670473878, guid: 6e7b38287d92ff044b1bc2dafcfcda7f, type: 3}
       propertyPath: m_Name
