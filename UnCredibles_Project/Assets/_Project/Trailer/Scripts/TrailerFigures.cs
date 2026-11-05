@@ -26,6 +26,13 @@ namespace UnCredibles.Trailer
         public float seatHeight = .7f;
         [Tooltip("Run: speed (m/s) above which the hero plays the run loop.")]
         public float runThreshold = .4f;
+        [Tooltip("Held prop the game swings (e.g. 'Broom swing'); it is put in the right hand and the arm follows the swing.")]
+        public string propName;
+        [Tooltip("Child of the prop that is gripped, and the point along it (its local space).")]
+        public string gripName = "Handle";
+        public Vector3 gripPoint = new(0f, .55f, 0f);
+        [Tooltip("Degrees of the prop's swing (around the avatar's up) that mean a full swing.")]
+        public float fullSwing = -85f;
 
         private sealed class Dressed
         {
@@ -35,6 +42,7 @@ namespace UnCredibles.Trailer
             public Vector3 LastPosition;
             public Transform[] Legs; // thigh, shin, foot per side (sit pose)
             public Transform[] Arms; // upper arm, forearm, hand per side (sit pose)
+            public Transform Prop, Grip, UpperArm, Forearm, Hand;
         }
 
         private readonly List<Dressed> dressed = new();
@@ -53,7 +61,27 @@ namespace UnCredibles.Trailer
                 }
                 hero.LastPosition = hero.Root.position;
                 if (pose == Pose.Sit) Sit(hero);
+                if (hero.Prop != null) Hold(hero);
             }
+        }
+
+        // The game rotates the prop around the avatar's up on each swing. The right arm reaches forward
+        // and sweeps with that rotation, and the prop is moved so its grip sits in the hand.
+        private void Hold(Dressed hero)
+        {
+            if (hero.UpperArm == null || hero.Forearm == null || hero.Hand == null || hero.Grip == null) return;
+            float yaw = Mathf.DeltaAngle(0f, hero.Prop.localEulerAngles.y);
+            float swing = Mathf.Clamp01(yaw / fullSwing);
+            var up = hero.Figure.up;
+            var forward = hero.Figure.forward;
+            var right = hero.Figure.right;
+            // Rest: holding the broom low in front, to the right. Swing: sweeps across and lifts a little.
+            var reach = Quaternion.AngleAxis(-75f * swing, up) * (forward * .75f - up * .55f + right * .35f).normalized;
+            reach = (reach + up * (.35f * swing)).normalized;
+            Aim(hero.UpperArm, hero.Forearm, reach);
+            Aim(hero.Forearm, hero.Hand, (reach + forward * .3f).normalized);
+            var grip = hero.Grip.TransformPoint(gripPoint);
+            hero.Prop.position += hero.Hand.position - grip;
         }
 
         private void DressNewPlayers()
@@ -90,6 +118,14 @@ namespace UnCredibles.Trailer
                         float hips = figure.InverseTransformPoint(hero.Legs[0].position).y * scale;
                         figure.localPosition = new Vector3(offset.x, seatHeight - hips, offset.z);
                     }
+                }
+                if (!string.IsNullOrEmpty(propName))
+                {
+                    hero.Prop = Find(root, propName);
+                    hero.Grip = hero.Prop != null ? Find(hero.Prop, gripName) : null;
+                    hero.UpperArm = Find(figure, "upper_arm.R");
+                    hero.Forearm = Find(figure, "forearm.R");
+                    hero.Hand = Find(figure, "hand.R");
                 }
                 dressed.Add(hero);
             }

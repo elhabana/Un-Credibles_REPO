@@ -1,28 +1,33 @@
 using UnCredibles.Players;
 using UnCredibles.UI.Garage;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace UnCredibles.Trailer
 {
-    // Previs shots 01-02 in SCN_MainMenu: the garage door rises with light pouring in, then the
-    // four heroes run out into it. Replaces the menu (UI, camera rig, lobby) while it plays.
+    // Previs shot 01 in SCN_MainMenu, one continuous take: from behind the waiting heroes the garage door
+    // rises with daylight pouring in, they run out into it while the camera pushes in after them, and the
+    // light floods the frame to white, which hands over to the white title card.
     public sealed class TrailerGarage : MonoBehaviour
     {
         private const float DoorRise = 4.2f;
         private const float FigureX = -2.2f;
-        private const float RunSpeed = 2.6f;
+        private const float RunSpeed = 2.8f;
         private static readonly float[] FigureZ = { .19f, -.91f, -2.01f, -3.11f };
         private static readonly float[] RunDelay = { .05f, 0f, .12f, .2f };
 
-        public float doorOpenStart = .6f, doorOpenEnd = 3.8f;
-        public float runStart = 4f;
+        public float duration = 6.5f;
+        public float doorOpenStart = .5f, doorOpenEnd = 3.1f;
+        public float runStart = 2.9f;
+        public float whiteStart = 5.4f;
 
         private Transform[] door;
         private Vector3[] doorStarts;
         private Transform[] figures;
         private PlayerCharacterAnimator[] characters;
-        private Transform group;
         private TrailerShots shots;
+        private Transform group;
+        private Image white;
 
         private void Start()
         {
@@ -43,14 +48,14 @@ namespace UnCredibles.Trailer
                 figure.transform.SetPositionAndRotation(new Vector3(FigureX, 0f, FigureZ[i]), Quaternion.Euler(0f, 270f, 0f));
                 figures[i] = figure.transform;
                 characters[i] = figure.GetComponentInChildren<PlayerCharacterAnimator>();
-                characters[i].SetRunPlaybackSpeed(1.1f);
+                characters[i].SetRunPlaybackSpeed(1.15f);
             }
-            group = new GameObject("Trailer heroes centre").transform;
-            group.position = new Vector3(FigureX, 1f, -1.46f);
 
             StageDaylight();
-            TrailerLook.Apply(output, .1f, .9f);
-            BuildShots(output);
+            var look = TrailerLook.Apply(output, .1f, .9f);
+            look.keepCanvases.Add("Trailer white");
+            white = WhiteOverlay();
+            BuildShot(output);
         }
 
         // The garage model is walled behind the door, so the bright exterior is a glowing panel filling the
@@ -79,22 +84,32 @@ namespace UnCredibles.Trailer
             sun.shadows = LightShadows.Soft;
         }
 
-        private void BuildShots(Camera output)
+        private static Image WhiteOverlay()
+        {
+            var canvas = new GameObject("Trailer white", typeof(Canvas)).GetComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.sortingOrder = 100;
+            var image = new GameObject("White", typeof(Image)).GetComponent<Image>();
+            image.transform.SetParent(canvas.transform, false);
+            image.color = new Color(1f, 1f, 1f, 0f);
+            var rect = image.rectTransform;
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = rect.offsetMax = Vector2.zero;
+            return image;
+        }
+
+        // One slow push-in from behind the heroes towards the doorway, opening up as they run out.
+        private void BuildShot(Camera output)
         {
             shots = TrailerShots.Create(output);
-            // 01 - Detail: the door starts to rise, seen from inside behind the waiting heroes.
+            group = new GameObject("Trailer heroes centre").transform;
+            group.position = new Vector3(FigureX, 0f, -1.46f);
             shots.Add(new TrailerShot
             {
-                Name = "01 Garage door", Duration = 4f, Fov = 50f, ToFov = 46f,
-                FromPosition = new Vector3(1.6f, 1.05f, -1.46f), ToPosition = new Vector3(1.1f, 1.05f, -1.46f),
-                FromEuler = new Vector3(-7f, 270f, 0f), ToEuler = new Vector3(-8f, 270f, 0f)
-            });
-            // 02 - Wide tracking: the four heroes run out into the light.
-            shots.Add(new TrailerShot
-            {
-                Name = "02 Heroes run out", Duration = 2f, Fov = 56f,
-                Follow = group, FromPosition = new Vector3(3.8f, .7f, 1.9f), ToPosition = new Vector3(3.2f, .5f, 1.5f),
-                LookAt = group, LookAtOffset = new Vector3(-2.5f, -.2f, 0f)
+                Name = "01 Garage door and run out", Duration = duration, Fov = 44f, ToFov = 52f,
+                Follow = group, FromPosition = new Vector3(4.1f, 1.0f, 0f), ToPosition = new Vector3(2.9f, 1.2f, 0f),
+                FromEuler = new Vector3(-6f, 270f, 0f), ToEuler = new Vector3(-3f, 270f, 0f)
             });
         }
 
@@ -111,9 +126,11 @@ namespace UnCredibles.Trailer
                 characters[i].SetRunning(run > 0f);
                 figures[i].position = new Vector3(FigureX - Mathf.Max(0f, run) * RunSpeed, 0f, FigureZ[i]);
             }
+            // The camera rides behind the running heroes and stops short of the doorway.
             float groupRun = Mathf.Max(0f, t - runStart);
-            // The camera rides with the group but stops short of the doorway.
-            group.position = new Vector3(Mathf.Max(-4.3f, FigureX - groupRun * RunSpeed), 1f, -1.46f);
+            group.position = new Vector3(Mathf.Max(-4.9f, FigureX - groupRun * RunSpeed * .85f), 0f, -1.46f);
+            if (white != null)
+                white.color = new Color(1f, 1f, 1f, Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(whiteStart, duration - .05f, t)));
         }
     }
 }

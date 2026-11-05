@@ -40,6 +40,10 @@ namespace UnCredibles.Trailer
             if (Current != null) return "Already capturing";
             string folder = TakesFolder;
             Directory.CreateDirectory(folder);
+            // Never overwrite a recorded take: pick a new take name instead.
+            foreach (var source in sources)
+                if (File.Exists(Path.Combine(folder, take + "_" + source.Key + ".mp4")))
+                    return "Take '" + take + "' already exists; not capturing";
             var capture = new GameObject("Trailer capture").AddComponent<TrailerCapture>();
             capture.framesLeft = Mathf.RoundToInt(seconds * FrameRate);
             var files = new List<string>();

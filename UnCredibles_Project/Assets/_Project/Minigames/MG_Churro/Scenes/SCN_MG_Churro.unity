@@ -3760,43 +3760,12 @@ MonoBehaviour:
   disableComponents: []
   keepCanvases:
   - SplashScreen
+  hideRenderers: []
   playerType: ChurroPlayer
   angles:
-  - name: Agua_general
-    player: -1
-    position: {x: 0, y: 0.7, z: -9}
-    euler: {x: 3, y: 0, z: 0}
-    lookOffset: {x: 0, y: 0.8, z: 0}
-    fov: 46
-    smoothing: 0.25
-    local: 0
-    turnSmoothing: 0.6
-    orbitSpeed: 0
-    lockRotation: 0
-  - name: Fija_Rojo
-    player: -1
-    position: {x: -2.4, y: 0.95, z: -5.8}
-    euler: {x: 6, y: 44, z: 0}
-    lookOffset: {x: 0, y: 0.8, z: 0}
-    fov: 34
-    smoothing: 0.25
-    local: 0
-    turnSmoothing: 0.6
-    orbitSpeed: 0
-    lockRotation: 0
-  - name: Fija_Verde
-    player: -1
-    position: {x: 2.4, y: 0.95, z: 5.8}
-    euler: {x: 6, y: 224, z: 0}
-    lookOffset: {x: 0, y: 0.8, z: 0}
-    fov: 34
-    smoothing: 0.25
-    local: 0
-    turnSmoothing: 0.6
-    orbitSpeed: 0
-    lockRotation: 0
   - name: Alta_tres_cuartos
     player: -1
+    targetName: 
     position: {x: -6.5, y: 5.5, z: -6.5}
     euler: {x: 32, y: 45, z: 0}
     lookOffset: {x: 0, y: 0.8, z: 0}
@@ -3806,10 +3775,54 @@ MonoBehaviour:
     turnSmoothing: 0.6
     orbitSpeed: 0
     lockRotation: 0
+    drift: {x: 0.15, y: 0, z: -0.15}
+    eulerDrift: {x: 0, y: 0.6, z: 0}
+  - name: Agua_dolly
+    player: -1
+    targetName: 
+    position: {x: 0, y: 0.55, z: -8.5}
+    euler: {x: 3, y: 0, z: 0}
+    lookOffset: {x: 0, y: 0.8, z: 0}
+    fov: 40
+    smoothing: 0.25
+    local: 0
+    turnSmoothing: 0.6
+    orbitSpeed: 0
+    lockRotation: 0
+    drift: {x: 0.3, y: 0, z: 0}
+    eulerDrift: {x: 0, y: -0.9, z: 0}
+  - name: Fija_Rojo
+    player: -1
+    targetName: 
+    position: {x: -2.4, y: 0.95, z: -5.8}
+    euler: {x: 6, y: 44, z: 0}
+    lookOffset: {x: 0, y: 0.8, z: 0}
+    fov: 34
+    smoothing: 0.25
+    local: 0
+    turnSmoothing: 0.6
+    orbitSpeed: 0
+    lockRotation: 0
+    drift: {x: 0.06, y: 0, z: -0.04}
+    eulerDrift: {x: 0, y: 0, z: 0}
+  - name: Bomba
+    player: -1
+    targetName: Kid
+    position: {x: 0, y: 0.45, z: -7.5}
+    euler: {x: 4, y: 0, z: 0}
+    lookOffset: {x: 0, y: 0.2, z: 0}
+    fov: 32
+    smoothing: 0.25
+    local: 0
+    turnSmoothing: 0.6
+    orbitSpeed: 0
+    lockRotation: 0
+    drift: {x: 0, y: 0, z: 0}
+    eulerDrift: {x: 0, y: 0, z: 0}
   exposure: 0
   skyColour: {r: 0.56, g: 0.76, b: 0.95, a: 1}
-  captureSeconds: 50
-  captureTake: P07-09_Churro_t3
+  captureSeconds: 0
+  captureTake: P07-09_Churro_t4
   watchProperties:
   - IsIn
   - IsGrounded
@@ -3852,6 +3865,10 @@ MonoBehaviour:
   pose: 0
   seatHeight: 0.7
   runThreshold: 0.4
+  propName: 
+  gripName: Handle
+  gripPoint: {x: 0, y: 0.55, z: 0}
+  fullSwing: -85
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

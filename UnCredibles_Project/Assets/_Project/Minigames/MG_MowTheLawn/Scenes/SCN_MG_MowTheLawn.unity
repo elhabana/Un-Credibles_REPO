@@ -2258,56 +2258,26 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::UnCredibles.Trailer.TrailerGameplay
   disableComponents: []
   keepCanvases: []
+  hideRenderers: []
   playerType: MowerPlayer
   angles:
-  - name: Suave_Amarillo
-    player: 3
-    position: {x: 0, y: 6.2, z: -5.8}
-    euler: {x: 45, y: 0, z: 0}
-    lookOffset: {x: 0, y: 0.8, z: 0}
-    fov: 40
-    smoothing: 0.45
-    local: 0
-    turnSmoothing: 0.6
-    orbitSpeed: 0
-    lockRotation: 1
-  - name: Suave_Rojo
-    player: 0
-    position: {x: 0, y: 6.2, z: -5.8}
-    euler: {x: 45, y: 0, z: 0}
-    lookOffset: {x: 0, y: 0.8, z: 0}
-    fov: 40
-    smoothing: 0.45
-    local: 0
-    turnSmoothing: 0.6
-    orbitSpeed: 0
-    lockRotation: 1
-  - name: Cerca_Verde
-    player: 2
-    position: {x: 0, y: 3.2, z: -3.6}
-    euler: {x: 36, y: 0, z: 0}
-    lookOffset: {x: 0, y: 0.8, z: 0}
-    fov: 40
-    smoothing: 0.4
-    local: 0
-    turnSmoothing: 0.6
-    orbitSpeed: 0
-    lockRotation: 1
-  - name: General_bajo
+  - name: Dolly_bajo
     player: -1
-    position: {x: 0, y: 1.2, z: -11}
-    euler: {x: 6, y: 0, z: 0}
+    position: {x: -4, y: 0.55, z: -9.5}
+    euler: {x: 4, y: 15, z: 0}
     lookOffset: {x: 0, y: 0.8, z: 0}
-    fov: 50
+    fov: 38
     smoothing: 0.25
     local: 0
     turnSmoothing: 0.6
     orbitSpeed: 0
     lockRotation: 0
-  - name: Contenedor_Rojo
+    drift: {x: 0.3, y: 0, z: 0}
+    eulerDrift: {x: 0, y: -0.8, z: 0}
+  - name: Grua
     player: -1
-    position: {x: -10.4, y: 1.4, z: -9.9}
-    euler: {x: 16, y: -55, z: 0}
+    position: {x: 0, y: 4.5, z: -10.5}
+    euler: {x: 20, y: 0, z: 0}
     lookOffset: {x: 0, y: 0.8, z: 0}
     fov: 45
     smoothing: 0.25
@@ -2315,10 +2285,51 @@ MonoBehaviour:
     turnSmoothing: 0.6
     orbitSpeed: 0
     lockRotation: 0
+    drift: {x: 0.35, y: 0.08, z: 0.1}
+    eulerDrift: {x: 0.3, y: -1.2, z: 0}
+  - name: Lateral_Verde
+    player: 2
+    position: {x: 3.6, y: 1.1, z: 0}
+    euler: {x: 10, y: -90, z: 0}
+    lookOffset: {x: 0, y: 0.8, z: 0}
+    fov: 34
+    smoothing: 0.6
+    local: 0
+    turnSmoothing: 0.6
+    orbitSpeed: 0
+    lockRotation: 1
+    drift: {x: 0, y: 0, z: 0}
+    eulerDrift: {x: 0, y: 0, z: 0}
+  - name: Lateral_Rojo
+    player: 0
+    position: {x: -3.6, y: 1.1, z: 0}
+    euler: {x: 10, y: 90, z: 0}
+    lookOffset: {x: 0, y: 0.8, z: 0}
+    fov: 34
+    smoothing: 0.6
+    local: 0
+    turnSmoothing: 0.6
+    orbitSpeed: 0
+    lockRotation: 1
+    drift: {x: 0, y: 0, z: 0}
+    eulerDrift: {x: 0, y: 0, z: 0}
+  - name: Frente_Amarillo
+    player: 3
+    position: {x: 0, y: 1.8, z: -6.2}
+    euler: {x: 11, y: 0, z: 0}
+    lookOffset: {x: 0, y: 0.8, z: 0}
+    fov: 34
+    smoothing: 0.6
+    local: 0
+    turnSmoothing: 0.6
+    orbitSpeed: 0
+    lockRotation: 1
+    drift: {x: 0, y: 0, z: 0}
+    eulerDrift: {x: 0, y: 0, z: 0}
   exposure: 0.35
   skyColour: {r: 0.56, g: 0.76, b: 0.95, a: 1}
-  captureSeconds: 55
-  captureTake: P10-12_Mow_t3
+  captureSeconds: 0
+  captureTake: P10-12_Mow_t4
   watchProperties:
   - IsStunned
   - BagCount
@@ -2359,6 +2370,10 @@ MonoBehaviour:
   pose: 2
   seatHeight: 0.72
   runThreshold: 0.4
+  propName: 
+  gripName: Handle
+  gripPoint: {x: 0, y: 0.55, z: 0}
+  fullSwing: -85
 --- !u!1 &1626352315
 GameObject:
   m_ObjectHideFlags: 0

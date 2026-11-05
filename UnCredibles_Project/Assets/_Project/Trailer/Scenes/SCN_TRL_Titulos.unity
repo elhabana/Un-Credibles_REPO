@@ -154,8 +154,8 @@ MonoBehaviour:
   challenge: "\xBFTienes lo necesario\npara ser un h\xE9roe?"
   title: UN-CREDIBLES
   slogan: "H\xE9roes de nombre. Desastres de profesi\xF3n."
-  logoStart: 2
-  length: 5
+  logoStart: 3.5
+  length: 8.5
 --- !u!4 &1356152157
 Transform:
   m_ObjectHideFlags: 0

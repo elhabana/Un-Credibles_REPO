@@ -17,6 +17,8 @@ namespace UnCredibles.Trailer
             public string name = "Follow";
             [Tooltip("Player index to ride along (sorted by name); -1 for a fixed camera.")]
             public int player = 0;
+            [Tooltip("Follow this scene object (by name) instead of a player, e.g. a cannonball kid; the camera only looks at it.")]
+            public string targetName;
             [Tooltip("Offset from the player (follow) or world position (fixed).")]
             public Vector3 position = new(0f, 3f, -4f);
             [Tooltip("Fixed cameras only.")]
@@ -32,12 +34,17 @@ namespace UnCredibles.Trailer
             public float orbitSpeed;
             [Tooltip("Follow: keep the 'euler' orientation and only slide along with the player (calm, no turning).")]
             public bool lockRotation;
+            [Tooltip("Fixed cameras: slow dolly (m/s) and pan/tilt (degrees/s), for a cinematic move.")]
+            public Vector3 drift;
+            public Vector3 eulerDrift;
         }
 
         [Tooltip("Component type names on the game camera (or anywhere) to switch off, e.g. camera fitters.")]
         public string[] disableComponents = new string[0];
         [Tooltip("Overlay canvases to keep (name contains), e.g. the pool splash.")]
         public string[] keepCanvases = new string[0];
+        [Tooltip("Objects whose renderers are hidden (cutaway), e.g. the wall between the cameras and the action.")]
+        public string[] hideRenderers = new string[0];
         [Tooltip("Component type name that marks a player avatar, e.g. CrossyRoadPlayer.")]
         public string playerType;
         public Angle[] angles = new Angle[0];
@@ -148,6 +155,28 @@ namespace UnCredibles.Trailer
             foreach (var component in playerComponents) players.Add(component.transform);
         }
 
+        private readonly Dictionary<string, Transform> targets = new();
+        private readonly Dictionary<string, bool> targetVisible = new();
+
+        // Finds a target object by name (inactive too) and logs when it appears or disappears.
+        private Transform FindTarget(string targetName)
+        {
+            if (!targets.TryGetValue(targetName, out var target) || target == null)
+            {
+                foreach (var t in FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                    if (t.name == targetName) { target = t; break; }
+                targets[targetName] = target;
+            }
+            if (target != null)
+            {
+                bool visible = target.gameObject.activeInHierarchy;
+                if (targetVisible.TryGetValue(targetName, out bool was) && was != visible)
+                    eventLog.AppendLine($"{Time.time - startTime:0.00}\t{targetName}\tVisible\t{visible}");
+                targetVisible[targetName] = visible;
+            }
+            return target;
+        }
+
         // Logs "time player property value" whenever a watched bool changes.
         private void WatchEvents()
         {
@@ -172,6 +201,9 @@ namespace UnCredibles.Trailer
 
         private void LateUpdate()
         {
+            if (hideRenderers.Length > 0)
+                foreach (var renderer in FindObjectsByType<MeshRenderer>(FindObjectsSortMode.None))
+                    if (renderer.enabled && System.Array.IndexOf(hideRenderers, renderer.name) >= 0) renderer.enabled = false;
             gameCopy.transform.SetPositionAndRotation(output.transform.position, output.transform.rotation);
             gameCopy.orthographic = output.orthographic;
             gameCopy.orthographicSize = output.orthographicSize;
@@ -182,7 +214,29 @@ namespace UnCredibles.Trailer
             for (int i = 0; i < angles.Length; i++)
             {
                 var angle = angles[i];
-                if (angle.player < 0 || angle.player >= players.Count || players[angle.player] == null) continue;
+                if (!string.IsNullOrEmpty(angle.targetName))
+                {
+                    // Fixed position, panning smoothly to keep the target framed while it is visible.
+                    var tracked = FindTarget(angle.targetName);
+                    var pan = cameras[i].transform;
+                    pan.position = angle.position;
+                    if (tracked != null && tracked.gameObject.activeInHierarchy)
+                    {
+                        var aim = Quaternion.LookRotation(tracked.position + angle.lookOffset - pan.position);
+                        pan.rotation = Quaternion.Slerp(pan.rotation, aim, 1f - Mathf.Exp(-Time.deltaTime / Mathf.Max(.01f, angle.smoothing)));
+                    }
+                    else pan.rotation = Quaternion.Slerp(pan.rotation, Quaternion.Euler(angle.euler), 1f - Mathf.Exp(-Time.deltaTime / .8f));
+                    continue;
+                }
+                if (angle.player < 0)
+                {
+                    // Goes back and forth every 8 s so a long take stays around the authored framing.
+                    float sweep = Mathf.PingPong(Time.time - startTime, 8f) - 4f;
+                    cameras[i].transform.SetPositionAndRotation(angle.position + angle.drift * sweep,
+                        Quaternion.Euler(angle.euler + angle.eulerDrift * sweep));
+                    continue;
+                }
+                if (angle.player >= players.Count || players[angle.player] == null) continue;
                 var player = players[angle.player];
                 var target = player.position;
                 var cam = cameras[i].transform;
