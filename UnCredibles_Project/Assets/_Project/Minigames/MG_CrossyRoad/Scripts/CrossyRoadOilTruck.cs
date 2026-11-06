@@ -20,6 +20,10 @@ namespace UnCredibles.Minigames.CrossyRoad
         private float time;
         private float gush;
 
+        public Transform Effects => effects;
+        // Body size before scaling: a unit cube for the box truck, the model size when it has one.
+        public Vector3 BodySize { get; set; } = Vector3.one;
+
         public void Leak() => gush = 1f;
 
         public void Animate(float deltaTime)
@@ -28,11 +32,11 @@ namespace UnCredibles.Minigames.CrossyRoad
             time += deltaTime;
             gush = Mathf.Max(0f, gush - deltaTime * 1.5f);
 
-            // The truck is a stretched unit cube; undo that so drips and smoke stay round.
+            // Undo the truck scale so drips and smoke stay round.
             var scale = transform.lossyScale;
             effects.localScale = new Vector3(1f / Mathf.Max(0.01f, scale.x), 1f / Mathf.Max(0.01f, scale.y), 1f / Mathf.Max(0.01f, scale.z));
-            float halfLength = scale.x * 0.5f;
-            float height = scale.y;
+            float halfLength = scale.x * BodySize.x * 0.5f;
+            float height = scale.y * BodySize.y;
 
             for (int i = 0; i < drips.Length; i++)
             {

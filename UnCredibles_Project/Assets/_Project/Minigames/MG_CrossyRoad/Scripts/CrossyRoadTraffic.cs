@@ -26,8 +26,18 @@ namespace UnCredibles.Minigames.CrossyRoad
             public int DropsLeft;
             public float NextDropX;
             public Vector3 ModelSize;  // custom model size at scale 1; zero = the box prefab
+            public float ModelScale = 1f;
+            public Wheel[] Wheels = new Wheel[0];
             public float HalfLength;   // hit box, set on every spawn
             public float HalfDepth;
+        }
+
+        private struct Wheel
+        {
+            public Transform Pivot;      // at the wheel centre, axes aligned with the car root
+            public Quaternion Rest;
+            public float Radius;         // at scale 1
+            public float Angle;
         }
 
         private sealed class Lane
@@ -38,7 +48,8 @@ namespace UnCredibles.Minigames.CrossyRoad
             public float BaseVelocity; // world units per second, signed, at multiplier 1
             public float Velocity;     // current one, grows with the difficulty
             public float Timer;
-            public GameObject Model;                 // null = box prefab
+            public CrossyRoadSettings.VehicleModel Model; // no model = box prefab
+            public float Gap;          // minimum distance between two vehicles, fits the longest one
             public readonly Stack<Car> Pool = new Stack<Car>(); // per lane, as each lane can have its own model
             public readonly List<Car> Cars = new List<Car>();
         }
@@ -78,9 +89,11 @@ namespace UnCredibles.Minigames.CrossyRoad
                     Z = board.LaneToZ(CrossyRoadBoard.FirstRoadLane + i),
                     HalfLength = config.carLength * settings.CellSize * 0.5f * settings.VehicleScale,
                     BaseVelocity = config.direction * config.speed * settings.CellSize,
-                    Model = config.carModel != null ? config.carModel : settings.CarModel,
+                    Model = settings.CarModelFor(config.carLength),
                 };
                 lane.Velocity = lane.BaseVelocity * speedMultiplier;
+                float longest = Mathf.Max(1f, ScaleOf(lane.Model), ScaleOf(settings.OilTruck));
+                lane.Gap = lane.HalfLength * longest * 2f + settings.CellSize;
                 lanes[i] = lane;
                 if (prefill) Prefill(lane);
             }
@@ -113,6 +126,7 @@ namespace UnCredibles.Minigames.CrossyRoad
                 {
                     var car = lane.Cars[i];
                     car.X += lane.Velocity * deltaTime;
+                    SpinWheels(car, Mathf.Abs(lane.Velocity) * deltaTime);
                     if (Mathf.Abs(car.X) > despawnX && Mathf.Sign(car.X) == Mathf.Sign(lane.Velocity))
                     {
                         Release(lane, i);
@@ -221,12 +235,11 @@ namespace UnCredibles.Minigames.CrossyRoad
         // Same test with every car moved `seconds` into the future (used by the AI to plan).
         public bool OverlapsAt(Vector3 worldPosition, float radius, float seconds)
         {
-            float maxHalfDepth = MaxCarDepth * 0.5f;
             float x = worldPosition.x - board.transform.position.x;
             foreach (var lane in lanes)
             {
+                // Per car only: a scaled truck can be wider than the lane's cars.
                 float dz = Mathf.Abs(worldPosition.z - lane.Z);
-                if (dz >= maxHalfDepth + radius) continue;
                 float travel = lane.Velocity * seconds;
                 foreach (var car in lane.Cars)
                     if (dz < car.HalfDepth + radius && Mathf.Abs(car.X + travel - x) < car.HalfLength + radius) return true;
@@ -290,6 +303,7 @@ namespace UnCredibles.Minigames.CrossyRoad
                 foreach (var car in lane.Cars)
                 {
                     car.X += lane.Velocity * deltaTime;
+                    SpinWheels(car, Mathf.Abs(lane.Velocity) * deltaTime);
                     car.Transform.position = new Vector3(board.transform.position.x + car.X, board.transform.position.y, lane.Z);
                     if (car.IsOilTruck) car.Truck.Animate(deltaTime);
                 }
@@ -311,7 +325,7 @@ namespace UnCredibles.Minigames.CrossyRoad
             {
                 Spawn(lane, x, NextId(), RollOilTruck());
                 float interval = Random.Range(lane.Config.minSpawnInterval, lane.Config.maxSpawnInterval) * spawnMultiplier;
-                x += direction * Mathf.Max(Mathf.Abs(lane.Velocity) * interval, lane.HalfLength * 2f + board.CellSize);
+                x += direction * Mathf.Max(Mathf.Abs(lane.Velocity) * interval, lane.Gap);
             }
             // Keep "last in the list = closest to the entry", as Tick appends new cars at the end.
             lane.Cars.Reverse();
@@ -323,7 +337,7 @@ namespace UnCredibles.Minigames.CrossyRoad
             if (lane.Cars.Count == 0) return true;
             var last = lane.Cars[lane.Cars.Count - 1];
             float travelled = Mathf.Abs(last.X - (-Mathf.Sign(lane.Velocity) * spawnX));
-            return travelled > lane.HalfLength * 2f + board.CellSize;
+            return travelled > lane.Gap;
         }
 
         private int NextId() => nextId++ & 0xFFFF;
@@ -331,7 +345,7 @@ namespace UnCredibles.Minigames.CrossyRoad
         private void Spawn(Lane lane, float x, int id, bool oilTruck)
         {
             var source = oilTruck ? truckPool : lane.Pool;
-            var car = source.Count > 0 ? source.Pop() : CreateCar(oilTruck ? null : lane.Model, oilTruck);
+            var car = source.Count > 0 ? source.Pop() : CreateCar(oilTruck ? board.Settings.OilTruck : lane.Model, oilTruck);
             car.X = x;
             car.Id = id;
             float maxDepth = MaxCarDepth;
@@ -344,7 +358,7 @@ namespace UnCredibles.Minigames.CrossyRoad
             else
             {
                 // Uniform scale, as long as the lane's cars but never wider than the box; the hit box follows the model.
-                float scale = Mathf.Min(lane.HalfLength * 2f / car.ModelSize.x, maxDepth / car.ModelSize.z);
+                float scale = Mathf.Min(lane.HalfLength * 2f / car.ModelSize.x, maxDepth / car.ModelSize.z) * car.ModelScale;
                 car.HalfLength = car.ModelSize.x * scale * 0.5f;
                 car.HalfDepth = car.ModelSize.z * scale * 0.5f;
                 car.Transform.localScale = Vector3.one * scale;
@@ -377,41 +391,91 @@ namespace UnCredibles.Minigames.CrossyRoad
 
         private void OnDestroy() => tints.DestroyAll();
 
-        private Car CreateCar(GameObject model, bool oilTruck)
+        private Car CreateCar(CrossyRoadSettings.VehicleModel model, bool oilTruck)
         {
             var size = Vector3.zero;
-            var instance = model != null ? CreateModelCar(model, out size) : Instantiate(oilTruck ? oilTruckPrefab : carPrefab, transform);
+            Transform instance;
+            var wheels = new Wheel[0];
+            if (model.model == null) instance = Instantiate(oilTruck ? oilTruckPrefab : carPrefab, transform);
+            else
+            {
+                // The truck keeps its prefab (drips, smoke, Leak) with the box parts hidden under the model.
+                instance = oilTruck ? Instantiate(oilTruckPrefab) : new GameObject(model.model.name).transform;
+                if (oilTruck)
+                {
+                    var effects = instance.GetComponent<CrossyRoadOilTruck>().Effects;
+                    foreach (var part in instance.GetComponentsInChildren<Renderer>())
+                        if (effects == null || !part.transform.IsChildOf(effects)) part.enabled = false;
+                }
+                size = AttachModel(instance, model, out wheels);
+                instance.SetParent(transform, false);
+            }
+            var truck = oilTruck ? instance.GetComponent<CrossyRoadOilTruck>() : null;
+            if (truck != null && size != Vector3.zero) truck.BodySize = size;
             return new Car
             {
                 Transform = instance,
                 Renderers = instance.GetComponentsInChildren<Renderer>(),
                 IsOilTruck = oilTruck,
-                Truck = oilTruck ? instance.GetComponent<CrossyRoadOilTruck>() : null,
+                Truck = truck,
                 ModelSize = size,
+                ModelScale = ScaleOf(model),
+                Wheels = wheels,
             };
         }
 
-        // The model centred on an empty root and resting on the ground, like the box prefab.
-        private Transform CreateModelCar(GameObject model, out Vector3 size)
+        // Parts named "wheel" / "rueda" spin around their own centre (a mesh with both wheels of an
+        // axle works too: its centre is on the axle). Called with the root still at the origin, unscaled.
+        private static Wheel[] FindWheels(Renderer[] renderers)
         {
-            var root = new GameObject(model.name).transform; // at the world origin while measuring
-            var visual = Instantiate(model, root).transform;
-            visual.localRotation = Quaternion.Euler(board.Settings.CarModelRotation);
+            var found = new List<Wheel>();
+            foreach (var part in renderers)
+            {
+                string name = part.name.ToLowerInvariant();
+                if (!name.Contains("wheel") && !name.Contains("rueda")) continue;
+                var bounds = part.bounds;
+                var pivot = new GameObject(part.name + "_Spin").transform;
+                pivot.position = bounds.center; // world axes = car root axes here
+                pivot.SetParent(part.transform.parent, true);
+                part.transform.SetParent(pivot, true);
+                found.Add(new Wheel { Pivot = pivot, Rest = pivot.localRotation, Radius = Mathf.Max(0.01f, bounds.extents.y) });
+            }
+            return found.ToArray();
+        }
+
+        // Rolls forward: the root faces the way it drives (+X), so the wheels turn around its Z.
+        private static void SpinWheels(Car car, float distance)
+        {
+            for (int i = 0; i < car.Wheels.Length; i++)
+            {
+                ref var wheel = ref car.Wheels[i];
+                float radius = wheel.Radius * car.Transform.lossyScale.y;
+                wheel.Angle = Mathf.Repeat(wheel.Angle - distance / radius * Mathf.Rad2Deg, 360f);
+                wheel.Pivot.localRotation = wheel.Rest * Quaternion.AngleAxis(wheel.Angle, Vector3.forward);
+            }
+        }
+
+        private static float ScaleOf(CrossyRoadSettings.VehicleModel model) =>
+            model.model != null && model.scale > 0f ? model.scale : 1f;
+
+        // Adds the model to `root` (still at the world origin, unscaled) centred on it and resting
+        // on the ground, like the box prefabs. Returns its size, used for the hit box.
+        private static Vector3 AttachModel(Transform root, CrossyRoadSettings.VehicleModel model, out Wheel[] wheels)
+        {
+            wheels = new Wheel[0];
+            var visual = Instantiate(model.model, root).transform;
+            visual.localRotation = Quaternion.Euler(model.rotation);
             var renderers = visual.GetComponentsInChildren<Renderer>();
             if (renderers.Length == 0)
             {
-                Debug.LogWarning($"Car model '{model.name}' has no renderers; using a 1 m hit box.", model);
-                size = Vector3.one;
+                Debug.LogWarning($"Vehicle model '{model.model.name}' has no renderers; using a 1 m hit box.", model.model);
+                return Vector3.one;
             }
-            else
-            {
-                var bounds = renderers[0].bounds;
-                for (int i = 1; i < renderers.Length; i++) bounds.Encapsulate(renderers[i].bounds);
-                visual.position -= new Vector3(bounds.center.x, bounds.min.y, bounds.center.z);
-                size = bounds.size;
-            }
-            root.SetParent(transform, false);
-            return root;
+            var bounds = renderers[0].bounds;
+            for (int i = 1; i < renderers.Length; i++) bounds.Encapsulate(renderers[i].bounds);
+            visual.position -= new Vector3(bounds.center.x, bounds.min.y, bounds.center.z);
+            wheels = FindWheels(renderers);
+            return bounds.size;
         }
     }
 }

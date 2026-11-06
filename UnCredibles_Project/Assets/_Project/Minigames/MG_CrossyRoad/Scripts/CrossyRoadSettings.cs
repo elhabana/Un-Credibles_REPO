@@ -17,8 +17,14 @@ namespace UnCredibles.Minigames.CrossyRoad
             [Min(0.2f)] public float minSpawnInterval;
             [Min(0.2f)] public float maxSpawnInterval;
             [Min(1f), Tooltip("Car length in lane depths.")] public float carLength;
-            [Tooltip("Car model of this lane. Empty = the Traffic car model (or the box).")]
-            public GameObject carModel;
+        }
+
+        [Serializable]
+        public struct VehicleModel
+        {
+            [Tooltip("Model, e.g. an FBX. The hit box is fitted to it.")] public GameObject model;
+            [Tooltip("Rotation so its front points along +X, the way it drives.")] public Vector3 rotation;
+            [Min(0.1f), Tooltip("Size on top of the lane fit (1 = as long as the lane's cars). The hit box follows.")] public float scale;
         }
 
         [Header("Board")]
@@ -120,11 +126,15 @@ namespace UnCredibles.Minigames.CrossyRoad
         };
         [SerializeField, Range(0.5f, 2f), Tooltip("Size of every vehicle (cars and oil trucks) and its hit box. Above ~1.4 they stick out of their lane.")]
         private float vehicleScale = 1f;
-        [SerializeField, Tooltip("Model that replaces the plain car box (e.g. an FBX). Empty = box. The hit box is fitted to the model.")]
-        private GameObject carModel;
-        [SerializeField, Tooltip("Rotation of the model so its front points along +X, the way the car drives.")]
-        private Vector3 carModelRotation = new Vector3(0f, 90f, 0f);
-        [SerializeField, Tooltip("Paint the model with the car colours. Off = keep the model's own materials.")]
+        [SerializeField, Tooltip("Cars of the lanes with the shortest Car Length. Empty = the box.")]
+        private VehicleModel smallCar = new VehicleModel { rotation = new Vector3(0f, 90f, 0f), scale = 1f };
+        [SerializeField, Tooltip("Cars of the middle Car Length. Empty = the small car.")]
+        private VehicleModel mediumCar = new VehicleModel { rotation = new Vector3(0f, 90f, 0f), scale = 1f };
+        [SerializeField, Tooltip("Cars of the longest Car Length. Empty = the medium car.")]
+        private VehicleModel largeCar = new VehicleModel { rotation = new Vector3(0f, 90f, 0f), scale = 1f };
+        [SerializeField, Tooltip("Oil truck look; keeps its drips and smoke. Empty = the box truck.")]
+        private VehicleModel oilTruck = new VehicleModel { rotation = new Vector3(0f, 90f, 0f), scale = 1.5f };
+        [SerializeField, Tooltip("Paint the car models with the car colours. Off = keep their own materials. Trucks are never painted.")]
         private bool tintCarModel = true;
 
         [Header("Lane colors")]
@@ -199,8 +209,25 @@ namespace UnCredibles.Minigames.CrossyRoad
 
         public float OffscreenMargin => offscreenMargin * cellSize;
         public float VehicleScale => vehicleScale;
-        public GameObject CarModel => carModel;
-        public Vector3 CarModelRotation => carModelRotation;
+        public VehicleModel OilTruck => oilTruck;
+
+        // Small / medium / large by how many shorter Car Lengths the lanes have; an empty slot falls back to the smaller one.
+        public VehicleModel CarModelFor(float carLength)
+        {
+            int rank = 0;
+            for (int i = 0; i < roadLanes.Length; i++)
+            {
+                float length = roadLanes[i].carLength;
+                if (length >= carLength - 0.001f) continue;
+                bool counted = false;
+                for (int j = 0; j < i; j++) counted |= Mathf.Abs(roadLanes[j].carLength - length) < 0.001f;
+                if (!counted) rank++;
+            }
+            var pick = rank >= 2 ? largeCar : rank == 1 ? mediumCar : smallCar;
+            if (pick.model == null && rank >= 2) pick = mediumCar;
+            if (pick.model == null && rank >= 1) pick = smallCar;
+            return pick;
+        }
         public bool TintCarModel => tintCarModel;
         public Color GetCarColor(int index) => carColors.Length > 0 ? carColors[index % carColors.Length] : Color.white;
 

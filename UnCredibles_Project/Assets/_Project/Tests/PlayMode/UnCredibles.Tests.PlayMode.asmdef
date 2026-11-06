@@ -1,6 +1,6 @@
 {
     "name": "UnCredibles.Tests.PlayMode",
-    "references": ["UnCredibles.Core", "UnCredibles.UI", "UnCredibles.Player", "UnCredibles.Minigames", "Unity.TextMeshPro"],
+    "references": ["UnCredibles.Core", "UnCredibles.UI", "UnCredibles.Player", "UnCredibles.Minigames", "UnCredibles.Minigames.CrossyRoad", "Unity.TextMeshPro"],
     "optionalUnityReferences": ["TestAssemblies"],
     "autoReferenced": false,
     "defineConstraints": ["UNITY_INCLUDE_TESTS"]

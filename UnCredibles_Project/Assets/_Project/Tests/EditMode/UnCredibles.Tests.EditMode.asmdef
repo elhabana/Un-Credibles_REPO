@@ -6,6 +6,7 @@
         "UnityEditor.TestRunner",
         "UnCredibles.Player",
         "UnCredibles.Minigames",
+        "UnCredibles.Minigames.CrossyRoad",
         "UnCredibles.Core",
         "UnCredibles.Networking",
         "Unity.Netcode.Runtime",
