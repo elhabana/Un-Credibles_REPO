@@ -94,6 +94,10 @@ namespace UnCredibles.Players
             for (int i = 0; i < ragdollBodies.Length; i++)
             {
                 var body = ragdollBodies[i];
+                // Auto Sync Transforms is off and bodies interpolate: without this they can start from
+                // their stale physics pose (where the prefab was spawned) instead of where she was moved.
+                body.position = body.transform.position;
+                body.rotation = body.transform.rotation;
                 bool limb = i > 0; // the torso goes first
                 body.linearVelocity = velocity + (limb ? Random.insideUnitSphere * (flail * 0.15f) : Vector3.zero);
                 body.angularVelocity = angularVelocity + (limb ? Random.insideUnitSphere * flail : Vector3.zero);
