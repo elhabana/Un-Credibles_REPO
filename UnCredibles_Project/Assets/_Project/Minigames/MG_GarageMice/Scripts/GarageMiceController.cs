@@ -86,6 +86,28 @@ namespace UnCredibles.Minigames.GarageMice
             TickMice(deltaTime);
             TickAI();
             foreach (var sweeper in sweepers) TickSweeper(sweeper, deltaTime);
+            SeparateSweepers();
+        }
+
+        // Players are solid to each other: overlapping sweepers are pushed apart, half each, unless that would put one inside a wall or shelf.
+        private void SeparateSweepers()
+        {
+            float minDistance = settings.PlayerRadius * 2f;
+            for (int i = 0; i < sweepers.Count; i++)
+            {
+                var a = sweepers[i];
+                for (int j = i + 1; j < sweepers.Count; j++)
+                {
+                    var b = sweepers[j];
+                    Vector3 offset = b.Root.position - a.Root.position;
+                    offset.y = 0f;
+                    float distance = offset.magnitude;
+                    if (distance >= minDistance) continue;
+                    Vector3 push = (distance > .0001f ? offset / distance : Vector3.right) * ((minDistance - distance) * .5f);
+                    if (!IsBlocked(a.Root.position - push, settings.PlayerRadius)) a.Root.position -= push;
+                    if (!IsBlocked(b.Root.position + push, settings.PlayerRadius)) b.Root.position += push;
+                }
+            }
         }
 
         private void TickSweeper(Sweeper sweeper, float deltaTime)
