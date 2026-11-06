@@ -24,6 +24,9 @@ namespace UnCredibles.Core
             SfxVolume = PlayerPrefs.GetFloat(SfxKey, 1f);
             // Empty until the player picks one: the system language stays in charge.
             L10n.SetLanguage(PlayerPrefs.GetString(LanguageKey, string.Empty));
+            // Volumes are saved when leaving the settings screen; closing the game there must keep them too.
+            Application.quitting -= Save;
+            Application.quitting += Save;
             Changed?.Invoke();
         }
 
