@@ -77,6 +77,20 @@ namespace UnCredibles.Tests
         }
 
         [Test]
+        public void SlotsEnumerateInOrderAsStructAndAsInterface()
+        {
+            var registry = new PlayerRegistry();
+            int expected = 0;
+            foreach (var slot in registry.Slots) Assert.AreEqual(expected++, slot.SlotIndex);
+            Assert.AreEqual(PlayerRegistry.MaxPlayers, expected);
+
+            System.Collections.Generic.IReadOnlyList<PlayerSlot> list = registry.Slots;
+            expected = 0;
+            foreach (var slot in list) Assert.AreSame(registry.Slots[expected++], slot);
+            Assert.AreEqual(PlayerRegistry.MaxPlayers, list.Count);
+        }
+
+        [Test]
         public void RemovingClearsTheSlot()
         {
             var registry = new PlayerRegistry();

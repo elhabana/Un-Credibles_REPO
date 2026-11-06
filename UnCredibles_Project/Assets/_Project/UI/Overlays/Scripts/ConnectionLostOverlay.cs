@@ -19,6 +19,7 @@ namespace UnCredibles.UI.Overlays
         private TMP_Text titleText;
         private TMP_Text footerText;
         private float timeLeft;
+        private int shownSeconds = -1;
         private bool showing;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -48,7 +49,12 @@ namespace UnCredibles.UI.Overlays
             if (!showing) return;
 
             timeLeft -= Time.unscaledDeltaTime;
-            footerText.text = L10n.Format(L10n.UI, "overlay.returning", Mathf.CeilToInt(Mathf.Max(0f, timeLeft)));
+            int seconds = Mathf.CeilToInt(Mathf.Max(0f, timeLeft));
+            if (seconds != shownSeconds)
+            {
+                shownSeconds = seconds;
+                footerText.text = L10n.Format(L10n.UI, "overlay.returning", seconds);
+            }
             if (timeLeft <= 0f || ContinuePressed()) Close();
         }
 
@@ -57,6 +63,7 @@ namespace UnCredibles.UI.Overlays
         {
             titleText.text = title;
             timeLeft = ReturnSeconds;
+            shownSeconds = -1;
             showing = true;
             panel.SetActive(true);
         }

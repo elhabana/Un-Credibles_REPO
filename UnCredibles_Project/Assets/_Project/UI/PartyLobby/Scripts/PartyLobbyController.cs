@@ -153,8 +153,10 @@ namespace UnCredibles.UI.PartyLobby
             DressNewPlayers();
             RemoveExpiredAway();
             if (UsesPhones) JoinPressingPhones();
-            foreach (var slot in Players.Slots)
+            var slots = Players.Slots;
+            for (int i = 0; i < slots.Count; i++)
             {
+                var slot = slots[i];
                 if (!slot.IsOccupied || slot.IsAI || slot.Input == null || slot.Input is NetworkInput) continue;
                 if (joinFrame[slot.SlotIndex] == Time.frameCount) continue; // the join press is not a ready press
 
@@ -232,8 +234,10 @@ namespace UnCredibles.UI.PartyLobby
         private void DressNewPlayers()
         {
             if (PartCatalog == null) return;
-            foreach (var slot in Players.Slots)
+            var slots = Players.Slots;
+            for (int i = 0; i < slots.Count; i++)
             {
+                var slot = slots[i];
                 int index = slot.SlotIndex;
                 if (!slot.IsOccupied)
                 {

@@ -21,6 +21,7 @@ namespace UnCredibles.UI.Voting
         private readonly TMP_Text[] stops = new TMP_Text[CoreRoot.VotedRounds];
         private readonly List<Card> cards = new List<Card>();
         private int renderedCandidateCount = -1;
+        private int shownSeconds = -1;
 
         private sealed class Card
         {
@@ -76,13 +77,17 @@ namespace UnCredibles.UI.Voting
 
         private void Update()
         {
-            if (root != null && root.activeSelf && core != null)
-                timer.text = $"{Mathf.CeilToInt(core.VoteSecondsLeft)} s";
+            if (root == null || !root.activeSelf || core == null) return;
+            int seconds = Mathf.CeilToInt(core.VoteSecondsLeft);
+            if (seconds == shownSeconds) return;
+            shownSeconds = seconds;
+            timer.text = $"{seconds} s";
         }
 
         private void OnStateChanged(GameState previous, GameState current)
         {
             if (root == null) return;
+            shownSeconds = -1; // a new ballot rewrites the timer on its first frame
             root.SetActive(current == GameState.Voting);
             if (current == GameState.Voting) Render();
         }

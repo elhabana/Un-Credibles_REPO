@@ -23,6 +23,9 @@ namespace UnCredibles.UI.Garage
         private AudioClip selectSound;
         private Transform current;
         private GameObject lastSelected;
+        private GameObject cachedObject;
+        private Selectable cachedSelectable;
+        private bool currentKeepsSize;
 
         public void Init(Transform exclude, AudioClip sound)
         {
@@ -42,16 +45,22 @@ namespace UnCredibles.UI.Garage
         {
             var selected = EventSystem.current != null ? EventSystem.current.currentSelectedGameObject : null;
             PlaySoundOnMove(selected);
-            var selectable = selected != null ? selected.GetComponent<Selectable>() : null;
+            if (selected != cachedObject)
+            {
+                cachedObject = selected;
+                cachedSelectable = selected != null ? selected.GetComponent<Selectable>() : null;
+            }
+            var selectable = cachedSelectable;
             var target = selectable != null && Marks(selectable) ? selectable.transform : null;
             if (target != null) Tint(selectable);
             if (target != current)
             {
                 Restore(current);
                 current = target;
+                currentKeepsSize = current != null && current.GetComponent<KeepSize>() != null;
                 if (current != null && !baseScales.ContainsKey(current)) baseScales[current] = current.localScale;
             }
-            if (current != null && current.GetComponent<KeepSize>() == null)
+            if (current != null && !currentKeepsSize)
                 current.localScale = Vector3.Lerp(current.localScale, baseScales[current] * SelectedScale,
                     1f - Mathf.Exp(-ScaleSpeed * Time.unscaledDeltaTime));
         }

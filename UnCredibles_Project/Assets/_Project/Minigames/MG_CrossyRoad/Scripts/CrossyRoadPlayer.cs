@@ -9,7 +9,6 @@ namespace UnCredibles.Minigames.CrossyRoad
     // Ticked by CrossyRoadController, it has no Update of its own.
     public sealed class CrossyRoadPlayer : MonoBehaviour
     {
-        private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
         private const float BlinkInterval = 0.1f;
         // Keeps the run going this long after the stick passes through the dead zone (e.g. when
         // reversing), so the legs do not drop to idle for a frame and look like sliding.
@@ -44,6 +43,7 @@ namespace UnCredibles.Minigames.CrossyRoad
         private PlayerCharacterOutfit outfit;
         private Vector3 carriedRestLocal;
         private bool carriedRestKnown;
+        private readonly TintedMaterials tints = new TintedMaterials();
         private float shoveTimer;
         private float lungeTimer;
         private byte shovesDone;
@@ -70,7 +70,6 @@ namespace UnCredibles.Minigames.CrossyRoad
             settings = gameBoard.Settings;
             SpawnPosition = spawnPosition;
 
-            var block = new MaterialPropertyBlock();
             outfit = character != null ? character.GetComponent<PlayerCharacterOutfit>() : null;
             if (outfit != null) outfit.Apply(slot.Loadout); // as chosen in the lobby
             // What is really on screen: the visible body zones plus the parts worn.
@@ -83,8 +82,7 @@ namespace UnCredibles.Minigames.CrossyRoad
             FitCarriedGrandma();
             if (carriedGrandma != null)
             {
-                block.SetColor(BaseColorId, grandmaColor);
-                CrossyRoadGrandmas.Tint(carriedGrandma, block);
+                CrossyRoadGrandmas.Tint(carriedGrandma, tints, grandmaColor);
                 var riding = carriedGrandma.GetComponentInChildren<GrandmaCharacterAnimator>(true);
                 if (riding != null) riding.SetCarried(true); // balances while carried instead of bouncing
             }
@@ -125,6 +123,8 @@ namespace UnCredibles.Minigames.CrossyRoad
             lungeTimer -= deltaTime;
             return Mathf.Sin(Mathf.Clamp01(1f - lungeTimer / LungeTime) * Mathf.PI);
         }
+
+        private void OnDestroy() => tints.DestroyAll();
 
         // The grandma sits on the head: a helmet lifts her by its height.
         private void FitCarriedGrandma()

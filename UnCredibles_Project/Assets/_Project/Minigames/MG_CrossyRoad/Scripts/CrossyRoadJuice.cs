@@ -11,7 +11,6 @@ namespace UnCredibles.Minigames.CrossyRoad
     // Added and ticked by CrossyRoadController.
     public sealed class CrossyRoadJuice : MonoBehaviour
     {
-        private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
         private const float StarLife = 1.1f;
         private const float StarSize = 0.22f;
         private static readonly Color StarColor = new Color(1f, 0.88f, 0.2f);
@@ -52,7 +51,7 @@ namespace UnCredibles.Minigames.CrossyRoad
         private readonly List<Star> stars = new List<Star>();
         private readonly List<Spark> sparks = new List<Spark>();
         private Watch[] watches;
-        private MaterialPropertyBlock block;
+        private readonly TintedMaterials tints = new TintedMaterials();
         private Mesh cube;
         private Material material;
         private Transform cameraTransform;
@@ -67,11 +66,9 @@ namespace UnCredibles.Minigames.CrossyRoad
 
         public void Setup(CrossyRoadBoard gameBoard)
         {
-            block = new MaterialPropertyBlock();
-            block.SetColor(BaseColorId, StarColor);
             cube = Resources.GetBuiltinResource<Mesh>("Cube.fbx");
             // Same lit material as the board tiles, tinted yellow.
-            material = gameBoard.GoalTile != null ? gameBoard.GoalTile.sharedMaterial : null;
+            material = gameBoard.GoalTile != null ? tints.Get(gameBoard.GoalTile.sharedMaterial, StarColor) : null;
             viewCamera = Camera.main;
             if (viewCamera != null)
             {
@@ -178,7 +175,7 @@ namespace UnCredibles.Minigames.CrossyRoad
 
                 if (material == null) continue;
                 float size = SparkSize * (1f - spark.Age / SparkLife);
-                Graphics.DrawMesh(cube, Matrix4x4.TRS(spark.Position, Quaternion.Euler(spark.Age * 900f, spark.Age * 600f, 0f), Vector3.one * size), material, 0, null, 0, block);
+                Graphics.DrawMesh(cube, Matrix4x4.TRS(spark.Position, Quaternion.Euler(spark.Age * 900f, spark.Age * 600f, 0f), Vector3.one * size), material, 0);
             }
         }
 
@@ -197,7 +194,7 @@ namespace UnCredibles.Minigames.CrossyRoad
                 var position = star.Center + new Vector3(Mathf.Cos(star.Angle) * 0.6f, Mathf.Sin(star.Angle * 2f) * 0.1f, Mathf.Sin(star.Angle) * 0.6f);
                 var rotation = Quaternion.Euler(0f, star.Angle * Mathf.Rad2Deg, 45f);
                 float size = StarSize * Mathf.Clamp01((StarLife - star.Age) * 4f); // shrink away at the end
-                Graphics.DrawMesh(cube, Matrix4x4.TRS(position, rotation, Vector3.one * size), material, 0, null, 0, block);
+                Graphics.DrawMesh(cube, Matrix4x4.TRS(position, rotation, Vector3.one * size), material, 0);
             }
         }
 
@@ -267,6 +264,7 @@ namespace UnCredibles.Minigames.CrossyRoad
         {
             EndHitStop(true);
             if (vignetteTexture != null) Destroy(vignetteTexture);
+            tints.DestroyAll();
         }
     }
 }
