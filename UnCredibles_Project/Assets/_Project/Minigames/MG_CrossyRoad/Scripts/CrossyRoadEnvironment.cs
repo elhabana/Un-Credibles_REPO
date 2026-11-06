@@ -7,8 +7,6 @@ namespace UnCredibles.Minigames.CrossyRoad
     // Gameplay does not depend on it; real art can replace it entirely.
     public sealed class CrossyRoadEnvironment : MonoBehaviour
     {
-        private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
-
         [SerializeField] private CrossyRoadBoard board;
         [SerializeField] private Material sharedMaterial;
         [SerializeField] private GameObject treePrefab;
@@ -39,15 +37,16 @@ namespace UnCredibles.Minigames.CrossyRoad
         [SerializeField, Range(0f, 1f)] private float rockDensity = 0.08f;
         [SerializeField] private int seed = 1234;
 
-        private MaterialPropertyBlock block;
+        private readonly TintedMaterials tints = new TintedMaterials();
         private System.Random random;
         private Mesh cubeMesh;
 
         private void Start() => Build();
 
+        private void OnDestroy() => tints.DestroyAll();
+
         public void Build()
         {
-            block = new MaterialPropertyBlock();
             random = new System.Random(seed); // same layout every time
             cubeMesh = Resources.GetBuiltinResource<Mesh>("Cube.fbx");
 
@@ -146,7 +145,7 @@ namespace UnCredibles.Minigames.CrossyRoad
             foreach (var propRenderer in rock.GetComponentsInChildren<Renderer>()) Paint(propRenderer, rockColor);
         }
 
-        // Cube without collider, sharing one material; the color goes in a property block.
+        // Cube without collider; one tinted copy of the shared material per color.
         private void CreateBlock(string blockName, Vector3 position, Vector3 scale, Color color)
         {
             var go = new GameObject(blockName);
@@ -159,11 +158,7 @@ namespace UnCredibles.Minigames.CrossyRoad
             Paint(blockRenderer, color);
         }
 
-        private void Paint(Renderer target, Color color)
-        {
-            block.SetColor(BaseColorId, color);
-            target.SetPropertyBlock(block);
-        }
+        private void Paint(Renderer target, Color color) => tints.Apply(target, color);
 
         // X and Y relative to the board, Z already in world space (LaneToZ).
         private Vector3 At(float x, float y, float z) =>

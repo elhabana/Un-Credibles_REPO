@@ -11,12 +11,11 @@ namespace UnCredibles.Minigames.CrossyRoad
         public const int SpawnLane = 1;
         public const int FirstRoadLane = 2;
 
-        private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
-
         [SerializeField] private CrossyRoadSettings settings;
         [SerializeField, Tooltip("Shared material for the lane tiles; colors come from the settings.")]
         private Material laneMaterial;
 
+        private readonly TintedMaterials tints = new TintedMaterials();
         private bool built;
 
         public CrossyRoadSettings Settings => settings;
@@ -58,7 +57,6 @@ namespace UnCredibles.Minigames.CrossyRoad
             if (built) return;
             built = true;
 
-            var block = new MaterialPropertyBlock();
             for (int lane = 0; lane < LaneCount; lane++)
             {
                 var tile = GameObject.CreatePrimitive(PrimitiveType.Cube);
@@ -70,8 +68,7 @@ namespace UnCredibles.Minigames.CrossyRoad
 
                 var tileRenderer = tile.GetComponent<Renderer>();
                 if (laneMaterial != null) tileRenderer.sharedMaterial = laneMaterial;
-                block.SetColor(BaseColorId, LaneColor(lane));
-                tileRenderer.SetPropertyBlock(block);
+                tints.Apply(tileRenderer, LaneColor(lane));
                 if (lane == GoalLane) GoalTile = tileRenderer;
             }
         }
@@ -83,6 +80,8 @@ namespace UnCredibles.Minigames.CrossyRoad
             LaneType.Goal => settings.GoalLaneColor,
             _ => settings.RoadColor,
         };
+
+        private void OnDestroy() => tints.DestroyAll();
 
         private void OnDrawGizmos()
         {

@@ -7,8 +7,6 @@ namespace UnCredibles.Minigames.CrossyRoad
     // Grandmas spread evenly across the pickup lane. Taken grandmas come back after a delay.
     public sealed class CrossyRoadGrandmas : MonoBehaviour
     {
-        private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
-
         [SerializeField] private CrossyRoadBoard board;
         [SerializeField] private GameObject grandmaPrefab;
 
@@ -17,7 +15,7 @@ namespace UnCredibles.Minigames.CrossyRoad
         private readonly List<Flyer> flyers = new List<Flyer>();
         private readonly List<Walker> walkers = new List<Walker>();
         private Camera viewCamera;
-        private MaterialPropertyBlock colorBlock;
+        private readonly TintedMaterials tints = new TintedMaterials();
 
         private sealed class Flyer
         {
@@ -51,12 +49,13 @@ namespace UnCredibles.Minigames.CrossyRoad
         public int Count => grandmas.Length;
 
         // Paints the grandma colour: only the jacket on the animated grandma, everything on the old one.
-        public static void Tint(GameObject grandma, MaterialPropertyBlock block)
+        // The tinted copies belong to `tints`, whose owner destroys them.
+        public static void Tint(GameObject grandma, TintedMaterials tints, Color color)
         {
             var animated = grandma.GetComponentInChildren<GrandmaCharacterAnimator>(true);
             var renderers = animated != null ? animated.TintedRenderers : grandma.GetComponentsInChildren<Renderer>(true);
             foreach (var grandmaRenderer in renderers)
-                if (grandmaRenderer != null) grandmaRenderer.SetPropertyBlock(block);
+                if (grandmaRenderer != null) tints.Apply(grandmaRenderer, color);
         }
 
         public void Initialize()
@@ -65,8 +64,6 @@ namespace UnCredibles.Minigames.CrossyRoad
             grandmas = new GameObject[count];
             respawnTimers = new float[count];
 
-            colorBlock = new MaterialPropertyBlock();
-            colorBlock.SetColor(BaseColorId, board.Settings.GrandmaColor);
             // Waiting grandmas look at the road they want to cross (the model faces +Z).
             var facingRoad = Quaternion.LookRotation(new Vector3(0f, 0f,
                 Mathf.Sign(board.LaneToZ(board.GoalLane) - board.LaneToZ(CrossyRoadBoard.PickupLane))));
@@ -75,11 +72,13 @@ namespace UnCredibles.Minigames.CrossyRoad
                 var position = new Vector3(board.SlotToX(i, count), board.transform.position.y, board.LaneToZ(CrossyRoadBoard.PickupLane));
                 var grandma = Instantiate(grandmaPrefab, position, facingRoad, transform);
                 grandma.name = $"Grandma_{i}";
-                Tint(grandma, colorBlock);
+                Tint(grandma, tints, board.Settings.GrandmaColor);
                 grandmas[i] = grandma;
             }
             BuildRagdollFloor();
         }
+
+        private void OnDestroy() => tints.DestroyAll();
 
         // Nothing else in the minigame uses physics: an invisible floor (much bigger than the
         // board) just for the ragdoll grandmas to land, bounce and roll on.
@@ -166,7 +165,7 @@ namespace UnCredibles.Minigames.CrossyRoad
             {
                 var instance = Instantiate(grandmaPrefab, transform);
                 instance.name = "FlyingGrandma";
-                Tint(instance, colorBlock);
+                Tint(instance, tints, settings.GrandmaColor);
                 var animated = instance.GetComponentInChildren<GrandmaCharacterAnimator>();
                 if (animated != null && !animated.HasRagdoll) { animated.SetSpinning(true); animated = null; }
                 flyer = new Flyer { Transform = instance.transform, Animated = animated };
@@ -204,7 +203,7 @@ namespace UnCredibles.Minigames.CrossyRoad
             {
                 var instance = Instantiate(grandmaPrefab, transform);
                 instance.name = "LeavingGrandma";
-                Tint(instance, colorBlock);
+                Tint(instance, tints, board.Settings.GrandmaColor);
                 var animated = instance.GetComponentInChildren<GrandmaCharacterAnimator>();
                 if (animated != null) animated.SetWalking(true);
                 walker = new Walker { Transform = instance.transform };

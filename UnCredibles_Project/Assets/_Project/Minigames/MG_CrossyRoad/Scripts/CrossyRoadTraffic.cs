@@ -8,7 +8,6 @@ namespace UnCredibles.Minigames.CrossyRoad
     // Some of them are oil trucks: easy to tell apart, and the only vehicles that leak oil slicks.
     public sealed class CrossyRoadTraffic : MonoBehaviour
     {
-        private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
         private const float CarDepthRatio = 0.7f; // car depth relative to the lane depth
 
         [SerializeField] private CrossyRoadBoard board;
@@ -43,7 +42,7 @@ namespace UnCredibles.Minigames.CrossyRoad
         private readonly Stack<Car> truckPool = new Stack<Car>();
         private readonly Queue<Vector3> pendingDrops = new Queue<Vector3>();
         private readonly List<bool> receivedTrucks = new List<bool>();
-        private MaterialPropertyBlock block;
+        private readonly TintedMaterials tints = new TintedMaterials();
         private Lane[] lanes = new Lane[0];
         private float spawnX;
         private float despawnX;
@@ -58,7 +57,6 @@ namespace UnCredibles.Minigames.CrossyRoad
         public void Initialize(bool prefill = true)
         {
             var settings = board.Settings;
-            block = new MaterialPropertyBlock();
             speedMultiplier = settings.SpeedMultiplier(0f);
             spawnMultiplier = settings.SpawnMultiplier(0f);
             spawnX = board.HalfWidth + settings.OffscreenMargin;
@@ -341,8 +339,8 @@ namespace UnCredibles.Minigames.CrossyRoad
             }
             else
             {
-                block.SetColor(BaseColorId, board.Settings.GetCarColor(car.Id));
-                foreach (var carRenderer in car.Renderers) carRenderer.SetPropertyBlock(block);
+                var color = board.Settings.GetCarColor(car.Id);
+                foreach (var carRenderer in car.Renderers) tints.Apply(carRenderer, color);
             }
             car.Transform.gameObject.SetActive(true);
             lane.Cars.Add(car);
@@ -355,6 +353,8 @@ namespace UnCredibles.Minigames.CrossyRoad
             car.Transform.gameObject.SetActive(false);
             (car.IsOilTruck ? truckPool : pool).Push(car);
         }
+
+        private void OnDestroy() => tints.DestroyAll();
 
         private Car CreateCar(bool oilTruck)
         {
