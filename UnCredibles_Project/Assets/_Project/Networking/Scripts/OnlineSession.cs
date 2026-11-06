@@ -347,8 +347,13 @@ namespace UnCredibles.Networking
             reader.ReadValueSafe(out loadout.Helmet);
             reader.ReadValueSafe(out loadout.Outfit);
             reader.ReadValueSafe(out loadout.Boots);
+            // Part ids are short; huge ones would overflow the lobby snapshot sent to everybody.
+            if (TooLong(loadout.Helmet) || TooLong(loadout.Outfit) || TooLong(loadout.Boots)) return;
             if (clientSlots.TryGetValue(sender, out int slotIndex)) players.SetLoadout(slotIndex, loadout);
         }
+
+        private const int MaxPartIdLength = 64;
+        private static bool TooLong(string partId) => partId != null && partId.Length > MaxPartIdLength;
 
         private void HandleHelloMessage(ulong sender, FastBufferReader reader) => SendLobbySnapshot();
 
