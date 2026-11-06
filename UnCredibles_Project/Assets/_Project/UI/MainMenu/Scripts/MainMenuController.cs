@@ -34,6 +34,17 @@ namespace UnCredibles.UI.MainMenu
         private bool titlePressed;
         private float titleReveal = TitleRevealSeconds;
         private readonly System.Collections.Generic.List<GameObject> titleHidden = new System.Collections.Generic.List<GameObject>();
+        // Intro after the press: the camera punches in and back, then the buttons slide in from the left.
+        private const float ZoomSeconds = .7f;
+        private const float ZoomFov = 7f;          // degrees narrower at the peak
+        private const float SlideSeconds = .45f;
+        private const float SlideStagger = .07f;   // between one button and the next
+        private Camera zoomCamera;
+        private float zoomBaseFov;
+        private float zoomTime = -1f;              // < 0 = not zooming
+        private float slideTime = -1f;             // < 0 = not sliding
+        private float slideOffset;
+        private readonly System.Collections.Generic.List<float> slideTargets = new System.Collections.Generic.List<float>();
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetTitle() => titleSeen = false; // also with domain reload off in the editor
@@ -85,6 +96,7 @@ namespace UnCredibles.UI.MainMenu
         private bool UpdateTitle()
         {
             foreach (var hidden in titleHidden) hidden.SetActive(false);
+            if (titlePressed && zoomTime < 0f && titleReveal >= TitleRevealSeconds) StartZoom();
             if (titlePressed) titleReveal -= Time.unscaledDeltaTime;
             float pop = titlePressed ? 1f + (1f - titleReveal / TitleRevealSeconds) * .3f : 1f;
             pressStart.transform.localScale = new Vector3(pop, pop, 1f);
@@ -98,11 +110,81 @@ namespace UnCredibles.UI.MainMenu
             pressStart = null;
             foreach (var hidden in titleHidden) hidden.SetActive(true);
             ShowMultiplayerSetup(false); // shows the buttons with JUGAR LOCAL selected
+            StartSlide();
             return false;
+        }
+
+        private void StartZoom()
+        {
+            var rig = FindFirstObjectByType<GarageCameraRig>();
+            zoomCamera = rig != null ? rig.output : Camera.main;
+            if (zoomCamera == null || zoomCamera.orthographic) return;
+            zoomBaseFov = zoomCamera.fieldOfView;
+            zoomTime = 0f;
+        }
+
+        private void StartSlide()
+        {
+            slideOffset = ((RectTransform)mainPanel.transform.parent).rect.width * .6f;
+            slideTargets.Clear();
+            foreach (var hidden in titleHidden)
+            {
+                var rect = (RectTransform)hidden.transform;
+                slideTargets.Add(rect.anchoredPosition.x);
+                rect.anchoredPosition -= new Vector2(slideOffset, 0f);
+            }
+            slideTime = 0f;
+            BlockInput(true);
+        }
+
+        // No clicks or pad presses until every button has landed. Not CanvasGroup.interactable:
+        // that would paint the buttons with their disabled tint while they slide in.
+        private void BlockInput(bool block)
+        {
+            var group = mainPanel.GetComponent<CanvasGroup>();
+            if (group == null) group = mainPanel.AddComponent<CanvasGroup>();
+            group.blocksRaycasts = !block;
+            if (EventSystem.current != null) EventSystem.current.sendNavigationEvents = !block;
+        }
+
+        private void UpdateIntro()
+        {
+            float dt = Time.unscaledDeltaTime;
+            if (zoomTime >= 0f)
+            {
+                zoomTime += dt;
+                float x = Mathf.Clamp01(zoomTime / ZoomSeconds);
+                // Quick punch in, softer way back; ends exactly on the original FOV.
+                float punch = x < .35f ? Mathf.SmoothStep(0f, 1f, x / .35f) : Mathf.SmoothStep(1f, 0f, (x - .35f) / .65f);
+                if (zoomCamera != null) zoomCamera.fieldOfView = zoomBaseFov - ZoomFov * punch;
+                if (x >= 1f) zoomTime = -1f;
+            }
+            if (slideTime < 0f) return;
+            slideTime += dt;
+            bool done = true;
+            for (int i = 0; i < titleHidden.Count; i++)
+            {
+                if (titleHidden[i] == null) continue;
+                float x = Mathf.Clamp01((slideTime - i * SlideStagger) / SlideSeconds);
+                if (x < 1f) done = false;
+                var rect = (RectTransform)titleHidden[i].transform;
+                rect.anchoredPosition = new Vector2(slideTargets[i] - slideOffset * (1f - EaseOutBack(x)), rect.anchoredPosition.y);
+            }
+            if (!done) return;
+            slideTime = -1f;
+            BlockInput(false);
+        }
+
+        // Overshoots a little before settling: the buttons land with a small bounce.
+        private static float EaseOutBack(float x)
+        {
+            const float c1 = 1.70158f, c3 = c1 + 1f;
+            return 1f + c3 * Mathf.Pow(x - 1f, 3f) + c1 * Mathf.Pow(x - 1f, 2f);
         }
 
         private void Update()
         {
+            UpdateIntro();
             if (pressStart != null && UpdateTitle()) return;
             if (multiplayerSetupPanel.activeInHierarchy &&
                 ((Gamepad.current != null && Gamepad.current.buttonEast.wasPressedThisFrame) ||
@@ -140,6 +222,9 @@ namespace UnCredibles.UI.MainMenu
 
         private void OnDisable()
         {
+            if (zoomTime >= 0f && zoomCamera != null) zoomCamera.fieldOfView = zoomBaseFov; // never leave it zoomed
+            zoomTime = -1f;
+            if (slideTime >= 0f) { slideTime = SlideSeconds + titleHidden.Count * SlideStagger; UpdateIntro(); } // snap into place
             singleplayerButton.onClick.RemoveListener(OpenSingleplayer);
             multiplayerButton.onClick.RemoveListener(OpenMultiplayerSetup);
             settingsButton.onClick.RemoveListener(OpenSettings);
