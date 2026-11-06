@@ -28,6 +28,9 @@ namespace UnCredibles.UI.Garage
         private Transform[,] anchorsB;
         private RectTransform[,,] arrows; // figure, part, side (0 left, 1 right)
         private TextMeshProUGUI[,,] labels;
+        // Cached once: reading label.fontMaterial marks the text dirty and rebuilds its mesh.
+        private Material[,,] materials;
+        private float[,,] glowPowers;
         private RectTransform area;
         private Canvas canvas;
 
@@ -42,6 +45,8 @@ namespace UnCredibles.UI.Garage
             anchorsB = new Transform[avatars.Length, Parts.Length];
             arrows = new RectTransform[avatars.Length, Parts.Length, 2];
             labels = new TextMeshProUGUI[avatars.Length, Parts.Length, 2];
+            materials = new Material[avatars.Length, Parts.Length, 2];
+            glowPowers = new float[avatars.Length, Parts.Length, 2];
             for (int i = 0; i < avatars.Length; i++)
             {
                 if (outfits[i] != null)
@@ -56,7 +61,8 @@ namespace UnCredibles.UI.Garage
                     for (int side = 0; side < 2; side++)
                     {
                         int figure = i, part = p, step = side == 0 ? -1 : 1;
-                        arrows[i, p, side] = Arrow(side == 0 ? "<" : ">", () => lobby.StepPart(figure, Parts[part], step), out labels[i, p, side]);
+                        arrows[i, p, side] = Arrow(side == 0 ? "<" : ">", () => lobby.StepPart(figure, Parts[part], step),
+                            out labels[i, p, side], out materials[i, p, side]);
                     }
             }
         }
@@ -69,7 +75,7 @@ namespace UnCredibles.UI.Garage
         }
 
         // Clickable, but only the white arrow shows: the button image is fully transparent.
-        private RectTransform Arrow(string text, System.Action onClick, out TextMeshProUGUI label)
+        private RectTransform Arrow(string text, System.Action onClick, out TextMeshProUGUI label, out Material material)
         {
             var rect = new GameObject("Outfit arrow " + text, typeof(RectTransform), typeof(Image), typeof(Button)).GetComponent<RectTransform>();
             rect.SetParent(area, false);
@@ -91,7 +97,7 @@ namespace UnCredibles.UI.Garage
             label.raycastTarget = false;
             // Own material: a thin dark outline so it reads on any background, and a glow that
             // only lights up on the selected row.
-            var material = label.fontMaterial;
+            material = label.fontMaterial;
             material.EnableKeyword("OUTLINE_ON");
             material.SetFloat(ShaderUtilities.ID_OutlineWidth, .12f);
             material.SetColor(ShaderUtilities.ID_OutlineColor, new Color(0f, 0f, 0f, .6f));
@@ -99,6 +105,7 @@ namespace UnCredibles.UI.Garage
             material.SetColor(ShaderUtilities.ID_GlowColor, GlowColor);
             material.SetFloat(ShaderUtilities.ID_GlowOuter, .6f);
             material.SetFloat(ShaderUtilities.ID_GlowPower, 0f);
+            label.UpdateMeshPadding(); // the getter measured padding before outline and glow were on
             rect.gameObject.SetActive(false);
             return rect;
         }
@@ -124,11 +131,24 @@ namespace UnCredibles.UI.Garage
                         if (!placed) continue;
                         var label = labels[i, p, side];
                         label.color = lit ? Color.Lerp(Color.white, Lit, pulse) : Idle;
-                        label.fontMaterial.SetFloat(ShaderUtilities.ID_GlowPower, lit ? .35f + .35f * pulse : 0f);
+                        float glow = lit ? .35f + .35f * pulse : 0f;
+                        if (glowPowers[i, p, side] != glow)
+                        {
+                            glowPowers[i, p, side] = glow;
+                            materials[i, p, side].SetFloat(ShaderUtilities.ID_GlowPower, glow);
+                        }
                         arrow.localScale = Vector3.one * (lit ? 1.05f + .12f * pulse : .85f);
                     }
                 }
             }
+        }
+
+        // The instances TMP created for each label are not assets: free them with the lobby.
+        private void OnDestroy()
+        {
+            if (materials == null) return;
+            foreach (var material in materials)
+                if (material != null) Destroy(material);
         }
 
         // Puts both arrows of a part beside it on screen (pushed `nudge` pixels further out);
