@@ -104,7 +104,7 @@ MonoBehaviour:
     rotation: {x: 0, y: 90, z: 0}
     scale: 1
   mediumCar:
-    model: {fileID: 0}
+    model: {fileID: 919132149155446097, guid: 7059d0cdb9f25364bbdd7b674f124fc0, type: 3}
     rotation: {x: 0, y: 90, z: 0}
     scale: 1
   largeCar:

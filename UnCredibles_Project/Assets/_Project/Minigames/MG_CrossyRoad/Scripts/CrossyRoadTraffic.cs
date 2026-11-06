@@ -28,6 +28,10 @@ namespace UnCredibles.Minigames.CrossyRoad
             public Vector3 ModelSize;  // custom model size at scale 1; zero = the box prefab
             public float ModelScale = 1f;
             public Wheel[] Wheels = new Wheel[0];
+            public Transform Body;        // the model without its wheels; null = box prefab
+            public Vector3 BodyRestPosition;
+            public Quaternion BodyRestRotation;
+            public float BodyTime;        // starts at a random phase so cars do not bounce in sync
             public float HalfLength;   // hit box, set on every spawn
             public float HalfDepth;
         }
@@ -126,7 +130,7 @@ namespace UnCredibles.Minigames.CrossyRoad
                 {
                     var car = lane.Cars[i];
                     car.X += lane.Velocity * deltaTime;
-                    SpinWheels(car, Mathf.Abs(lane.Velocity) * deltaTime);
+                    AnimateModel(car, Mathf.Abs(lane.Velocity) * deltaTime, deltaTime);
                     if (Mathf.Abs(car.X) > despawnX && Mathf.Sign(car.X) == Mathf.Sign(lane.Velocity))
                     {
                         Release(lane, i);
@@ -303,7 +307,7 @@ namespace UnCredibles.Minigames.CrossyRoad
                 foreach (var car in lane.Cars)
                 {
                     car.X += lane.Velocity * deltaTime;
-                    SpinWheels(car, Mathf.Abs(lane.Velocity) * deltaTime);
+                    AnimateModel(car, Mathf.Abs(lane.Velocity) * deltaTime, deltaTime);
                     car.Transform.position = new Vector3(board.transform.position.x + car.X, board.transform.position.y, lane.Z);
                     if (car.IsOilTruck) car.Truck.Animate(deltaTime);
                 }
@@ -396,6 +400,7 @@ namespace UnCredibles.Minigames.CrossyRoad
             var size = Vector3.zero;
             Transform instance;
             var wheels = new Wheel[0];
+            Transform body = null;
             if (model.model == null) instance = Instantiate(oilTruck ? oilTruckPrefab : carPrefab, transform);
             else
             {
@@ -407,7 +412,7 @@ namespace UnCredibles.Minigames.CrossyRoad
                     foreach (var part in instance.GetComponentsInChildren<Renderer>())
                         if (effects == null || !part.transform.IsChildOf(effects)) part.enabled = false;
                 }
-                size = AttachModel(instance, model, out wheels);
+                size = AttachModel(instance, model, out wheels, out body);
                 instance.SetParent(transform, false);
             }
             var truck = oilTruck ? instance.GetComponent<CrossyRoadOilTruck>() : null;
@@ -421,12 +426,17 @@ namespace UnCredibles.Minigames.CrossyRoad
                 ModelSize = size,
                 ModelScale = ScaleOf(model),
                 Wheels = wheels,
+                Body = oilTruck ? null : body, // only cars bounce; the truck stays steady
+                BodyRestPosition = body != null ? body.localPosition : Vector3.zero,
+                BodyRestRotation = body != null ? body.localRotation : Quaternion.identity,
+                BodyTime = Random.value * 10f,
             };
         }
 
         // Parts named "wheel" / "rueda" spin around their own centre (a mesh with both wheels of an
-        // axle works too: its centre is on the axle). Called with the root still at the origin, unscaled.
-        private static Wheel[] FindWheels(Renderer[] renderers)
+        // axle works too: its centre is on the axle). They hang from the root, not from the body, so
+        // the body can bounce on top of them. Called with the root still at the origin, unscaled.
+        private static Wheel[] FindWheels(Transform root, Renderer[] renderers)
         {
             var found = new List<Wheel>();
             foreach (var part in renderers)
@@ -436,11 +446,28 @@ namespace UnCredibles.Minigames.CrossyRoad
                 var bounds = part.bounds;
                 var pivot = new GameObject(part.name + "_Spin").transform;
                 pivot.position = bounds.center; // world axes = car root axes here
-                pivot.SetParent(part.transform.parent, true);
+                pivot.SetParent(root, true);
                 part.transform.SetParent(pivot, true);
                 found.Add(new Wheel { Pivot = pivot, Rest = pivot.localRotation, Radius = Mathf.Max(0.01f, bounds.extents.y) });
             }
             return found.ToArray();
+        }
+
+        // Small suspension bounce of the body: up and down plus a little pitch and roll.
+        private const float BodyBob = 0.025f;   // of the model height
+        private const float BodyPitch = 1.2f;   // degrees
+        private const float BodyRoll = 0.8f;    // degrees
+
+        private static void AnimateModel(Car car, float distance, float deltaTime)
+        {
+            SpinWheels(car, distance);
+            if (car.Body == null) return;
+            float t = car.BodyTime += deltaTime;
+            float bob = (Mathf.Sin(t * 9f) * 0.7f + Mathf.Sin(t * 14.3f) * 0.3f) * BodyBob * car.ModelSize.y;
+            // Root space: the car drives along +X, so pitch turns around Z and roll around X.
+            var sway = Quaternion.Euler(Mathf.Sin(t * 5.3f) * BodyRoll, 0f, Mathf.Sin(t * 7.1f + 1f) * BodyPitch);
+            car.Body.localPosition = car.BodyRestPosition + Vector3.up * bob;
+            car.Body.localRotation = sway * car.BodyRestRotation;
         }
 
         // Rolls forward: the root faces the way it drives (+X), so the wheels turn around its Z.
@@ -460,10 +487,11 @@ namespace UnCredibles.Minigames.CrossyRoad
 
         // Adds the model to `root` (still at the world origin, unscaled) centred on it and resting
         // on the ground, like the box prefabs. Returns its size, used for the hit box.
-        private static Vector3 AttachModel(Transform root, CrossyRoadSettings.VehicleModel model, out Wheel[] wheels)
+        private static Vector3 AttachModel(Transform root, CrossyRoadSettings.VehicleModel model, out Wheel[] wheels, out Transform body)
         {
             wheels = new Wheel[0];
             var visual = Instantiate(model.model, root).transform;
+            body = visual;
             visual.localRotation = Quaternion.Euler(model.rotation);
             var renderers = visual.GetComponentsInChildren<Renderer>();
             if (renderers.Length == 0)
@@ -474,7 +502,7 @@ namespace UnCredibles.Minigames.CrossyRoad
             var bounds = renderers[0].bounds;
             for (int i = 1; i < renderers.Length; i++) bounds.Encapsulate(renderers[i].bounds);
             visual.position -= new Vector3(bounds.center.x, bounds.min.y, bounds.center.z);
-            wheels = FindWheels(renderers);
+            wheels = FindWheels(root, renderers);
             return bounds.size;
         }
     }
