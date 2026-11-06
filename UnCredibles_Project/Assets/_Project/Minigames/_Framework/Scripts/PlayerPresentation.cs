@@ -2,6 +2,7 @@ using TMPro;
 using UnCredibles.Localization;
 using UnCredibles.Players;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace UnCredibles.Minigames
 {
@@ -16,6 +17,9 @@ namespace UnCredibles.Minigames
         private Camera viewCamera;
         private bool wasAI;
         private float headHeight = 1.5f;
+
+        // Name tag over the head ("P1", "BOT"); lives beside the avatar, not under it.
+        public TextMeshPro Label => label;
 
         public static PlayerPresentation Attach(Component avatar, PlayerSlot player, Renderer[] bodyRenderers = null)
         {
@@ -38,8 +42,10 @@ namespace UnCredibles.Minigames
         private void EnsureLabel()
         {
             if (label != null) return;
+            // Not a child of the avatar: its squash-and-stretch would shear the camera-facing text, and
+            // undoing a near-zero scale made it huge. Same scene, so it unloads with the minigame.
             var go = new GameObject("Player label");
-            go.transform.SetParent(transform, false);
+            SceneManager.MoveGameObjectToScene(go, gameObject.scene);
             label = go.AddComponent<TextMeshPro>();
             label.font = TMP_Settings.defaultFontAsset;
             label.fontSize = 3.6f;
@@ -83,14 +89,18 @@ namespace UnCredibles.Minigames
             // Ignore avatar rotation/scale so text stays upright and readable while moving.
             label.transform.position = transform.position + Vector3.up * height + viewCamera.transform.up * .2f;
             label.transform.rotation = viewCamera.transform.rotation;
-            var scale = transform.lossyScale;
-            label.transform.localScale = new Vector3(1f / Mathf.Max(.001f, Mathf.Abs(scale.x)),
-                1f / Mathf.Max(.001f, Mathf.Abs(scale.y)), 1f / Mathf.Max(.001f, Mathf.Abs(scale.z)));
+        }
+
+        // The label is not under the avatar, so it has to follow it out of sight.
+        private void OnDisable()
+        {
+            if (label != null) label.enabled = false;
         }
 
         private void OnDestroy()
         {
             L10n.LanguageChanged -= RefreshLabel;
+            if (label != null) Destroy(label.gameObject);
             if (labelMaterial != null) Destroy(labelMaterial);
         }
     }

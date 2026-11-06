@@ -39,7 +39,7 @@ public sealed class PlayerIdentityTests
                 Assert.IsTrue(views.Length == 4, scene + " must display all four slots.");
                 foreach (var view in views)
                 {
-                    var text = view.GetComponentInChildren<TextMeshPro>();
+                    var text = view.Label;
                     int index = int.Parse(text.text.Substring(1)) - 1;
                     Assert.IsTrue(text.text == PlayerIdentity.LabelFor(index));
                     Assert.IsTrue(text.color == PlayerIdentity.ColorFor(index), scene + " changed the slot color.");
@@ -51,12 +51,12 @@ public sealed class PlayerIdentityTests
             }
             // Online disconnects can replace a human with AI without respawning the avatar.
             var bot = UnityEngine.Object.FindObjectsByType<PlayerPresentation>(FindObjectsSortMode.None)
-                .Single(v => v.GetComponentInChildren<TextMeshPro>().text == PlayerIdentity.LabelFor(2));
+                .Single(v => v.Label.text == PlayerIdentity.LabelFor(2));
             Assert.IsTrue(registry.ReplaceWithAI(2, new AIInput()));
             yield return null;
             yield return null;
-            Assert.IsTrue(bot.GetComponentInChildren<TextMeshPro>().text == "BOT");
-            Assert.IsTrue(bot.GetComponentInChildren<TextMeshPro>().color == PlayerIdentity.ColorFor(2));
+            Assert.IsTrue(bot.Label.text == "BOT");
+            Assert.IsTrue(bot.Label.color == PlayerIdentity.ColorFor(2));
             Assert.IsTrue(HasSlotVariant(bot, PlayerIdentity.ColorFor(2)));
         }
         finally
