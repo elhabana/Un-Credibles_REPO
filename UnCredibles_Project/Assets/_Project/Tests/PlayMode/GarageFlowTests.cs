@@ -96,36 +96,36 @@ public sealed class GarageFlowTests
         Assert.IsTrue(core.Players.TryAddPlayer(PlayerType.LocalPlayer, core.Input.CreateAIInput(), null, out var second));
         Assert.IsTrue(core.StartMatch(3));
         Assert.AreEqual(GameState.Voting, core.GameFlow.State);
-        Assert.GreaterOrEqual(core.VoteCandidates.Count, 3);
+        Assert.GreaterOrEqual(core.Vote.Candidates.Count, 3);
 
         for (int round = 0; round < 3; round++)
         {
             int choice = -1;
-            for (int i = 0; i < core.VoteCandidates.Count; i++)
-                if (!Contains(core.VotedMinigames, core.VoteCandidates[i])) { choice = i; break; }
+            for (int i = 0; i < core.Vote.Candidates.Count; i++)
+                if (!Contains(core.Vote.VotedMinigames, core.Vote.Candidates[i])) { choice = i; break; }
             Assert.GreaterOrEqual(choice, 0);
-            core.CastVote(first.PlayerId, choice);
+            core.Vote.Cast(first.PlayerId, choice);
             int alternate = -1;
-            for (int i = 0; i < core.VoteCandidates.Count; i++)
-                if (i != choice && !Contains(core.VotedMinigames, core.VoteCandidates[i])) { alternate = i; break; }
+            for (int i = 0; i < core.Vote.Candidates.Count; i++)
+                if (i != choice && !Contains(core.Vote.VotedMinigames, core.Vote.Candidates[i])) { alternate = i; break; }
             Assert.GreaterOrEqual(alternate, 0);
-            core.CastVote(first.PlayerId, alternate);
-            Assert.AreEqual(alternate, core.Votes[first.PlayerId], "Players must be able to change an accepted vote.");
-            core.CastVote(first.PlayerId, -1);
-            Assert.AreEqual(alternate, core.Votes[first.PlayerId], "An invalid candidate must not replace the vote.");
-            core.CastVote(first.PlayerId, choice);
-            Assert.AreEqual(round, core.VotedMinigames.Count, "Voting must stay open while someone has not voted.");
-            core.CastVote(second.PlayerId, choice);
+            core.Vote.Cast(first.PlayerId, alternate);
+            Assert.AreEqual(alternate, core.Vote.Votes[first.PlayerId], "Players must be able to change an accepted vote.");
+            core.Vote.Cast(first.PlayerId, -1);
+            Assert.AreEqual(alternate, core.Vote.Votes[first.PlayerId], "An invalid candidate must not replace the vote.");
+            core.Vote.Cast(first.PlayerId, choice);
+            Assert.AreEqual(round, core.Vote.VotedMinigames.Count, "Voting must stay open while someone has not voted.");
+            core.Vote.Cast(second.PlayerId, choice);
             yield return new WaitForSecondsRealtime(.2f);
-            Assert.AreEqual(round + 1, core.VotedMinigames.Count, "Voting must close once everyone has voted.");
-            Assert.AreSame(core.VoteCandidates[choice], core.VotedMinigames[round]);
+            Assert.AreEqual(round + 1, core.Vote.VotedMinigames.Count, "Voting must close once everyone has voted.");
+            Assert.AreSame(core.Vote.Candidates[choice], core.Vote.VotedMinigames[round]);
         }
 
-        Assert.AreEqual(3, core.VotedMinigames.Count);
-        Assert.AreNotSame(core.VotedMinigames[0], core.VotedMinigames[1]);
-        Assert.AreNotSame(core.VotedMinigames[1], core.VotedMinigames[2]);
+        Assert.AreEqual(3, core.Vote.VotedMinigames.Count);
+        Assert.AreNotSame(core.Vote.VotedMinigames[0], core.Vote.VotedMinigames[1]);
+        Assert.AreNotSame(core.Vote.VotedMinigames[1], core.Vote.VotedMinigames[2]);
         yield return WaitFor(() => !core.Scenes.IsLoading && core.GameFlow.State == GameState.Minigame);
-        Assert.AreSame(core.VotedMinigames[0], core.Minigames.ActiveData);
+        Assert.AreSame(core.Vote.VotedMinigames[0], core.Minigames.ActiveData);
         core.ReturnToMainMenu();
         yield return WaitFor(() => !core.Scenes.IsLoading && core.GameFlow.State == GameState.MainMenu);
     }

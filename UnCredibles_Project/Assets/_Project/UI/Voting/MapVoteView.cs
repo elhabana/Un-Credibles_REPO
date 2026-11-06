@@ -18,7 +18,7 @@ namespace UnCredibles.UI.Voting
         private TMP_Text heading;
         private TMP_Text timer;
         private TMP_Text hint;
-        private readonly TMP_Text[] stops = new TMP_Text[CoreRoot.VotedRounds];
+        private readonly TMP_Text[] stops = new TMP_Text[MatchVote.VotedRounds];
         private readonly List<Card> cards = new List<Card>();
         private int renderedCandidateCount = -1;
         private int shownSeconds = -1;
@@ -53,7 +53,7 @@ namespace UnCredibles.UI.Voting
             core = CoreRoot.Instance;
             Build();
             core.GameFlow.StateChanged += OnStateChanged;
-            core.VoteChanged += Render;
+            core.Vote.Changed += Render;
             L10n.LanguageChanged += HandleLanguageChanged;
             OnStateChanged(core.GameFlow.State, core.GameFlow.State);
         }
@@ -63,7 +63,7 @@ namespace UnCredibles.UI.Voting
             if (core != null)
             {
                 core.GameFlow.StateChanged -= OnStateChanged;
-                core.VoteChanged -= Render;
+                core.Vote.Changed -= Render;
             }
             L10n.LanguageChanged -= HandleLanguageChanged;
         }
@@ -78,7 +78,7 @@ namespace UnCredibles.UI.Voting
         private void Update()
         {
             if (root == null || !root.activeSelf || core == null) return;
-            int seconds = Mathf.CeilToInt(core.VoteSecondsLeft);
+            int seconds = Mathf.CeilToInt(core.Vote.SecondsLeft);
             if (seconds == shownSeconds) return;
             shownSeconds = seconds;
             timer.text = $"{seconds} s";
@@ -134,7 +134,7 @@ namespace UnCredibles.UI.Voting
         private void Render()
         {
             if (root == null || core == null || core.GameFlow.State != GameState.Voting) return;
-            var candidates = core.VoteCandidates;
+            var candidates = core.Vote.Candidates;
             if (renderedCandidateCount != candidates.Count)
             {
                 foreach (var card in cards) Destroy(card.background.gameObject);
@@ -143,11 +143,11 @@ namespace UnCredibles.UI.Voting
                 for (int i = 0; i < candidates.Count; i++) cards.Add(CreateCard(i, candidates[i], candidates.Count));
             }
 
-            int round = core.VotedMinigames.Count;
-            heading.text = round >= CoreRoot.VotedRounds ? L10n.Get(L10n.UI, "vote.route_decided") : L10n.Format(L10n.UI, "vote.round", round + 1, CoreRoot.VotedRounds);
+            int round = core.Vote.VotedMinigames.Count;
+            heading.text = round >= MatchVote.VotedRounds ? L10n.Get(L10n.UI, "vote.route_decided") : L10n.Format(L10n.UI, "vote.round", round + 1, MatchVote.VotedRounds);
             for (int i = 0; i < stops.Length; i++)
             {
-                string name = i < round ? MinigameName(core.VotedMinigames[i]) : i == round ? L10n.Get(L10n.UI, "vote.voting") : L10n.Get(L10n.UI, "vote.undecided");
+                string name = i < round ? MinigameName(core.Vote.VotedMinigames[i]) : i == round ? L10n.Get(L10n.UI, "vote.voting") : L10n.Get(L10n.UI, "vote.undecided");
                 stops[i].text = $"{i + 1:00}   {name}";
                 stops[i].color = i < round ? new Color(.45f, .95f, .69f) : i == round ?
                     new Color(1f, .79f, .35f) : new Color(.58f, .67f, .73f);
@@ -156,7 +156,7 @@ namespace UnCredibles.UI.Voting
             for (int i = 0; i < cards.Count; i++)
             {
                 var card = cards[i];
-                bool picked = Contains(core.VotedMinigames, candidates[i]);
+                bool picked = Contains(core.Vote.VotedMinigames, candidates[i]);
                 int votes = 0;
                 int selectors = 0;
                 foreach (var slot in core.Players.Slots)
@@ -164,9 +164,9 @@ namespace UnCredibles.UI.Voting
                     int index = slot.SlotIndex;
                     votedBy[index] = hoveredBy[index] = false;
                     if (!slot.IsOccupied || slot.IsAI || picked) continue;
-                    votedBy[index] = core.Votes.TryGetValue(slot.PlayerId, out int choice) && choice == i;
+                    votedBy[index] = core.Vote.Votes.TryGetValue(slot.PlayerId, out int choice) && choice == i;
                     hoveredBy[index] = IsLocalVoter(slot) &&
-                        (core.VoteCursor.TryGetValue(slot.PlayerId, out int cursor) ? cursor == i : i == FirstAvailable());
+                        (core.Vote.Cursor.TryGetValue(slot.PlayerId, out int cursor) ? cursor == i : i == FirstAvailable());
                     if (votedBy[index]) votes++;
                     if (hoveredBy[index]) selectors++;
                 }
@@ -176,9 +176,9 @@ namespace UnCredibles.UI.Voting
                 card.title.color = picked ? new Color(.52f, .59f, .61f) : Color.white;
                 card.footer.text = picked ? L10n.Get(L10n.UI, "vote.in_route") :
                     votes == 1 ? L10n.Get(L10n.UI, "vote.one_vote") : votes > 1 ? L10n.Format(L10n.UI, "vote.votes", votes) : L10n.Get(L10n.UI, "vote.available");
-                card.button.interactable = !picked && core.CanChangeVote;
+                card.button.interactable = !picked && core.Vote.CanChange;
             }
-            hint.text = round >= CoreRoot.VotedRounds ? L10n.Get(L10n.UI, "vote.route_decided") :
+            hint.text = round >= MatchVote.VotedRounds ? L10n.Get(L10n.UI, "vote.route_decided") :
                 L10n.Get(L10n.UI, "vote.hint_full");
         }
 
@@ -192,8 +192,8 @@ namespace UnCredibles.UI.Voting
 
         private int FirstAvailable()
         {
-            for (int i = 0; i < core.VoteCandidates.Count; i++)
-                if (!Contains(core.VotedMinigames, core.VoteCandidates[i])) return i;
+            for (int i = 0; i < core.Vote.Candidates.Count; i++)
+                if (!Contains(core.Vote.VotedMinigames, core.Vote.Candidates[i])) return i;
             return 0;
         }
 
@@ -212,9 +212,9 @@ namespace UnCredibles.UI.Voting
                 {
                     if (!IsLocalVoter(slot)) continue;
                     if (voter == null) voter = slot;
-                    if (!core.Votes.ContainsKey(slot.PlayerId)) { voter = slot; break; }
+                    if (!core.Vote.Votes.ContainsKey(slot.PlayerId)) { voter = slot; break; }
                 }
-                if (voter != null) core.CastVote(voter.PlayerId, selectedIndex);
+                if (voter != null) core.Vote.Cast(voter.PlayerId, selectedIndex);
             });
             card.thumbnail = Panel("Miniatura", card.background.transform, new Color(.18f, .28f, .32f));
             Place(card.thumbnail.rectTransform, 0, 73, width - 28, 208);
