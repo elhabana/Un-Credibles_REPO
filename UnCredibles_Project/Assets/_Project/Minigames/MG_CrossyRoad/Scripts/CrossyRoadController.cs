@@ -102,6 +102,7 @@ namespace UnCredibles.Minigames.CrossyRoad
                 avatars[i].Tick(deltaTime, isMoveBlocked, oil.IsOnOil(avatars[i].Position));
             }
 
+            HandleShoves();
             SeparatePlayers();
 
             for (int i = 0; i < avatars.Count; i++)
@@ -136,6 +137,48 @@ namespace UnCredibles.Minigames.CrossyRoad
             if (Settings.ReturnToSpawnAfterDelivery) avatar.Respawn(FindFreeSpawn(avatar.SpawnPosition, avatar), 0f);
         }
 
+        // Main button: shove the closest player in front, sending them sliding.
+        private void HandleShoves()
+        {
+            foreach (var shover in avatars)
+            {
+                if (!shover.CanShove || shover.Slot.Input == null || !shover.Slot.Input.WasPressed(PlayerAction.Jump)) continue;
+                shover.StartShoveCooldown();
+
+                CrossyRoadPlayer victim = null;
+                float best = Settings.ShoveRange * Settings.ShoveRange;
+                foreach (var other in avatars)
+                {
+                    if (other == shover || !other.IsAlive || other.IsInvulnerable) continue;
+                    var offset = other.Position - shover.Position;
+                    offset.y = 0f;
+                    // Generous cone: phone sticks are not precise.
+                    if (offset.sqrMagnitude > best || Vector3.Dot(shover.transform.forward, offset) < -0.2f) continue;
+                    best = offset.sqrMagnitude;
+                    victim = other;
+                }
+                if (victim == null) continue;
+
+                var direction = victim.Position - shover.Position;
+                direction.y = 0f;
+                direction = direction.sqrMagnitude > 0.0001f ? direction.normalized : shover.transform.forward;
+                victim.Shoved(direction); // only knocked off course: a carried grandma stays
+            }
+        }
+
+        // She flies off the way she was pushed, then goes back to her spot as usual.
+        private void KnockGrandmaOff(CrossyRoadPlayer avatar, float push)
+        {
+            var from = avatar.CarryPosition;
+            grandmas.Launch(from, push);
+            var message = BeginEvent(GrandmaLaunchedEvent);
+            message.Write(from.x); message.Write(from.y); message.Write(from.z);
+            message.Write(push);
+            SendEvent();
+            grandmas.Return(avatar.CarriedGrandma);
+            avatar.SetCarrying(-1);
+        }
+
         // Soft push so avatars never stand inside each other.
         private void SeparatePlayers()
         {
@@ -168,21 +211,9 @@ namespace UnCredibles.Minigames.CrossyRoad
         private void KillPlayer(int index)
         {
             var avatar = avatars[index];
-            AwardPoints(avatar, -(avatar.IsCarrying ? Settings.HitWithGrandmaPenalty : Settings.HitPenalty), false);
-            if (avatar.IsCarrying)
-            {
-                // She flies off with a lot of force the way the car was going, then goes back
-                // to her spot as usual.
-                var from = avatar.CarryPosition;
-                float push = Mathf.Sign(traffic.VelocityNear(avatar.Position.z));
-                grandmas.Launch(from, push);
-                var message = BeginEvent(GrandmaLaunchedEvent);
-                message.Write(from.x); message.Write(from.y); message.Write(from.z);
-                message.Write(push);
-                SendEvent();
-                grandmas.Return(avatar.CarriedGrandma);
-                avatar.SetCarrying(-1);
-            }
+            AwardPoints(avatar, -Settings.HitPenalty, false);
+            // With a lot of force the way the car was going.
+            if (avatar.IsCarrying) KnockGrandmaOff(avatar, Mathf.Sign(traffic.VelocityNear(avatar.Position.z)));
             avatar.Kill();
             respawnTimers[index] = Settings.RespawnDelay;
         }
@@ -221,7 +252,7 @@ namespace UnCredibles.Minigames.CrossyRoad
             foreach (var avatar in avatars)
             {
                 if (!(avatar.Slot.Input is AIInput aiInput) || HasBrain(avatar)) continue;
-                brains.Add(new CrossyRoadAIBrain(avatar, aiInput, board, traffic, grandmas, oil));
+                brains.Add(new CrossyRoadAIBrain(avatar, aiInput, board, traffic, grandmas, oil, avatars));
             }
         }
 

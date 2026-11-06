@@ -30,6 +30,11 @@ namespace UnCredibles.Players
         private float carryKneeBend = 18f;
         [SerializeField, Min(.01f)] private float carryBlendTime = .2f;
 
+        [Header("Shove pose (both arms thrust forward)")]
+        [SerializeField, Min(.05f)] private float shoveDuration = .32f;
+        [SerializeField, Range(.05f, .9f), Tooltip("Part of the shove spent reaching out; the rest is pulling back.")]
+        private float shoveReach = .25f;
+
         public bool IsRunning { get; private set; }
         public bool IsCarrying { get; private set; }
         public Transform BackSocket => backSocket;
@@ -37,6 +42,8 @@ namespace UnCredibles.Players
         private Transform hips, torso, neck;
         private Transform[] thighs, shins, feet;
         private float heavy;
+        private Transform[] upperArms, forearms, hands;
+        private float shoveTimer;
 
         private void Awake()
         {
@@ -60,9 +67,51 @@ namespace UnCredibles.Players
             bool complete = hips && torso && neck;
             for (int i = 0; i < 2; i++) complete &= thighs[i] && shins[i] && feet[i];
             if (!complete) hips = null;
+
+            upperArms = new[] { Bone("upper_arm.L"), Bone("upper_arm.R") };
+            forearms = new[] { Bone("forearm.L"), Bone("forearm.R") };
+            hands = new[] { Bone("hand.L"), Bone("hand.R") };
+            for (int i = 0; i < 2; i++)
+                if (!upperArms[i] || !forearms[i] || !hands[i]) upperArms = null;
         }
 
+        // Both arms thrust forward for a moment, on top of whatever loop is playing.
+        public void PlayShove() => shoveTimer = shoveDuration;
+
         private void LateUpdate()
+        {
+            ApplyCarryPosture();
+            ApplyShovePose();
+        }
+
+        private void ApplyShovePose()
+        {
+            if (shoveTimer <= 0f || upperArms == null) return;
+            shoveTimer -= Time.deltaTime;
+            float progress = 1f - Mathf.Clamp01(shoveTimer / shoveDuration);
+            // Snap out fast, ease back slowly.
+            float weight = progress < shoveReach
+                ? Mathf.SmoothStep(0f, 1f, progress / shoveReach)
+                : Mathf.SmoothStep(1f, 0f, (progress - shoveReach) / (1f - shoveReach));
+
+            var target = (transform.forward - transform.up * .15f).normalized;
+            for (int i = 0; i < 2; i++)
+            {
+                Aim(upperArms[i], forearms[i].position, target, weight);
+                Aim(forearms[i], hands[i].position, target, weight); // straight arm
+            }
+        }
+
+        // Turns `bone` so the segment towards `child` points along `direction`, blended by weight.
+        private static void Aim(Transform bone, Vector3 child, Vector3 direction, float weight)
+        {
+            var current = child - bone.position;
+            if (current.sqrMagnitude < 1e-8f) return;
+            var full = Quaternion.FromToRotation(current, direction) * bone.rotation;
+            bone.rotation = Quaternion.Slerp(bone.rotation, full, weight);
+        }
+
+        private void ApplyCarryPosture()
         {
             heavy = Mathf.MoveTowards(heavy, IsCarrying ? 1f : 0f, Time.deltaTime / carryBlendTime);
             if (heavy <= 0f || hips == null) return;

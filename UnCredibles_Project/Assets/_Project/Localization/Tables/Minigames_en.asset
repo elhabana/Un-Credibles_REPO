@@ -132,7 +132,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 17129679224835
-    m_Localized: "Carry grandmas across the road. +50 per grandma saved (+100 in the last 30 seconds). A car hit costs 15 points, or 25 if you were carrying a grandma. Traffic gets busier over time."
+    m_Localized: "Carry grandmas across the road. +50 per grandma saved (+100 in the last 30 seconds). A car hit costs 20 points. Without a grandma, press the button to shove players carrying one off course. Traffic gets busier over time."
     m_Metadata:
       m_Items: []
   - m_Id: 17129679224836

@@ -73,18 +73,17 @@ MonoBehaviour:
   oilMaxSpeedMultiplier: 1.4
   oilSlideBoost: 1.25
   oilAfterSlip: 0.6
-  startSpeedMultiplier: 0.75
-  endSpeedMultiplier: 1.35
-  startSpawnMultiplier: 2
-  endSpawnMultiplier: 0.6
+  startSpeedMultiplier: 0.7
+  endSpeedMultiplier: 1
+  startSpawnMultiplier: 2.2
+  endSpawnMultiplier: 1.2
   difficultyRamp: 1
   finalRushSeconds: 30
   finalRushMultiplier: 2
   grandmaCount: 6
   pickupRadius: 0.9
   pointsPerDelivery: 50
-  hitPenalty: 15
-  hitWithGrandmaPenalty: 25
+  hitPenalty: 20
   grandmaRespawnDelay: 2
   returnToSpawnAfterDelivery: 0
   grandmaColor: {r: 0.75, g: 0.55, b: 0.85, a: 1}

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnCredibles.Players.Inputs;
 using UnityEngine;
 
@@ -25,12 +26,14 @@ namespace UnCredibles.Minigames.CrossyRoad
         private readonly CrossyRoadTraffic traffic;
         private readonly CrossyRoadGrandmas grandmas;
         private readonly CrossyRoadOil oil;
+        private readonly IReadOnlyList<CrossyRoadPlayer> rivals;
 
         // Personality, rolled once per bot so they do not all move the same way.
         private readonly float reactionMin;
         private readonly float reactionMax;
         private readonly float safetyMargin;   // extra distance kept from cars
         private readonly float lateralBias;    // tendency to drift sideways while crossing
+        private readonly float shoveChance;    // per decision, when a rival carrying a grandma is within reach
 
         private float thinkTimer;
         private Vector2 decision;
@@ -41,8 +44,10 @@ namespace UnCredibles.Minigames.CrossyRoad
         public CrossyRoadPlayer Player => player;
 
         public CrossyRoadAIBrain(CrossyRoadPlayer player, AIInput input, CrossyRoadBoard board,
-            CrossyRoadTraffic traffic, CrossyRoadGrandmas grandmas, CrossyRoadOil oil)
+            CrossyRoadTraffic traffic, CrossyRoadGrandmas grandmas, CrossyRoadOil oil, IReadOnlyList<CrossyRoadPlayer> rivals)
         {
+            this.rivals = rivals;
+            shoveChance = Random.Range(0.15f, 0.4f);
             this.player = player;
             this.input = input;
             this.board = board;
@@ -71,8 +76,24 @@ namespace UnCredibles.Minigames.CrossyRoad
             {
                 thinkTimer = Random.Range(reactionMin, reactionMax);
                 decision = Decide();
+                TryShove();
             }
             input.SetMove(decision);
+        }
+
+        // Opportunistic only: never goes out of its way, but sometimes shoves a rival carrying
+        // a grandma that happens to be within reach.
+        private void TryShove()
+        {
+            if (!player.CanShove) return;
+            float range = board.Settings.ShoveRange;
+            foreach (var rival in rivals)
+            {
+                if (rival == player || !rival.IsAlive || rival.IsInvulnerable || !rival.IsCarrying) continue;
+                if ((rival.Position - player.Position).sqrMagnitude > range * range) continue;
+                if (Random.value < shoveChance) input.Press(PlayerAction.Jump);
+                return;
+            }
         }
 
         private Vector2 Decide()

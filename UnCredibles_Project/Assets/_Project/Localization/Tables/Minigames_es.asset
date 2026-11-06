@@ -132,7 +132,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 17129679224835
-    m_Localized: "Lleva a las abuelas al otro lado de la calle. +50 por cada abuela salvada (+100 en los \xFAltimos 30 segundos). Si te atropella un coche pierdes 15 puntos, o 25 si llevabas una abuela. El tr\xE1fico aumenta con el tiempo."
+    m_Localized: "Lleva a las abuelas al otro lado de la calle. +50 por cada abuela salvada (+100 en los \xFAltimos 30 segundos). Si te atropella un coche pierdes 20 puntos. Sin abuela, pulsa el bot\xF3n para empujar y desviar a los que llevan una. El tr\xE1fico aumenta con el tiempo."
     m_Metadata:
       m_Items: []
   - m_Id: 17129679224836

@@ -21,6 +21,4 @@ MonoBehaviour:
   maxPlayers: 4
   thumbnail: {fileID: 0}
   music: {fileID: 0}
-  rules: Carry grandmas across the road. +50 per grandma saved (+100 in the last
-    30 seconds), -15 if a car hits you, -25 if it hits you while carrying a grandma.
-    Traffic gets busier over time.
+  rules: "Carry grandmas across the road. +50 per grandma saved (+100 in the last 30 seconds). A car hit costs 20 points. Without a grandma, press the button to shove players carrying one off course. Traffic gets busier over time."

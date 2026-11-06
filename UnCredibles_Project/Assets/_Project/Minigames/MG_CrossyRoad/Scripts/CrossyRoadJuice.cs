@@ -32,11 +32,25 @@ namespace UnCredibles.Minigames.CrossyRoad
         private struct Watch
         {
             public bool Alive, Carrying;
+            public byte TimesShoved;
             public Vector3 Position, BaseScale;
             public float Punch;
         }
 
+        // Impact sparks of a shove: little cubes bursting out and falling.
+        private struct Spark
+        {
+            public Vector3 Position, Velocity;
+            public float Age;
+        }
+
+        private const float SparkLife = 0.4f;
+        private const float SparkSize = 0.14f;
+        private const int SparksPerShove = 10;
+        private const float ShoveStopSeconds = 0.05f;
+
         private readonly List<Star> stars = new List<Star>();
+        private readonly List<Spark> sparks = new List<Spark>();
         private Watch[] watches;
         private MaterialPropertyBlock block;
         private Mesh cube;
@@ -79,6 +93,7 @@ namespace UnCredibles.Minigames.CrossyRoad
             for (int i = 0; i < avatars.Count; i++) Observe(avatars[i], ref watches[i], deltaTime);
 
             TickStars(deltaTime);
+            TickSparks(deltaTime);
             TickCamera(realDelta, finalRush);
         }
 
@@ -88,13 +103,20 @@ namespace UnCredibles.Minigames.CrossyRoad
             for (int i = 0; i < avatars.Count; i++)
                 watches[i] = new Watch
                 {
-                    Alive = avatars[i].IsAlive, Carrying = avatars[i].IsCarrying,
+                    Alive = avatars[i].IsAlive, Carrying = avatars[i].IsCarrying, TimesShoved = avatars[i].TimesShoved,
                     Position = avatars[i].Position, BaseScale = avatars[i].transform.localScale,
                 };
         }
 
         private void Observe(CrossyRoadPlayer avatar, ref Watch watch, float deltaTime)
         {
+            if (avatar.TimesShoved != watch.TimesShoved)
+            {
+                watch.TimesShoved = avatar.TimesShoved;
+                Shoved(avatar.Position);
+                watch.Punch = 1f;
+            }
+
             if (watch.Alive && !avatar.IsAlive) Hit(avatar.Position);
             else if (avatar.IsAlive && !watch.Carrying && avatar.IsCarrying) watch.Punch = 1f;
             else if (avatar.IsAlive && watch.Carrying && !avatar.IsCarrying)
@@ -123,6 +145,41 @@ namespace UnCredibles.Minigames.CrossyRoad
             }
             for (int i = 0; i < 5; i++)
                 stars.Add(new Star { Center = position + Vector3.up * 1.1f, Angle = i * Mathf.PI * 0.4f });
+        }
+
+        // Shove: a small shake, a tiny freeze and a burst of sparks at the body.
+        private void Shoved(Vector3 position)
+        {
+            trauma = Mathf.Max(trauma, 0.5f);
+            if (hitStopEnd <= 0f && Mathf.Approximately(Time.timeScale, 1f))
+            {
+                Time.timeScale = HitStopScale;
+                hitStopEnd = Time.unscaledTime + ShoveStopSeconds;
+            }
+            var center = position + Vector3.up * 0.8f;
+            for (int i = 0; i < SparksPerShove; i++)
+            {
+                float angle = (i + Random.value * 0.5f) * Mathf.PI * 2f / SparksPerShove;
+                var outward = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * Random.Range(4f, 7f);
+                sparks.Add(new Spark { Position = center, Velocity = outward + Vector3.up * Random.Range(2f, 5f) });
+            }
+        }
+
+        private void TickSparks(float deltaTime)
+        {
+            for (int i = sparks.Count - 1; i >= 0; i--)
+            {
+                var spark = sparks[i];
+                spark.Age += deltaTime;
+                if (spark.Age >= SparkLife) { sparks.RemoveAt(i); continue; }
+                spark.Velocity += Vector3.down * (20f * deltaTime);
+                spark.Position += spark.Velocity * deltaTime;
+                sparks[i] = spark;
+
+                if (material == null) continue;
+                float size = SparkSize * (1f - spark.Age / SparkLife);
+                Graphics.DrawMesh(cube, Matrix4x4.TRS(spark.Position, Quaternion.Euler(spark.Age * 900f, spark.Age * 600f, 0f), Vector3.one * size), material, 0, null, 0, block);
+            }
         }
 
         // Dizzy stars circling the head of whoever was run over.

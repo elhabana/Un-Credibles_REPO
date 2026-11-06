@@ -14,6 +14,10 @@ namespace UnCredibles.Minigames.CrossyRoad
         // Keeps the run going this long after the stick passes through the dead zone (e.g. when
         // reversing), so the legs do not drop to idle for a frame and look like sliding.
         private const float RunGrace = 0.12f;
+        // Shove lunge: a quick forward lean and hop so you see who shoved.
+        private const float LungeTime = 0.2f;
+        private const float LungeLean = 30f;
+        private const float LungeReach = 0.35f;
 
         [SerializeField] private Transform visual;
         [SerializeField] private Renderer[] bodyRenderers = new Renderer[0];
@@ -40,6 +44,12 @@ namespace UnCredibles.Minigames.CrossyRoad
         private PlayerCharacterOutfit outfit;
         private Vector3 carriedRestLocal;
         private bool carriedRestKnown;
+        private float shoveTimer;
+        private float lungeTimer;
+        private byte shovesDone;
+
+        // Bumped every time this player is shoved; the juice reacts to the change (host and clients).
+        public byte TimesShoved { get; private set; }
 
         public PlayerSlot Slot { get; private set; }
         public Vector3 SpawnPosition { get; private set; }
@@ -84,6 +94,37 @@ namespace UnCredibles.Minigames.CrossyRoad
         }
 
         public bool IsSlipping => slipTimer > 0f;
+        // Only empty-handed players shove: something to do on the way back, a threat for carriers.
+        public bool CanShove => IsAlive && !IsCarrying && shoveTimer <= 0f && !IsSlipping;
+
+        public void StartShoveCooldown()
+        {
+            shoveTimer = settings.ShoveCooldown;
+            StartLunge();
+            shovesDone++;
+        }
+
+        // Shoved by another player: slides away without control, like stepping on oil.
+        public void Shoved(Vector3 direction)
+        {
+            velocity = direction * settings.ShoveSpeed;
+            slipTimer = Mathf.Max(slipTimer, settings.ShoveSlideTime);
+            TimesShoved++;
+        }
+
+        private void StartLunge()
+        {
+            lungeTimer = LungeTime;
+            if (character != null) character.PlayShove();
+        }
+
+        // 0 → 1 → 0 over the lunge.
+        private float TickLunge(float deltaTime)
+        {
+            if (lungeTimer <= 0f) return 0f;
+            lungeTimer -= deltaTime;
+            return Mathf.Sin(Mathf.Clamp01(1f - lungeTimer / LungeTime) * Mathf.PI);
+        }
 
         // The grandma sits on the head: a helmet lifts her by its height.
         private void FitCarriedGrandma()
@@ -105,6 +146,7 @@ namespace UnCredibles.Minigames.CrossyRoad
         {
             if (!IsAlive) return;
             TickInvulnerability(deltaTime);
+            if (shoveTimer > 0f) shoveTimer -= deltaTime;
 
             var input = Slot.Input != null ? Slot.Input.Move : Vector2.zero;
             bool hasInput = input.sqrMagnitude >= settings.InputDeadZone * settings.InputDeadZone;
@@ -114,7 +156,7 @@ namespace UnCredibles.Minigames.CrossyRoad
 
             if (onOil && !wasOnOil) velocity *= settings.OilSlideBoost; // the "whoops" lurch
             wasOnOil = onOil;
-            if (onOil) slipTimer = settings.OilAfterSlip;
+            if (onOil) slipTimer = Mathf.Max(slipTimer, settings.OilAfterSlip);
             else if (slipTimer > 0f) slipTimer -= deltaTime;
 
             velocity = IsSlipping ? SlideOnIce(velocity, direction, deltaTime) : desired;
@@ -166,12 +208,13 @@ namespace UnCredibles.Minigames.CrossyRoad
                 height = Mathf.Abs(Mathf.Sin(bobTime)) * settings.WalkBobHeight;
             }
             else bobTime = 0f;
-            visual.localPosition = new Vector3(0f, height, 0f);
+            float lunge = TickLunge(deltaTime);
+            visual.localPosition = new Vector3(0f, height, lunge * LungeReach);
 
             wobbleTime = IsSlipping ? wobbleTime + deltaTime : 0f;
             visual.localRotation = IsSlipping
                 ? Quaternion.Euler(Mathf.Sin(wobbleTime * 17f) * 12f, 0f, Mathf.Sin(wobbleTime * 23f) * 20f)
-                : Quaternion.identity;
+                : Quaternion.Euler(lunge * LungeLean, 0f, 0f);
         }
 
         // Used by the controller to keep avatars from overlapping each other.
@@ -245,6 +288,8 @@ namespace UnCredibles.Minigames.CrossyRoad
             var position = transform.position;
             var scale = visual.localScale;
             writer.Write((byte)flags);
+            writer.Write(shovesDone);
+            writer.Write(TimesShoved);
             writer.Write(position.x); writer.Write(position.y); writer.Write(position.z);
             writer.Write(transform.eulerAngles.y);
             writer.Write(visual.localPosition.y);
@@ -255,6 +300,10 @@ namespace UnCredibles.Minigames.CrossyRoad
         public void ReadState(BinaryReader reader)
         {
             int flags = reader.ReadByte();
+            byte shoves = reader.ReadByte();
+            if (hasRemote && shoves != shovesDone) StartLunge();
+            shovesDone = shoves;
+            TimesShoved = reader.ReadByte();
             var position = new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
             float yaw = reader.ReadSingle();
             remoteHeight = reader.ReadSingle();
@@ -295,10 +344,11 @@ namespace UnCredibles.Minigames.CrossyRoad
             }
 
             wobbleTime = remoteSlipping ? wobbleTime + deltaTime : 0f;
-            visual.localPosition = new Vector3(0f, Mathf.Lerp(visual.localPosition.y, remoteHeight, blend), 0f);
+            float lunge = TickLunge(deltaTime);
+            visual.localPosition = new Vector3(0f, Mathf.Lerp(visual.localPosition.y, remoteHeight, blend), lunge * LungeReach);
             visual.localRotation = remoteSlipping
                 ? Quaternion.Euler(Mathf.Sin(wobbleTime * 17f) * 12f, 0f, Mathf.Sin(wobbleTime * 23f) * 20f)
-                : Quaternion.identity;
+                : Quaternion.Euler(lunge * LungeLean, 0f, 0f);
         }
 
         private void TickInvulnerability(float deltaTime)

@@ -59,6 +59,12 @@ namespace UnCredibles.Minigames.CrossyRoad
         [SerializeField, Min(0f), Tooltip("Degrees per second she spins while flying.")] private float grandmaSpinSpeed = 900f;
         [SerializeField, Min(0.1f)] private float grandmaGravity = 20f;
 
+        [Header("Shove (main button)")]
+        [SerializeField, Min(0.5f), Tooltip("Reach of a shove, from body centre to body centre.")] private float shoveRange = 1.4f;
+        [SerializeField, Min(0f)] private float shoveCooldown = 1.5f;
+        [SerializeField, Min(0f), Tooltip("Speed the shoved player is sent sliding at (m/s).")] private float shoveSpeed = 7f;
+        [SerializeField, Min(0f), Tooltip("Seconds the shoved player slides without control.")] private float shoveSlideTime = 0.35f;
+
         [Header("Oil slicks")]
         [SerializeField, Range(0f, 1f), Tooltip("Chance that a new vehicle is an oil truck at full difficulty (none at the start).")]
         private float oilTruckChance = 0.08f;
@@ -79,10 +85,10 @@ namespace UnCredibles.Minigames.CrossyRoad
         private float oilAfterSlip = 0.6f;
 
         [Header("Difficulty (grows during the game)")]
-        [SerializeField, Min(0.05f), Tooltip("Car speed multiplier at the start of the game.")] private float startSpeedMultiplier = 0.75f;
-        [SerializeField, Min(0.05f), Tooltip("Car speed multiplier at the end of the game.")] private float endSpeedMultiplier = 1.35f;
-        [SerializeField, Min(0.1f), Tooltip("Time between cars multiplier at the start (higher = fewer cars).")] private float startSpawnMultiplier = 2f;
-        [SerializeField, Min(0.1f), Tooltip("Time between cars multiplier at the end (lower = more cars).")] private float endSpawnMultiplier = 0.6f;
+        [SerializeField, Min(0.05f), Tooltip("Car speed multiplier at the start of the game.")] private float startSpeedMultiplier = 0.7f;
+        [SerializeField, Min(0.05f), Tooltip("Car speed multiplier at the end of the game.")] private float endSpeedMultiplier = 1f;
+        [SerializeField, Min(0.1f), Tooltip("Time between cars multiplier at the start (higher = fewer cars).")] private float startSpawnMultiplier = 2.2f;
+        [SerializeField, Min(0.1f), Tooltip("Time between cars multiplier at the end (lower = more cars).")] private float endSpawnMultiplier = 1.2f;
         [SerializeField, Min(0.1f), Tooltip("1 = linear. Higher = stays easy longer and gets hard near the end.")] private float difficultyRamp = 1f;
 
         [Header("Final rush")]
@@ -93,8 +99,7 @@ namespace UnCredibles.Minigames.CrossyRoad
         [SerializeField, Min(1), Tooltip("Grandmas spread evenly across the pickup lane.")] private int grandmaCount = 6;
         [SerializeField, Min(0.1f), Tooltip("Distance at which a player grabs a grandma.")] private float pickupRadius = 0.9f;
         [SerializeField, Min(1), Tooltip("Points for every grandma taken to the other side.")] private int pointsPerDelivery = 50;
-        [SerializeField, Min(0), Tooltip("Points lost when a car runs you over.")] private int hitPenalty = 15;
-        [SerializeField, Min(0), Tooltip("Points lost when a car runs you over while carrying a grandma.")] private int hitWithGrandmaPenalty = 25;
+        [SerializeField, Min(0), Tooltip("Points lost when a car runs you over, with or without a grandma.")] private int hitPenalty = 20;
         [SerializeField, Min(0f)] private float grandmaRespawnDelay = 2f;
         [SerializeField, Tooltip("Teleport back to the spawn lane after a delivery instead of walking back.")]
         private bool returnToSpawnAfterDelivery;
@@ -149,6 +154,11 @@ namespace UnCredibles.Minigames.CrossyRoad
         public float GrandmaSpinSpeed => grandmaSpinSpeed;
         public float GrandmaGravity => grandmaGravity;
 
+        public float ShoveRange => shoveRange;
+        public float ShoveCooldown => shoveCooldown;
+        public float ShoveSpeed => shoveSpeed;
+        public float ShoveSlideTime => shoveSlideTime;
+
         public float OilTruckChance => oilTruckChance;
         public int MaxOilTrucks => maxOilTrucks;
         public int OilDropsPerTruck => oilDropsPerTruck;
@@ -165,7 +175,6 @@ namespace UnCredibles.Minigames.CrossyRoad
         public float PickupRadius => pickupRadius;
         public int PointsPerDelivery => pointsPerDelivery;
         public int HitPenalty => hitPenalty;
-        public int HitWithGrandmaPenalty => hitWithGrandmaPenalty;
         public float FinalRushSeconds => finalRushSeconds;
         public int FinalRushMultiplier => finalRushMultiplier;
 
