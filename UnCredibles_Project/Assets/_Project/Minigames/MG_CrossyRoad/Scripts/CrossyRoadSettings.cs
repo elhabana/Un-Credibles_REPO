@@ -17,6 +17,8 @@ namespace UnCredibles.Minigames.CrossyRoad
             [Min(0.2f)] public float minSpawnInterval;
             [Min(0.2f)] public float maxSpawnInterval;
             [Min(1f), Tooltip("Car length in lane depths.")] public float carLength;
+            [Tooltip("Car model of this lane. Empty = the Traffic car model (or the box).")]
+            public GameObject carModel;
         }
 
         [Header("Board")]
@@ -116,6 +118,14 @@ namespace UnCredibles.Minigames.CrossyRoad
             new Color(0.95f, 0.45f, 0.1f), new Color(0.15f, 0.7f, 0.85f),
             new Color(0.95f, 0.95f, 0.95f), new Color(0.9f, 0.22f, 0.25f),
         };
+        [SerializeField, Range(0.5f, 2f), Tooltip("Size of every vehicle (cars and oil trucks) and its hit box. Above ~1.4 they stick out of their lane.")]
+        private float vehicleScale = 1f;
+        [SerializeField, Tooltip("Model that replaces the plain car box (e.g. an FBX). Empty = box. The hit box is fitted to the model.")]
+        private GameObject carModel;
+        [SerializeField, Tooltip("Rotation of the model so its front points along +X, the way the car drives.")]
+        private Vector3 carModelRotation = new Vector3(0f, 90f, 0f);
+        [SerializeField, Tooltip("Paint the model with the car colours. Off = keep the model's own materials.")]
+        private bool tintCarModel = true;
 
         [Header("Lane colors")]
         [SerializeField] private Color pickupLaneColor = new Color(0.55f, 0.75f, 0.45f);
@@ -188,6 +198,10 @@ namespace UnCredibles.Minigames.CrossyRoad
         public float GrandmaWalkSpeed => grandmaWalkSpeed;
 
         public float OffscreenMargin => offscreenMargin * cellSize;
+        public float VehicleScale => vehicleScale;
+        public GameObject CarModel => carModel;
+        public Vector3 CarModelRotation => carModelRotation;
+        public bool TintCarModel => tintCarModel;
         public Color GetCarColor(int index) => carColors.Length > 0 ? carColors[index % carColors.Length] : Color.white;
 
         public Color PickupLaneColor => pickupLaneColor;

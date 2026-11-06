@@ -25,6 +25,9 @@ namespace UnCredibles.Minigames.CrossyRoad
             public CrossyRoadOilTruck Truck;
             public int DropsLeft;
             public float NextDropX;
+            public Vector3 ModelSize;  // custom model size at scale 1; zero = the box prefab
+            public float HalfLength;   // hit box, set on every spawn
+            public float HalfDepth;
         }
 
         private sealed class Lane
@@ -35,10 +38,13 @@ namespace UnCredibles.Minigames.CrossyRoad
             public float BaseVelocity; // world units per second, signed, at multiplier 1
             public float Velocity;     // current one, grows with the difficulty
             public float Timer;
+            public GameObject Model;                 // null = box prefab
+            public readonly Stack<Car> Pool = new Stack<Car>(); // per lane, as each lane can have its own model
             public readonly List<Car> Cars = new List<Car>();
         }
 
-        private readonly Stack<Car> pool = new Stack<Car>();
+        private float MaxCarDepth => board.CellSize * CarDepthRatio * board.Settings.VehicleScale;
+
         private readonly Stack<Car> truckPool = new Stack<Car>();
         private readonly Queue<Vector3> pendingDrops = new Queue<Vector3>();
         private readonly List<bool> receivedTrucks = new List<bool>();
@@ -70,8 +76,9 @@ namespace UnCredibles.Minigames.CrossyRoad
                 {
                     Config = config,
                     Z = board.LaneToZ(CrossyRoadBoard.FirstRoadLane + i),
-                    HalfLength = config.carLength * settings.CellSize * 0.5f,
+                    HalfLength = config.carLength * settings.CellSize * 0.5f * settings.VehicleScale,
                     BaseVelocity = config.direction * config.speed * settings.CellSize,
+                    Model = config.carModel != null ? config.carModel : settings.CarModel,
                 };
                 lane.Velocity = lane.BaseVelocity * speedMultiplier;
                 lanes[i] = lane;
@@ -181,9 +188,9 @@ namespace UnCredibles.Minigames.CrossyRoad
             if (roadIndex < 0 || roadIndex >= lanes.Length) return false;
             var lane = lanes[roadIndex];
             float x = worldX - board.transform.position.x;
-            float reach = lane.HalfLength + halfWidth;
             foreach (var car in lane.Cars)
             {
+                float reach = car.HalfLength + halfWidth;
                 float future = car.X + lane.Velocity * lookAhead;
                 float min = Mathf.Min(car.X, future) - reach;
                 float max = Mathf.Max(car.X, future) + reach;
@@ -214,15 +221,15 @@ namespace UnCredibles.Minigames.CrossyRoad
         // Same test with every car moved `seconds` into the future (used by the AI to plan).
         public bool OverlapsAt(Vector3 worldPosition, float radius, float seconds)
         {
-            float halfDepth = board.CellSize * CarDepthRatio * 0.5f;
+            float maxHalfDepth = MaxCarDepth * 0.5f;
             float x = worldPosition.x - board.transform.position.x;
             foreach (var lane in lanes)
             {
-                if (Mathf.Abs(worldPosition.z - lane.Z) >= halfDepth + radius) continue;
-                float reach = lane.HalfLength + radius;
+                float dz = Mathf.Abs(worldPosition.z - lane.Z);
+                if (dz >= maxHalfDepth + radius) continue;
                 float travel = lane.Velocity * seconds;
                 foreach (var car in lane.Cars)
-                    if (Mathf.Abs(car.X + travel - x) < reach) return true;
+                    if (dz < car.HalfDepth + radius && Mathf.Abs(car.X + travel - x) < car.HalfLength + radius) return true;
             }
             return false;
         }
@@ -323,11 +330,25 @@ namespace UnCredibles.Minigames.CrossyRoad
 
         private void Spawn(Lane lane, float x, int id, bool oilTruck)
         {
-            var source = oilTruck ? truckPool : pool;
-            var car = source.Count > 0 ? source.Pop() : CreateCar(oilTruck);
+            var source = oilTruck ? truckPool : lane.Pool;
+            var car = source.Count > 0 ? source.Pop() : CreateCar(oilTruck ? null : lane.Model, oilTruck);
             car.X = x;
             car.Id = id;
-            car.Transform.localScale = new Vector3(lane.HalfLength * 2f, 0.8f, board.CellSize * CarDepthRatio);
+            float maxDepth = MaxCarDepth;
+            if (car.ModelSize == Vector3.zero)
+            {
+                car.HalfLength = lane.HalfLength;
+                car.HalfDepth = maxDepth * 0.5f;
+                car.Transform.localScale = new Vector3(lane.HalfLength * 2f, 0.8f * board.Settings.VehicleScale, maxDepth);
+            }
+            else
+            {
+                // Uniform scale, as long as the lane's cars but never wider than the box; the hit box follows the model.
+                float scale = Mathf.Min(lane.HalfLength * 2f / car.ModelSize.x, maxDepth / car.ModelSize.z);
+                car.HalfLength = car.ModelSize.x * scale * 0.5f;
+                car.HalfDepth = car.ModelSize.z * scale * 0.5f;
+                car.Transform.localScale = Vector3.one * scale;
+            }
             // Facing the way it drives (the truck has a front; plain cars look the same both ways).
             car.Transform.SetPositionAndRotation(
                 new Vector3(board.transform.position.x + x, board.transform.position.y, lane.Z),
@@ -337,7 +358,7 @@ namespace UnCredibles.Minigames.CrossyRoad
                 car.DropsLeft = board.Settings.OilDropsPerTruck;
                 PickNextDrop(car, Mathf.Sign(lane.Velocity));
             }
-            else
+            else if (car.ModelSize == Vector3.zero || board.Settings.TintCarModel)
             {
                 var color = board.Settings.GetCarColor(car.Id);
                 foreach (var carRenderer in car.Renderers) tints.Apply(carRenderer, color);
@@ -351,21 +372,46 @@ namespace UnCredibles.Minigames.CrossyRoad
             var car = lane.Cars[index];
             lane.Cars.RemoveAt(index);
             car.Transform.gameObject.SetActive(false);
-            (car.IsOilTruck ? truckPool : pool).Push(car);
+            (car.IsOilTruck ? truckPool : lane.Pool).Push(car);
         }
 
         private void OnDestroy() => tints.DestroyAll();
 
-        private Car CreateCar(bool oilTruck)
+        private Car CreateCar(GameObject model, bool oilTruck)
         {
-            var instance = Instantiate(oilTruck ? oilTruckPrefab : carPrefab, transform);
+            var size = Vector3.zero;
+            var instance = model != null ? CreateModelCar(model, out size) : Instantiate(oilTruck ? oilTruckPrefab : carPrefab, transform);
             return new Car
             {
                 Transform = instance,
                 Renderers = instance.GetComponentsInChildren<Renderer>(),
                 IsOilTruck = oilTruck,
                 Truck = oilTruck ? instance.GetComponent<CrossyRoadOilTruck>() : null,
+                ModelSize = size,
             };
+        }
+
+        // The model centred on an empty root and resting on the ground, like the box prefab.
+        private Transform CreateModelCar(GameObject model, out Vector3 size)
+        {
+            var root = new GameObject(model.name).transform; // at the world origin while measuring
+            var visual = Instantiate(model, root).transform;
+            visual.localRotation = Quaternion.Euler(board.Settings.CarModelRotation);
+            var renderers = visual.GetComponentsInChildren<Renderer>();
+            if (renderers.Length == 0)
+            {
+                Debug.LogWarning($"Car model '{model.name}' has no renderers; using a 1 m hit box.", model);
+                size = Vector3.one;
+            }
+            else
+            {
+                var bounds = renderers[0].bounds;
+                for (int i = 1; i < renderers.Length; i++) bounds.Encapsulate(renderers[i].bounds);
+                visual.position -= new Vector3(bounds.center.x, bounds.min.y, bounds.center.z);
+                size = bounds.size;
+            }
+            root.SetParent(transform, false);
+            return root;
         }
     }
 }
