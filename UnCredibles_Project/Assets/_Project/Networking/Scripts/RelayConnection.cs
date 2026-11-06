@@ -33,6 +33,7 @@ namespace UnCredibles.Networking
         {
             status = L10n.Get(L10n.Online, "status.idle");
             transport = gameObject.AddComponent<UnityTransport>();
+            transport.DisconnectTimeoutMS = 10000; // the 30 s default left clients waiting that long after the host closed
             manager = gameObject.AddComponent<NetworkManager>();
             manager.NetworkConfig = new NetworkConfig();
             manager.NetworkConfig.NetworkTransport = transport;
