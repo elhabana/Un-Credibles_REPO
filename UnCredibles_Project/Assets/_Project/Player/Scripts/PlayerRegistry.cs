@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnCredibles.Players.Inputs;
 
@@ -13,13 +14,44 @@ namespace UnCredibles.Players
         private readonly PlayerSlot[] slots = new PlayerSlot[MaxPlayers];
         private int nextPlayerId;
 
-        public IReadOnlyList<PlayerSlot> Slots { get; }
+        public SlotList Slots => new SlotList(slots);
         public event Action<PlayerSlot> SlotChanged;
 
         public PlayerRegistry()
         {
             for (int i = 0; i < MaxPlayers; i++) slots[i] = new PlayerSlot(i);
-            Slots = Array.AsReadOnly(slots);
+        }
+
+        // Read-only view with a struct enumerator: foreach over Slots runs every frame and must not allocate.
+        public readonly struct SlotList : IReadOnlyList<PlayerSlot>
+        {
+            private readonly PlayerSlot[] items;
+
+            internal SlotList(PlayerSlot[] items) => this.items = items;
+
+            public int Count => items.Length;
+            public PlayerSlot this[int index] => items[index];
+            public Enumerator GetEnumerator() => new Enumerator(items);
+            IEnumerator<PlayerSlot> IEnumerable<PlayerSlot>.GetEnumerator() => GetEnumerator();
+            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+            public struct Enumerator : IEnumerator<PlayerSlot>
+            {
+                private readonly PlayerSlot[] items;
+                private int index;
+
+                internal Enumerator(PlayerSlot[] items)
+                {
+                    this.items = items;
+                    index = -1;
+                }
+
+                public PlayerSlot Current => items[index];
+                object IEnumerator.Current => Current;
+                public bool MoveNext() => ++index < items.Length;
+                public void Reset() => index = -1;
+                public void Dispose() { }
+            }
         }
 
         public int OccupiedCount
