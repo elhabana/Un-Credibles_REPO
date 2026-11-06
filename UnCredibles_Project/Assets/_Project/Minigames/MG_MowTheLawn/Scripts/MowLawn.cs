@@ -10,7 +10,9 @@ namespace UnCredibles.Minigames.MowTheLawn
     public sealed class MowLawn : MonoBehaviour
     {
         private static readonly int BaseMapId = Shader.PropertyToID("_BaseMap");
-        private const float RedrawInterval = 0.1f; // regrowth is slow; cuts redraw at once
+        private const float RedrawInterval = 0.1f; // regrowth is slow; cuts redraw sooner
+        // Cuts every frame would re-upload the whole texture every frame; under 1/30 s so 60 fps still redraws every 2nd frame.
+        private const float MinCutRedrawGap = 1f / 40f;
         private const int StripeCells = 6;
         private const int BatchSize = 1023;        // max instances per instanced draw
         private const float MinVisibleHeight = 0.06f;
@@ -89,7 +91,8 @@ namespace UnCredibles.Minigames.MowTheLawn
                 if (heights[i] < 1f) heights[i] = Mathf.Min(1f, heights[i] + growth);
 
             redrawTimer -= deltaTime;
-            if (dirty || redrawTimer <= 0f) Redraw();
+            // Paused (timeScale 0) the timer stops, so a pending cut is drawn right away.
+            if ((dirty && (deltaTime <= 0f || redrawTimer <= RedrawInterval - MinCutRedrawGap)) || redrawTimer <= 0f) Redraw();
             DrawBlades();
         }
 
