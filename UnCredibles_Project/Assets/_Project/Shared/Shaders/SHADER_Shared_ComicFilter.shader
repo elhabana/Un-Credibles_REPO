@@ -69,6 +69,9 @@ Shader "UnCredibles/Shared/ComicFilter"
             #pragma multi_compile_instancing
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE _MAIN_LIGHT_SHADOWS_SCREEN
             #pragma multi_compile_fragment _ _SHADOWS_SOFT
+            #pragma multi_compile _ _ADDITIONAL_LIGHTS_VERTEX _ADDITIONAL_LIGHTS
+            #pragma multi_compile _ _CLUSTER_LIGHT_LOOP
+            #pragma multi_compile_fragment _ _ADDITIONAL_LIGHT_SHADOWS
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 
@@ -110,6 +113,13 @@ Shader "UnCredibles/Shared/ComicFilter"
                 return 1.0 - smoothstep(radius - edge, radius + edge, distanceToCentre);
             }
 
+            // How much another light faces this surface, fading out where it barely reaches.
+            half OtherLight(uint index, float3 positionWS, half3 normal)
+            {
+                Light other = GetAdditionalLight(index, positionWS, half4(1, 1, 1, 1));
+                return dot(normal, other.direction) * other.shadowAttenuation * saturate(other.distanceAttenuation * Luminance(other.color));
+            }
+
             half4 Frag(Varyings input) : SV_Target
             {
                 UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
@@ -117,6 +127,20 @@ Shader "UnCredibles/Shared/ComicFilter"
                 half3 viewDirection = GetWorldSpaceNormalizeViewDir(input.positionWS);
                 Light mainLight = GetMainLight(TransformWorldToShadowCoord(input.positionWS));
                 half light = dot(normal, mainLight.direction) * mainLight.shadowAttenuation;
+
+                // A side lit by any other light is not a shadow side, or wall props stay dark whatever lights them.
+                InputData inputData = (InputData)0;
+                inputData.normalizedScreenSpaceUV = GetNormalizedScreenSpaceUV(input.positionCS);
+                inputData.positionWS = input.positionWS;
+                #if USE_CLUSTER_LIGHT_LOOP
+                for (uint directional = 0; directional < min(URP_FP_DIRECTIONAL_LIGHTS_COUNT, MAX_VISIBLE_LIGHTS); directional++)
+                    light = max(light, OtherLight(directional, input.positionWS, normal));
+                #endif
+                uint pixelLightCount = GetAdditionalLightsCount();
+                LIGHT_LOOP_BEGIN(pixelLightCount)
+                    light = max(light, OtherLight(lightIndex, input.positionWS, normal));
+                LIGHT_LOOP_END
+
                 half lit = smoothstep(_ShadowThreshold - _Softness, _ShadowThreshold + _Softness, light);
 
                 // 1 = untouched. The shadow side gets one flat, tinted step darker.
