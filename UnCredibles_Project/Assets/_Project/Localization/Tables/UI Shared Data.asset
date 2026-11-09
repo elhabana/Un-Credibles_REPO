@@ -494,6 +494,22 @@ MonoBehaviour:
     m_Key: menu.press_start
     m_Metadata:
       m_Items: []
+  - m_Id: 35710362058757
+    m_Key: lobby.bot_easy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 35710362058758
+    m_Key: lobby.bot_medium
+    m_Metadata:
+      m_Items: []
+  - m_Id: 35710362058759
+    m_Key: lobby.bot_hard
+    m_Metadata:
+      m_Items: []
+  - m_Id: 35710362058760
+    m_Key: lobby.bot_choose
+    m_Metadata:
+      m_Items: []
   - m_Id: 6070755247259657
     m_Key: part.Casco_Abierto
     m_Metadata:

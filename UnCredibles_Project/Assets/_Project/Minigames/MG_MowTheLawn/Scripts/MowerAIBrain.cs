@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using UnCredibles.Players;
 using UnCredibles.Players.Inputs;
 using UnityEngine;
 
@@ -10,7 +11,6 @@ namespace UnCredibles.Minigames.MowTheLawn
     // It only writes into an AIInput, like a person would.
     public sealed class MowerAIBrain
     {
-        private const int GrassSamples = 14;
         private const float EdgeMargin = 1.5f;
         private const float ReachedDistance = 0.8f;
         private const float RamRange = 3.2f;
@@ -28,6 +28,9 @@ namespace UnCredibles.Minigames.MowTheLawn
         private readonly float aggression;   // personality: how often it goes for other mowers
         private readonly int greed;          // personality: bags carried before going home
         private readonly float wobble;       // personality: how straight it drives
+        private readonly float thinkInterval;
+        private readonly float throttleScale;
+        private readonly int grassSamples;   // spots compared when looking for tall grass
 
         private float thinkTimer;
         private Vector3 target;
@@ -49,10 +52,15 @@ namespace UnCredibles.Minigames.MowTheLawn
             this.bin = bin;
             this.game = game;
             this.settings = settings;
-            aggression = Random.Range(0.2f, 0.7f);
+            // Hard is the original bot. Lower levels drive slower and less straight, pick worse grass and leave rivals alone.
+            var level = input.Difficulty;
+            aggression = Random.Range(0.2f, 0.7f) * (level switch { BotDifficulty.Easy => 0f, BotDifficulty.Medium => 0.5f, _ => 1f });
             greed = Random.Range(3, 7);
-            wobble = Random.Range(0f, 0.3f);
-            thinkTimer = Random.Range(0f, settings.AIThinkInterval);
+            wobble = level switch { BotDifficulty.Easy => Random.Range(0.3f, 0.55f), BotDifficulty.Medium => Random.Range(0.15f, 0.4f), _ => Random.Range(0f, 0.3f) };
+            thinkInterval = settings.AIThinkInterval * (level switch { BotDifficulty.Easy => 2f, BotDifficulty.Medium => 1.4f, _ => 1f });
+            throttleScale = level switch { BotDifficulty.Easy => 0.75f, BotDifficulty.Medium => 0.88f, _ => 1f };
+            grassSamples = level switch { BotDifficulty.Easy => 3, BotDifficulty.Medium => 7, _ => 14 };
+            thinkTimer = Random.Range(0f, thinkInterval);
             target = player.Position;
         }
 
@@ -61,7 +69,7 @@ namespace UnCredibles.Minigames.MowTheLawn
             thinkTimer -= deltaTime;
             if (thinkTimer <= 0f)
             {
-                thinkTimer = settings.AIThinkInterval;
+                thinkTimer = thinkInterval;
                 target = ChooseTarget();
             }
             if (goal == Goal.Ram && ramTarget != null) target = ramTarget.Position; // track it every frame
@@ -174,7 +182,7 @@ namespace UnCredibles.Minigames.MowTheLawn
         {
             var best = lawn.RandomPoint(EdgeMargin);
             float bestScore = float.MinValue;
-            for (int i = 0; i < GrassSamples; i++)
+            for (int i = 0; i < grassSamples; i++)
             {
                 var candidate = lawn.RandomPoint(EdgeMargin);
                 float score = lawn.GetHeight(candidate) * 10f - Flat(candidate - position).magnitude * 0.35f;
@@ -216,7 +224,7 @@ namespace UnCredibles.Minigames.MowTheLawn
             // Ease off for sharp turns; turbo into a rival tail or a ram once lined up and close.
             float angle = Vector3.Angle(player.Forward, direction);
             float throttle = angle > 100f ? 0.45f : angle > 50f ? 0.75f : 1f;
-            input.SetMove(new Vector2(direction.x, direction.z).normalized * throttle);
+            input.SetMove(new Vector2(direction.x, direction.z).normalized * (throttle * throttleScale));
 
             bool attacking = goal == Goal.RivalTail || goal == Goal.Ram;
             if (attacking && player.CanBoost && angle < 20f && distance < RamRange)

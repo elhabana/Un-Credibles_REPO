@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using UnCredibles.Players;
 using UnCredibles.Players.Inputs;
 using UnityEngine;
 
@@ -10,7 +11,6 @@ namespace UnCredibles.Minigames.CrossyRoad
     // It only writes into an AIInput, like a human pressing keys.
     public sealed class CrossyRoadAIBrain
     {
-        private const int PredictionSteps = 3;
         private const float StepSeconds = 0.15f;
         private const float OilPenalty = 0.6f;
 
@@ -34,6 +34,8 @@ namespace UnCredibles.Minigames.CrossyRoad
         private readonly float safetyMargin;   // extra distance kept from cars
         private readonly float lateralBias;    // tendency to drift sideways while crossing
         private readonly float shoveChance;    // per decision, when a rival carrying a grandma is within reach
+        private readonly int predictionSteps;  // how far ahead it looks for cars
+        private readonly float speedScale;     // of the full stick
 
         private float thinkTimer;
         private Vector2 decision;
@@ -55,9 +57,17 @@ namespace UnCredibles.Minigames.CrossyRoad
             this.grandmas = grandmas;
             this.oil = oil;
 
-            reactionMin = Random.Range(0.06f, 0.12f);
-            reactionMax = reactionMin + Random.Range(0.08f, 0.18f);
-            safetyMargin = Random.Range(0.05f, 0.3f);
+            // Hard is the original bot. Lower levels react later, see cars later, keep less distance and walk slower.
+            var level = input.Difficulty;
+            float slowness = level switch { BotDifficulty.Easy => 2.5f, BotDifficulty.Medium => 1.6f, _ => 1f };
+            float caution = level switch { BotDifficulty.Easy => 0f, BotDifficulty.Medium => 0.5f, _ => 1f };
+            predictionSteps = level switch { BotDifficulty.Easy => 1, BotDifficulty.Medium => 2, _ => 3 };
+            speedScale = level switch { BotDifficulty.Easy => 0.75f, BotDifficulty.Medium => 0.9f, _ => 1f };
+            shoveChance *= caution;
+
+            reactionMin = Random.Range(0.06f, 0.12f) * slowness;
+            reactionMax = reactionMin + Random.Range(0.08f, 0.18f) * slowness;
+            safetyMargin = Random.Range(0.05f, 0.3f) * caution;
             lateralBias = Random.Range(-0.35f, 0.35f);
         }
 
@@ -78,7 +88,7 @@ namespace UnCredibles.Minigames.CrossyRoad
                 decision = Decide();
                 TryShove();
             }
-            input.SetMove(decision);
+            input.SetMove(decision * speedScale);
         }
 
         // Opportunistic only: never goes out of its way, but sometimes shoves a rival carrying
@@ -146,8 +156,8 @@ namespace UnCredibles.Minigames.CrossyRoad
 
         private bool CrossesOil(Vector3 position, Vector2 direction)
         {
-            var step = new Vector3(direction.x, 0f, direction.y) * (player.CurrentSpeed * StepSeconds);
-            for (int i = 1; i <= PredictionSteps; i++)
+            var step = new Vector3(direction.x, 0f, direction.y) * (player.CurrentSpeed * speedScale * StepSeconds);
+            for (int i = 1; i <= predictionSteps; i++)
                 if (oil.IsOnOil(position + step * i)) return true;
             return false;
         }
@@ -156,9 +166,9 @@ namespace UnCredibles.Minigames.CrossyRoad
         private bool IsSafe(Vector3 position, Vector2 direction)
         {
             float radius = board.Settings.PlayerRadius + safetyMargin;
-            float speed = player.CurrentSpeed;
+            float speed = player.CurrentSpeed * speedScale;
             var step = new Vector3(direction.x, 0f, direction.y) * speed;
-            for (int i = 0; i <= PredictionSteps; i++)
+            for (int i = 0; i <= predictionSteps; i++)
             {
                 float time = i * StepSeconds;
                 var future = board.ClampInside(position + step * time, board.Settings.PlayerRadius);

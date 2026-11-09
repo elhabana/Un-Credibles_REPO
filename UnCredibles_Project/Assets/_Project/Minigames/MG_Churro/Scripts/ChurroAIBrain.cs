@@ -1,3 +1,4 @@
+using UnCredibles.Players;
 using UnCredibles.Players.Inputs;
 using UnityEngine;
 
@@ -10,6 +11,7 @@ namespace UnCredibles.Minigames.Churro
     {
         private const float BallMinLead = 0.12f;
         private const float BallMaxLead = 0.45f;
+        private const float NoReaction = -1f; // time left never gets this low: it lets that one go by
 
         private readonly ChurroPlayer player;
         private readonly AIInput input;
@@ -17,9 +19,12 @@ namespace UnCredibles.Minigames.Churro
         private readonly ChurroBalls balls;
         private readonly ChurroSettings settings;
         private readonly float halfWidth;
+        private readonly float missChance;     // per churro arm, on top of mistimed jumps
+        private readonly float ballMissChance; // per beach ball
         private float lead;
         private float ballLead;
         private float lastTimeToArrival = float.MaxValue;
+        private float lastTimeToBall = float.MaxValue;
         private bool ducking;
 
         public ChurroPlayer Player => player;
@@ -33,6 +38,9 @@ namespace UnCredibles.Minigames.Churro
             this.balls = balls;
             this.settings = settings;
             this.halfWidth = halfWidth;
+            // Hard is the original bot; lower levels sometimes do not react at all.
+            missChance = input.Difficulty switch { BotDifficulty.Easy => 0.1f, BotDifficulty.Medium => 0.04f, _ => 0f };
+            ballMissChance = input.Difficulty switch { BotDifficulty.Easy => 0.25f, BotDifficulty.Medium => 0.1f, _ => 0f };
             RollLead();
             RollBallLead();
         }
@@ -41,6 +49,8 @@ namespace UnCredibles.Minigames.Churro
         {
             // Beach ball first: duck shortly before it arrives, stand up once it is gone.
             float timeToBall = balls.TimeUntilHit(player);
+            if (timeToBall > lastTimeToBall + 0.05f) RollBallLead(); // that ball is over, decide for the next one
+            lastTimeToBall = timeToBall;
             bool shouldDuck = timeToBall <= ballLead;
             if (ducking && !shouldDuck) RollBallLead();
             ducking = shouldDuck;
@@ -59,7 +69,9 @@ namespace UnCredibles.Minigames.Churro
             }
         }
 
-        private void RollLead() => lead = Random.Range(settings.AIMinLead, settings.AIMaxLead);
-        private void RollBallLead() => ballLead = Random.Range(BallMinLead, BallMaxLead);
+        private void RollLead() =>
+            lead = Random.value < missChance ? NoReaction : Random.Range(settings.AIMinLead, settings.AIMaxLead);
+        private void RollBallLead() =>
+            ballLead = Random.value < ballMissChance ? NoReaction : Random.Range(BallMinLead, BallMaxLead);
     }
 }

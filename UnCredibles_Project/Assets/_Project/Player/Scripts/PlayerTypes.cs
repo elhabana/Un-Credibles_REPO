@@ -5,4 +5,6 @@ namespace UnCredibles.Players
     public enum SlotState { Empty, Inviting, Connecting, Occupied, AI, Disconnected }
 
     public enum InputSourceType { None, Keyboard, Gamepad, PrestoPad, AI, Network }
+
+    public enum BotDifficulty : byte { Easy, Medium, Hard }
 }

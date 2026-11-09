@@ -298,10 +298,10 @@ namespace UnCredibles.UI.PartyLobby
             return dx != 0 || dy != 0;
         }
 
-        public bool AddAI(int slotIndex)
+        public bool AddAI(int slotIndex, BotDifficulty difficulty = BotDifficulty.Hard)
         {
             if (!CanEditSlots) return false;
-            return Players.TryAddPlayerAt(slotIndex, PlayerType.AIPlayer, core.Input.CreateAIInput(), null, out _);
+            return Players.TryAddPlayerAt(slotIndex, PlayerType.AIPlayer, core.Input.CreateAIInput(difficulty), null, out _);
         }
 
         public bool RemovePlayer(int slotIndex)

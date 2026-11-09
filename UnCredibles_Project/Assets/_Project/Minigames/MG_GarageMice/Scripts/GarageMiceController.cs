@@ -205,13 +205,17 @@ namespace UnCredibles.Minigames.GarageMice
             foreach (var sweeper in sweepers)
             {
                 if (!(sweeper.Slot.Input is AIInput input)) continue;
+                // Hard is the original bot; lower levels walk slower, swing late and do not chase the golden mouse.
+                var level = input.Difficulty;
+                float speedScale = level switch { BotDifficulty.Easy => .7f, BotDifficulty.Medium => .87f, _ => 1f };
+                float swingsPerSecond = level switch { BotDifficulty.Easy => 2.5f, BotDifficulty.Medium => 6f, _ => float.PositiveInfinity };
                 Mouse nearest = null;
                 float best = float.MaxValue;
                 foreach (var mouse in mice)
                 {
                     if (!IsCatchable(mouse)) continue;
                     float distance = (mouse.Root.position - sweeper.Root.position).sqrMagnitude;
-                    if (mouse.Golden) distance *= .25f; // Bots go for the golden mouse first.
+                    if (mouse.Golden && level != BotDifficulty.Easy) distance *= .25f; // Bots go for the golden mouse first.
                     if (distance >= best) continue;
                     best = distance;
                     nearest = mouse;
@@ -233,10 +237,11 @@ namespace UnCredibles.Minigames.GarageMice
                     Vector3 firstTest = sweeper.Root.position + new Vector3(first.x, 0f, first.y) * .8f;
                     desired = !IsBlocked(firstTest, settings.PlayerRadius) ? first : second;
                 }
-                input.SetMove(desired);
+                input.SetMove(desired * speedScale);
                 offset.y = 0f;
                 if (offset.sqrMagnitude < settings.SwingReach * settings.SwingReach && sweeper.Cooldown <= 0f &&
-                    Vector3.Angle(sweeper.Root.forward, offset) < settings.SwingHalfAngle)
+                    Vector3.Angle(sweeper.Root.forward, offset) < settings.SwingHalfAngle &&
+                    Random.value < swingsPerSecond * Time.deltaTime)
                     input.Press(PlayerAction.Jump);
             }
         }

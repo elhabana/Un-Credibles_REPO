@@ -20,6 +20,8 @@ namespace UnCredibles.Players.Inputs
         }
 
         public InputSourceType Source => InputSourceType.AI;
+        // Read by the minigame brains. Hard unless chosen in the lobby (stand-ins for dropped players too).
+        public BotDifficulty Difficulty { get; set; } = BotDifficulty.Hard;
         public bool IsEnabled { get; set; } = true;
         public Vector2 Move => IsEnabled ? move : Vector2.zero;
 

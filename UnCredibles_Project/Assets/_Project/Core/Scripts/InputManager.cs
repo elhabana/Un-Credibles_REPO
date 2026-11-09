@@ -1,3 +1,4 @@
+using UnCredibles.Players;
 using UnCredibles.Players.Inputs;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -18,7 +19,7 @@ namespace UnCredibles.Core
         public IPlayerInput CreateGamepadInput(Gamepad gamepad) =>
             gamepad != null ? new GamepadInput(playerControls, gamepad) : null;
 
-        public AIInput CreateAIInput() => new AIInput();
+        public AIInput CreateAIInput(BotDifficulty difficulty = BotDifficulty.Hard) => new AIInput { Difficulty = difficulty };
 
         // Online client: its one player, on any keyboard or gamepad of this machine.
         public IPlayerInput CreateAnyDeviceInput() => new AnyDeviceInput(playerControls);

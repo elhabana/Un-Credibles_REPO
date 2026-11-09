@@ -284,7 +284,7 @@ namespace UnCredibles.UI.PartyLobby
 
         private void ShowNotice(string message) => hintText.text = message;
 
-        private void HandleAddAI(int slotIndex) => controller.AddAI(slotIndex);
+        private void HandleAddAI(int slotIndex, BotDifficulty difficulty) => controller.AddAI(slotIndex, difficulty);
         private void HandleInvite(int slotIndex) => controller.InviteFriend(slotIndex);
         private void HandleRemove(int slotIndex) => controller.RemovePlayer(slotIndex);
     }

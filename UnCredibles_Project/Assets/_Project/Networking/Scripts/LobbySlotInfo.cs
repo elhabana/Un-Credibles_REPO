@@ -1,4 +1,5 @@
 using UnCredibles.Players;
+using UnCredibles.Players.Inputs;
 using Unity.Netcode;
 
 namespace UnCredibles.Networking
@@ -19,6 +20,7 @@ namespace UnCredibles.Networking
         public bool Host;
         public ulong Owner; // connection that controls the slot (host = 0), NoOwner when empty or offline
         public CharacterLoadout Loadout;
+        public BotDifficulty BotLevel;
 
         public bool IsAI => Type == PlayerType.AIPlayer;
 
@@ -34,6 +36,7 @@ namespace UnCredibles.Networking
             Host = slot.IsHost,
             Owner = slot.IsOccupied ? owner : NoOwner,
             Loadout = slot.Loadout,
+            BotLevel = slot.Input is AIInput bot ? bot.Difficulty : BotDifficulty.Hard,
         };
 
         internal void Write(FastBufferWriter writer)
@@ -50,6 +53,7 @@ namespace UnCredibles.Networking
             writer.WriteValueSafe(Loadout.Helmet ?? string.Empty);
             writer.WriteValueSafe(Loadout.Outfit ?? string.Empty);
             writer.WriteValueSafe(Loadout.Boots ?? string.Empty);
+            writer.WriteValueSafe((byte)BotLevel);
         }
 
         internal static LobbySlotInfo Read(FastBufferReader reader)
@@ -67,6 +71,8 @@ namespace UnCredibles.Networking
             reader.ReadValueSafe(out info.Loadout.Helmet);
             reader.ReadValueSafe(out info.Loadout.Outfit);
             reader.ReadValueSafe(out info.Loadout.Boots);
+            reader.ReadValueSafe(out byte botLevel);
+            info.BotLevel = (BotDifficulty)botLevel;
             info.Type = (PlayerType)type;
             info.State = (SlotState)state;
             info.Source = (InputSourceType)source;
