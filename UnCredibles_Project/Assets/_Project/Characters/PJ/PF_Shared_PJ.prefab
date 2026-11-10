@@ -48,8 +48,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: UnCredibles.Player::UnCredibles.Players.PlayerCharacterAnimator
   animator: {fileID: 7703078173909843247}
   runPlaybackSpeed: 1
+  runCarryPlaybackSpeed: 1
   randomizeIdlePhase: 1
   backSocket: {fileID: 8506246403438914787}
+  carryLean: 16
+  carryKneeBend: 18
+  carryBlendTime: 0.2
+  shoveDuration: 0.32
+  shoveReach: 0.25
 --- !u!114 &4692532301661516352
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -104,27 +110,27 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: dad61c19bc2c225428fe085263c2b9dd, type: 3}
       propertyPath: m_LocalScale.x
-      value: 0.36189973
+      value: 0.35325387
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: dad61c19bc2c225428fe085263c2b9dd, type: 3}
       propertyPath: m_LocalScale.y
-      value: 0.36189973
+      value: 0.35325387
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: dad61c19bc2c225428fe085263c2b9dd, type: 3}
       propertyPath: m_LocalScale.z
-      value: 0.36189973
+      value: 0.35325387
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: dad61c19bc2c225428fe085263c2b9dd, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0.01689747
+      value: 0.000080525875
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: dad61c19bc2c225428fe085263c2b9dd, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.049953282
+      value: 0.0024482682
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: dad61c19bc2c225428fe085263c2b9dd, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -0.0015026629
+      value: -0.01168251
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: dad61c19bc2c225428fe085263c2b9dd, type: 3}
       propertyPath: m_LocalRotation.w

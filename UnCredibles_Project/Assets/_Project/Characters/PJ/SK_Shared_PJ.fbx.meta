@@ -31,11 +31,11 @@ ModelImporter:
     extraUserProperties: []
     clipAnimations:
     - serializedVersion: 16
-      name: AN_Shared_PJ_IdleCarry
-      takeName: IdleCarry
-      internalID: 3651727069184320777
+      name: AN_Shared_PJ_Idle
+      takeName: Idle
+      internalID: -3100369314251171874
       firstFrame: 0
-      lastFrame: 64
+      lastFrame: 96
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -89,11 +89,11 @@ ModelImporter:
       maskSource: {instanceID: 0}
       additiveReferencePoseFrame: 0
     - serializedVersion: 16
-      name: AN_Shared_PJ_RunCarry
-      takeName: RunCarry
-      internalID: -6032088423466870534
+      name: AN_Shared_PJ_IdleCarry
+      takeName: IdleCarry
+      internalID: 3651727069184320777
       firstFrame: 0
-      lastFrame: 22
+      lastFrame: 64
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -118,11 +118,11 @@ ModelImporter:
       maskSource: {instanceID: 0}
       additiveReferencePoseFrame: 0
     - serializedVersion: 16
-      name: AN_Shared_PJ_Idle
-      takeName: Idle
-      internalID: -3100369314251171874
+      name: AN_Shared_PJ_RunCarry
+      takeName: RunCarry
+      internalID: -6032088423466870534
       firstFrame: 0
-      lastFrame: 96
+      lastFrame: 22
       wrapMode: 0
       orientationOffsetY: 0
       level: 0

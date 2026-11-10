@@ -252,6 +252,9 @@ namespace UnCredibles.Characters.Editor
                 model.transform.localScale *= 1f / bounds.size.y;
                 bounds = MeasureBounds(model);
                 model.transform.localPosition -= new Vector3(bounds.center.x, bounds.min.y, bounds.center.z);
+                // The imported skinned bounds reach below the soles: stand on the lowest foot of the Idle pose instead.
+                Clip(IdleClipName).SampleAnimation(model, 0f);
+                model.transform.localPosition -= Vector3.up * BakedPoints(model).Min(p => p.y);
 
                 var animator = model.GetComponent<Animator>();
                 if (animator == null) animator = model.AddComponent<Animator>();

@@ -22,5 +22,5 @@ MonoBehaviour:
   hiddenZones: 2
   coversFace: 1
   usePlayerColor: 0
-  extraHeadHeight: 0.063952446
+  extraHeadHeight: 0.054997087
   icon: {fileID: 21300000, guid: 7de320bb7e59f3f469bd2f2aa172a830, type: 3}
