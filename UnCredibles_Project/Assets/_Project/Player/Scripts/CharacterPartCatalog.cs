@@ -36,12 +36,12 @@ namespace UnCredibles.Players
             return choices[index];
         }
 
-        // Bots get dressed at random.
-        public CharacterLoadout RandomLoadout()
+        // Everybody starts in the full suit: the first part of every slot (the catalog only holds HeroCostume).
+        public CharacterLoadout DefaultLoadout()
         {
             var loadout = new CharacterLoadout();
             foreach (CharacterPartSlot slot in System.Enum.GetValues(typeof(CharacterPartSlot)))
-                loadout = loadout.With(slot, Step(slot, string.Empty, Random.Range(0, 8)));
+                loadout = loadout.With(slot, Step(slot, string.Empty, 1));
             return loadout;
         }
     }

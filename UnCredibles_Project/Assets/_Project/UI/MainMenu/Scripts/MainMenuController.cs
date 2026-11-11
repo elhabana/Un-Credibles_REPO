@@ -37,7 +37,17 @@ namespace UnCredibles.UI.MainMenu
         private bool enteringOnline;
         // Title screen: only the first time the menu opens in a session, not when coming back from a party.
         private const float TitleRevealSeconds = .25f;
-        private const float RevealEdgePixels = 12f;
+        // Closed, the menu leaves a thin mustard strip on the left edge; hovering it opens the drawer and
+        // moving the mouse past the panel (plus this margin, for the tabs that reach out of it) closes it.
+        private const float StripWidth = 34f;      // canvas units
+        private const float StripPeriod = 2.2f;    // seconds between two "open me" bumps
+        private const float MenuMargin = 60f;      // canvas units right of the panel
+        private const float CloseSeconds = .25f;
+        private RectTransform strip;
+        private RectTransform stripArrow;
+        private Image stripFlash;
+        private Canvas stripCanvas;
+        private bool slideClosing;
         private static bool titleSeen;
         private bool titleActive;
         private bool titlePressed;
@@ -68,8 +78,65 @@ namespace UnCredibles.UI.MainMenu
             pressStart.gameObject.SetActive(false);
             foreach (var rect in introSlide)
                 if (rect != null && rect.gameObject.activeSelf) titleHidden.Add(rect.gameObject);
+            BuildStrip();
             if (!titleSeen) StartTitle();
+            strip.gameObject.SetActive(waitingForEdge && !titleActive);
         }
+
+        private void BuildStrip()
+        {
+            stripCanvas = mainPanel.GetComponentInParent<Canvas>(true).rootCanvas;
+            strip = new GameObject("Menu strip", typeof(RectTransform), typeof(Image)).GetComponent<RectTransform>();
+            strip.SetParent(stripCanvas.transform, false);
+            strip.anchorMin = Vector2.zero;
+            strip.anchorMax = new Vector2(0f, 1f);
+            strip.pivot = new Vector2(0f, .5f);
+            strip.sizeDelta = new Vector2(StripWidth, 0f);
+            var image = strip.GetComponent<Image>();
+            image.color = SignButton.Mustard; // same as the comic panel it opens
+            image.raycastTarget = false;
+            stripFlash = new GameObject("Flash", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
+            stripFlash.rectTransform.SetParent(strip, false);
+            stripFlash.rectTransform.anchorMin = Vector2.zero;
+            stripFlash.rectTransform.anchorMax = Vector2.one;
+            stripFlash.rectTransform.sizeDelta = Vector2.zero;
+            stripFlash.color = Color.clear;
+            stripFlash.raycastTarget = false;
+            var edge = new GameObject("Ink edge", typeof(RectTransform), typeof(Image)).GetComponent<RectTransform>();
+            edge.SetParent(strip, false);
+            edge.anchorMin = new Vector2(1f, 0f);
+            edge.anchorMax = Vector2.one;
+            edge.pivot = new Vector2(1f, .5f);
+            edge.sizeDelta = new Vector2(4f, 0f);
+            var ink = edge.GetComponent<Image>();
+            ink.color = PaperUI.Ink;
+            ink.raycastTarget = false;
+            // Arrow pointing into the screen, centred on the strip: "pull me open".
+            var arrow = new GameObject("Arrow", typeof(RectTransform)).AddComponent<TextMeshProUGUI>();
+            stripArrow = arrow.rectTransform;
+            stripArrow.SetParent(strip, false);
+            stripArrow.anchorMin = stripArrow.anchorMax = new Vector2(.5f, .5f);
+            stripArrow.sizeDelta = new Vector2(StripWidth, 60f);
+            arrow.font = pressStart.font;
+            arrow.text = ">";
+            arrow.fontSize = 34f;
+            arrow.fontStyle = FontStyles.Bold;
+            arrow.alignment = TextAlignmentOptions.Center;
+            arrow.color = PaperUI.Ink;
+            arrow.raycastTarget = false;
+        }
+
+        // Every StripPeriod seconds the strip bumps out twice, the arrow hops right and a light flashes over it.
+        private void AnimateStrip()
+        {
+            float t = Time.unscaledTime % StripPeriod;
+            float bump = t < .6f ? Mathf.Abs(Mathf.Sin(t / .3f * Mathf.PI)) * (1f - t / .6f) : 0f;
+            strip.sizeDelta = new Vector2(StripWidth + 12f * bump, 0f);
+            stripArrow.anchoredPosition = new Vector2(-2f + 6f * bump, 0f); // -2: centred left of the ink edge
+            stripFlash.color = new Color(1f, 1f, 1f, .45f * bump);
+        }
+
+        private Camera StripCamera => stripCanvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : stripCanvas.worldCamera;
 
         private void StartTitle()
         {
@@ -86,7 +153,11 @@ namespace UnCredibles.UI.MainMenu
 
         private void UpdateTitle()
         {
-            if (titlePressed && titleReveal >= TitleRevealSeconds) StartZoom();
+            if (titlePressed && titleReveal >= TitleRevealSeconds)
+            {
+                GameAudio.Play(GameSfx.UiStart);
+                StartZoom();
+            }
             if (titlePressed) titleReveal -= Time.unscaledDeltaTime;
             float pop = titlePressed ? 1f + (1f - titleReveal / TitleRevealSeconds) * .3f : 1f;
             pressStart.transform.localScale = new Vector3(pop, pop, 1f);
@@ -99,6 +170,7 @@ namespace UnCredibles.UI.MainMenu
             titleActive = false;
             pressStart.gameObject.SetActive(false);
             waitingForEdge = true;
+            strip.gameObject.SetActive(true);
         }
 
         private bool TryRevealMenu()
@@ -106,15 +178,37 @@ namespace UnCredibles.UI.MainMenu
             var mouse = Mouse.current;
             if (!Application.isFocused || mouse == null || mouse.delta.ReadValue() == Vector2.zero) return false;
             var pointer = mouse.position.ReadValue();
-            if (pointer.x < 0f || pointer.x > RevealEdgePixels || pointer.y < 0f || pointer.y >= Screen.height)
-                return false;
+            if (!RectTransformUtility.RectangleContainsScreenPoint(strip, pointer, StripCamera)) return false;
 
             waitingForEdge = false;
-            GameAudio.Play(GameSfx.UiMove);
+            strip.gameObject.SetActive(false);
+            GameAudio.Play(GameSfx.UiDrawerOpen);
             foreach (var hidden in titleHidden) hidden.SetActive(true);
             ShowMultiplayerSetup(false); // shows the buttons with JUGAR LOCAL selected
-            StartSlide();
+            StartSlide(true);
             return true;
+        }
+
+        private void CloseDrawer()
+        {
+            ShowQuitConfirm(false);
+            GameAudio.Play(GameSfx.UiDrawerClose);
+            if (EventSystem.current != null) EventSystem.current.SetSelectedGameObject(null);
+            StartSlide(false);
+        }
+
+        private void FinishClose()
+        {
+            for (int i = 0; i < titleHidden.Count; i++)
+            {
+                if (titleHidden[i] == null) continue;
+                var rect = (RectTransform)titleHidden[i].transform;
+                rect.anchoredPosition = new Vector2(slideTargets[i], rect.anchoredPosition.y);
+                titleHidden[i].SetActive(false);
+            }
+            waitingForEdge = true;
+            ShowMultiplayerSetup(false);
+            strip.gameObject.SetActive(true);
         }
 
         private void StartZoom()
@@ -126,15 +220,20 @@ namespace UnCredibles.UI.MainMenu
             zoomTime = 0f;
         }
 
-        private void StartSlide()
+        // Opening slides in from the left with a bounce; closing slides back out, last option first.
+        private void StartSlide(bool opening)
         {
+            slideClosing = !opening;
             slideOffset = ((RectTransform)mainPanel.transform.parent).rect.width * .6f;
-            slideTargets.Clear();
-            foreach (var hidden in titleHidden)
+            if (opening)
             {
-                var rect = (RectTransform)hidden.transform;
-                slideTargets.Add(rect.anchoredPosition.x);
-                rect.anchoredPosition -= new Vector2(slideOffset, 0f);
+                slideTargets.Clear();
+                foreach (var hidden in titleHidden)
+                {
+                    var rect = (RectTransform)hidden.transform;
+                    slideTargets.Add(rect.anchoredPosition.x);
+                    rect.anchoredPosition -= new Vector2(slideOffset, 0f);
+                }
             }
             slideTime = 0f;
             BlockInput(true);
@@ -168,14 +267,17 @@ namespace UnCredibles.UI.MainMenu
             for (int i = 0; i < titleHidden.Count; i++)
             {
                 if (titleHidden[i] == null) continue;
-                float x = Mathf.Clamp01((slideTime - i * SlideStagger) / SlideSeconds);
+                int order = slideClosing ? titleHidden.Count - 1 - i : i;
+                float x = Mathf.Clamp01((slideTime - order * SlideStagger) / (slideClosing ? CloseSeconds : SlideSeconds));
                 if (x < 1f) done = false;
+                float shift = slideClosing ? x * x * x : 1f - EaseOutBack(x); // closing eases in, off the edge
                 var rect = (RectTransform)titleHidden[i].transform;
-                rect.anchoredPosition = new Vector2(slideTargets[i] - slideOffset * (1f - EaseOutBack(x)), rect.anchoredPosition.y);
+                rect.anchoredPosition = new Vector2(slideTargets[i] - slideOffset * shift, rect.anchoredPosition.y);
             }
             if (!done) return;
             slideTime = -1f;
             BlockInput(false);
+            if (slideClosing) FinishClose();
         }
 
         // Overshoots a little before settling: the buttons land with a small bounce.
@@ -188,6 +290,7 @@ namespace UnCredibles.UI.MainMenu
         private void Update()
         {
             UpdateIntro();
+            if (strip.gameObject.activeSelf) AnimateStrip();
             if (titleActive)
             {
                 UpdateTitle();
@@ -195,12 +298,9 @@ namespace UnCredibles.UI.MainMenu
             }
             if (waitingForEdge && !TryRevealMenu()) return;
             if (mainPanel.activeInHierarchy && slideTime < 0f &&
-                ((!quitSheet.activeSelf && BackPressed()) || ClickedOutsideMenu()))
+                ((!quitSheet.activeSelf && BackPressed()) || PointerLeftMenu()))
             {
-                ShowQuitConfirm(false);
-                waitingForEdge = true;
-                ShowMultiplayerSetup(false);
-                GameAudio.Play(GameSfx.UiBack);
+                CloseDrawer();
                 return;
             }
             if (multiplayerSetupPanel.activeInHierarchy &&
@@ -230,18 +330,15 @@ namespace UnCredibles.UI.MainMenu
             (Gamepad.current != null && Gamepad.current.buttonEast.wasPressedThisFrame) ||
             (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame);
 
-        private bool ClickedOutsideMenu()
+        // Only a moving mouse closes it: a still pointer or the pad never does.
+        private bool PointerLeftMenu()
         {
             var mouse = Mouse.current;
-            var events = EventSystem.current;
-            if (mouse == null || events == null || !mouse.leftButton.wasPressedThisFrame) return false;
-            var position = mouse.position.ReadValue();
-            if (!new Rect(0f, 0f, Screen.width, Screen.height).Contains(position) ||
-                RectTransformUtility.RectangleContainsScreenPoint(introSlide[0], position)) return false;
-
-            var hits = new System.Collections.Generic.List<RaycastResult>();
-            events.RaycastAll(new PointerEventData(events) { position = position }, hits);
-            return !hits.Exists(hit => hit.gameObject.transform.IsChildOf(mainPanel.transform));
+            if (!Application.isFocused || mouse == null || mouse.delta.ReadValue() == Vector2.zero) return false;
+            var corners = new Vector3[4];
+            introSlide[0].GetWorldCorners(corners);
+            float right = RectTransformUtility.WorldToScreenPoint(StripCamera, corners[2]).x;
+            return mouse.position.ReadValue().x > right + MenuMargin * stripCanvas.scaleFactor;
         }
 
         private void OnEnable()

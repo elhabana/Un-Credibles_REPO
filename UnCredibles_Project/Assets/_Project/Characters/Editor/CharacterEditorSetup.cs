@@ -31,11 +31,6 @@ namespace UnCredibles.Characters.Editor
             ("lobby.phone_close", "Cerrar", "Close"),
             ("lobby.hint_outfit", "ARRIBA / ABAJO: casco, ropa o botas     IZQUIERDA / DERECHA: cambiar",
                 "UP / DOWN: helmet, outfit or boots     LEFT / RIGHT: change"),
-            ("part.Casco_Abierto", "Casco abierto", "Open helmet"),
-            ("part.Casco_Cerrado", "Casco con visera", "Visor helmet"),
-            ("part.Traje_Mono", "Mono", "Jumpsuit"),
-            ("part.Traje_Tunica", "Túnica", "Tunic"),
-            ("part.Botas_Altas", "Botas altas", "Tall boots"),
             ("part.HeroCostume_Body", "Traje de héroe", "Hero suit"),
             ("part.HeroCostume_Mask", "Máscara de héroe", "Hero mask"),
             ("part.HeroCostume_Boots", "Botas de héroe", "Hero boots"),
@@ -46,6 +41,8 @@ namespace UnCredibles.Characters.Editor
         {
             "probador.title", "probador.tab.helmet", "probador.tab.outfit", "probador.tab.boots", "probador.none",
             "probador.run", "probador.stop", "probador.back", "probador.save", "probador.hint",
+            // Test parts, deleted.
+            "part.Casco_Abierto", "part.Casco_Cerrado", "part.Traje_Mono", "part.Traje_Tunica", "part.Botas_Altas",
         };
 
         [MenuItem("UnCredibles/Personaje PJ/Piezas: iconos y textos")]

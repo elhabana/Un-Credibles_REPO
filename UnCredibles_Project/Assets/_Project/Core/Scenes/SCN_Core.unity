@@ -254,6 +254,9 @@ MonoBehaviour:
   hitRival: {fileID: 8300000, guid: e7966167f0eff9042b968262f612872c, type: 3}
   runOver: {fileID: 8300000, guid: a3e08b6ff204a6344a9f319d9bc9b736, type: 3}
   failWah: {fileID: 8300000, guid: ef530fa098f822548ae429c38bfabe4f, type: 3}
+  uiStart: {fileID: 8300000, guid: 3c27cd815a464d59b413f785c960c678, type: 3}
+  uiDrawerOpen: {fileID: 8300000, guid: a73fcd2c7a814ad2a006a370464462d4, type: 3}
+  uiDrawerClose: {fileID: 8300000, guid: 18f4e79e5ef44fd59edc0da853f9ba79, type: 3}
 --- !u!114 &1007
 MonoBehaviour:
   m_ObjectHideFlags: 0

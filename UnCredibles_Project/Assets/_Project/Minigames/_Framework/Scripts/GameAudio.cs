@@ -9,6 +9,7 @@ namespace UnCredibles.Minigames
         UiMove, UiConfirm, UiBack, UiError, UiReady,
         CountdownBeep, CountdownGo, TimerTick, RoundEnd, Win, Lose, Score,
         Deliver, Jump, Stun, HitSoft, HitRival, RunOver, FailWah,
+        UiStart, UiDrawerOpen, UiDrawerClose,
     }
 
     // Minigames cannot see Core, so Core plugs its AudioManager in here (like PlayerRegistry's providers).

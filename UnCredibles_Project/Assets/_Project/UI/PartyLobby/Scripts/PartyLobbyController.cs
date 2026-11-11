@@ -244,7 +244,7 @@ namespace UnCredibles.UI.PartyLobby
             else if (move.x < -StickPush && last.x >= -StickPush) StepPart(slotIndex, (CharacterPartSlot)partRow[slotIndex], -1);
         }
 
-        // New bots get a random outfit; this machine's own player wears the one it saved.
+        // Everybody starts in the hero suit; this machine's own player wears the one it saved.
         private void DressNewPlayers()
         {
             if (PartCatalog == null) return;
@@ -265,8 +265,9 @@ namespace UnCredibles.UI.PartyLobby
                     continue;
                 }
                 dressed[index] = true;
-                if (slot.IsAI) Players.SetLoadout(index, PartCatalog.RandomLoadout());
-                else if (slot.IsHost) Players.SetLoadout(index, CharacterLoadoutStore.Load());
+                if (slot.Input is NetworkInput) continue; // an online client sends its own (SendSavedLoadoutOnce)
+                var suit = PartCatalog.DefaultLoadout();
+                Players.SetLoadout(index, slot.IsHost ? CharacterLoadoutStore.Load(suit) : suit);
             }
         }
 
@@ -277,7 +278,7 @@ namespace UnCredibles.UI.PartyLobby
             int mine = MySlotIndex();
             if (mine < 0) return;
             sentSavedLoadout = true;
-            var saved = CharacterLoadoutStore.Load();
+            var saved = CharacterLoadoutStore.Load(PartCatalog != null ? PartCatalog.DefaultLoadout() : default);
             if (!saved.Equals(default(CharacterLoadout)) && room.Slots[mine].Loadout.Equals(default(CharacterLoadout)))
                 room.SendLoadout(saved);
         }

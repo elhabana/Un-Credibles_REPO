@@ -40,6 +40,9 @@ namespace UnCredibles.Core
         [SerializeField] private AudioClip hitRival;
         [SerializeField] private AudioClip runOver;
         [SerializeField] private AudioClip failWah;
+        [SerializeField] private AudioClip uiStart;
+        [SerializeField] private AudioClip uiDrawerOpen;
+        [SerializeField] private AudioClip uiDrawerClose;
 
         private SettingsManager settings;
         // Frame (+1, so the zeroed array means "never") each effect last played: one per effect per frame.
@@ -158,6 +161,9 @@ namespace UnCredibles.Core
             GameSfx.HitRival => hitRival,
             GameSfx.RunOver => runOver,
             GameSfx.FailWah => failWah,
+            GameSfx.UiStart => uiStart,
+            GameSfx.UiDrawerOpen => uiDrawerOpen,
+            GameSfx.UiDrawerClose => uiDrawerClose,
             _ => null,
         };
 
