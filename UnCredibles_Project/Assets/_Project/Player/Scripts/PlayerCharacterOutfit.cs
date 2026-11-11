@@ -24,6 +24,8 @@ namespace UnCredibles.Players
         private Renderer[] face = new Renderer[0];
         [SerializeField, Tooltip("Worn from the start (each prefab variant can have its own).")]
         private CharacterLoadout loadout;
+        [SerializeField, Tooltip("Player colour used by the outfit, independent of the skin material.")]
+        private Material playerColorMaterial;
 
         // Darker shade of each player colour, shared by every character wearing it.
         private static readonly Dictionary<Material, Material> Shades = new Dictionary<Material, Material>();
@@ -95,7 +97,8 @@ namespace UnCredibles.Players
         private void Mount(CharacterPart part)
         {
             bones ??= CollectBones();
-            var skin = SkinMaterial();
+            var skin = playerColorMaterial != null ? playerColorMaterial : SkinMaterial();
+            var playerMaterial = part.MaterialForPlayer(skin != null ? skin.color : PlayerIdentity.ColorFor(0));
             var instance = Instantiate(part.Model);
             try
             {
@@ -106,7 +109,11 @@ namespace UnCredibles.Players
 
                     var materials = (Material[])part.Materials.Clone();
                     if (materials.Length == 0) materials = renderer.sharedMaterials;
-                    if (part.UsePlayerColor && skin != null && materials.Length > 0) materials[0] = Shade(skin);
+                    if (materials.Length > 0)
+                    {
+                        if (playerMaterial != null) materials[0] = playerMaterial;
+                        else if (part.UsePlayerColor && skin != null) materials[0] = Shade(skin);
+                    }
                     renderer.sharedMaterials = materials;
                     renderer.gameObject.layer = model.gameObject.layer;
                     mounted.Add(renderer.gameObject);
@@ -163,6 +170,14 @@ namespace UnCredibles.Players
             Color.RGBToHSV(color, out float h, out float s, out float v);
             var dark = Color.HSVToRGB(h, Mathf.Clamp01(s * 1.1f), v * ShadeValue);
             shade = new Material(skin) { name = skin.name + "_Prenda" };
+            // The flat legacy outfits do not share the body's UV atlas.
+            shade.SetTexture("_BaseMap", null);
+            shade.SetTexture("_BumpMap", null);
+            shade.SetTexture("_MetallicGlossMap", null);
+            shade.SetTexture("_OcclusionMap", null);
+            shade.DisableKeyword("_NORMALMAP");
+            shade.DisableKeyword("_METALLICSPECGLOSSMAP");
+            shade.DisableKeyword("_OCCLUSIONMAP");
             shade.SetColor("_BaseColor", dark);
             shade.color = dark;
             Shades[skin] = shade;

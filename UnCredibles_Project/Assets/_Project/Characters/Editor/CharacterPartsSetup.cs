@@ -30,6 +30,7 @@ namespace UnCredibles.Characters.Editor
             public List<string> hides = new List<string>();
             public bool coversFace;
             public bool usePlayerColor;
+            public string[] playerMaterials;
         }
 
         // Zone names used in Blender -> body zones in the game.
@@ -93,13 +94,21 @@ namespace UnCredibles.Characters.Editor
             importer.SaveAndReimport();
 
             var model = AssetDatabase.LoadAssetAtPath<GameObject>(modelPath);
+            var playerMaterials = (entry.playerMaterials ?? Array.Empty<string>())
+                .Select(AssetDatabase.LoadAssetAtPath<Material>).ToArray();
+            if (playerMaterials.Any(material => material == null))
+            {
+                Debug.LogError($"[Piezas] Missing player material for {entry.id}.");
+                return null;
+            }
             var renderer = model.GetComponentsInChildren<Renderer>(true).FirstOrDefault(r => r.name == entry.mesh);
             int slots = renderer != null ? renderer.sharedMaterials.Length : 1;
             var materials = new Material[Mathf.Max(1, slots)];
             for (int i = 0; i < materials.Length; i++)
             {
                 var color = i < colors.Count ? colors[i] : Color.white;
-                materials[i] = MakeMaterial($"{Folder}/M_PJ_Part_{entry.id}_{i}.mat", template, color);
+                materials[i] = i == 0 && playerMaterials.Length > 0 ? playerMaterials[0] :
+                    MakeMaterial($"{Folder}/M_PJ_Part_{entry.id}_{i}.mat", template, color);
             }
 
             string path = $"{Folder}/SO_PJ_Part_{entry.id}.asset";
@@ -122,6 +131,10 @@ namespace UnCredibles.Characters.Editor
             var mats = so.FindProperty("materials");
             mats.arraySize = materials.Length;
             for (int i = 0; i < materials.Length; i++) mats.GetArrayElementAtIndex(i).objectReferenceValue = materials[i];
+            var variants = so.FindProperty("playerMaterials");
+            variants.arraySize = playerMaterials.Length;
+            for (int i = 0; i < playerMaterials.Length; i++)
+                variants.GetArrayElementAtIndex(i).objectReferenceValue = playerMaterials[i];
             so.FindProperty("hiddenZones").intValue = (int)hidden;
             so.FindProperty("coversFace").boolValue = entry.coversFace;
             so.FindProperty("usePlayerColor").boolValue = entry.usePlayerColor;

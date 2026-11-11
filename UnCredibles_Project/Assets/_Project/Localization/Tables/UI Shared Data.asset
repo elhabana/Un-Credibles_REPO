@@ -598,6 +598,18 @@ MonoBehaviour:
     m_Key: vote.voted
     m_Metadata:
       m_Items: []
+  - m_Id: 9104622072496128
+    m_Key: part.HeroCostume_Body
+    m_Metadata:
+      m_Items: []
+  - m_Id: 9104622139604992
+    m_Key: part.HeroCostume_Mask
+    m_Metadata:
+      m_Items: []
+  - m_Id: 9104622139604993
+    m_Key: part.HeroCostume_Boots
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

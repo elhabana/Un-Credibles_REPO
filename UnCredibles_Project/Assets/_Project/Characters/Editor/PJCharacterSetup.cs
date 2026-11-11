@@ -17,6 +17,7 @@ namespace UnCredibles.Characters.Editor
     public static class PJCharacterSetup
     {
         private const string Folder = "Assets/_Project/Characters/PJ";
+        private const string TexturedSkin = "Assets/_Project/Player/Prefabs/PJ_Textura/Materials/BodyNude.mat";
         private const string ModelPath = Folder + "/SK_Shared_PJ.fbx";
         private const string ControllerPath = Folder + "/AC_Shared_PJ.controller";
         private const string PrefabPath = Folder + "/PF_Shared_PJ.prefab";
@@ -38,8 +39,6 @@ namespace UnCredibles.Characters.Editor
         private static readonly string[] Lids = { "Parpado_Sup_L", "Parpado_Inf_L", "Parpado_Sup_R", "Parpado_Inf_R" };
         private static readonly string[] FaceMeshes = { "Ojos", "Cejas", "Parpado_Sup_L", "Parpado_Inf_L", "Parpado_Sup_R", "Parpado_Inf_R" };
 
-        // Painted with the player colour: every body zone and the eyelids (skin).
-        private static bool IsSkin(string meshName) => meshName.StartsWith(BodyZonePrefix) || Lids.Contains(meshName);
         private static readonly string[] OldFigureParts = { "Head", "Body", "Right eye", "Left eye" };
         private static readonly string[] OldCrossyParts = { "Body", "Nose" };
 
@@ -236,9 +235,11 @@ namespace UnCredibles.Characters.Editor
                 var model = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(ModelPath), root.transform);
                 model.name = "Model";
 
+                var nude = AssetDatabase.LoadAssetAtPath<Material>(TexturedSkin);
                 foreach (var renderer in model.GetComponentsInChildren<Renderer>(true))
                 {
-                    var material = renderer.name == "Ojos" ? eyes : renderer.name == "Cejas" ? brows : skin;
+                    var material = renderer.name == "Ojos" ? nude ?? eyes : renderer.name == "Cejas" ? brows :
+                        renderer.name.StartsWith(BodyZonePrefix) || Lids.Contains(renderer.name) ? nude ?? skin : skin;
                     renderer.sharedMaterials = Enumerable.Repeat(material, renderer.sharedMaterials.Length).ToArray();
                     if (renderer is SkinnedMeshRenderer skinned) skinned.updateWhenOffscreen = false;
                 }
@@ -474,9 +475,10 @@ namespace UnCredibles.Characters.Editor
                 {
                     // Each run rebuilds the character, so overrides of the previous one point nowhere.
                     PrefabUtility.RemoveUnusedOverrides(new[] { contents }, InteractionMode.AutomatedAction);
-                    foreach (var renderer in contents.GetComponentsInChildren<Renderer>(true))
-                        if (IsSkin(renderer.name))
-                            renderer.sharedMaterials = Enumerable.Repeat(pair.Value, renderer.sharedMaterials.Length).ToArray();
+                    var outfit = contents.GetComponentInChildren<PlayerCharacterOutfit>(true);
+                    var serialized = new SerializedObject(outfit);
+                    serialized.FindProperty("playerColorMaterial").objectReferenceValue = pair.Value;
+                    serialized.ApplyModifiedPropertiesWithoutUndo();
                     PrefabUtility.SaveAsPrefabAsset(contents, path);
                 }
                 finally { PrefabUtility.UnloadPrefabContents(contents); }

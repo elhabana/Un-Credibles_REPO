@@ -20,8 +20,9 @@ namespace UnCredibles.UI.Garage
         internal const float TabBorder = .75f;  // sprite pixels per unit: thicker ink than a paper panel
         internal const float FontSize = 60f;
         internal const float TextInset = 18f;
-        private const float TextGrow = .15f;
+        private const float TextGrow = .04f;
         private const float Tilt = 2.5f;       // degrees, tip up
+        private const float SelectedTextLift = 4f; // optical centre of the Bangers capitals on the tab
         private const float DisabledAlpha = .5f;
 
         [SerializeField] private Selectable target;
@@ -64,7 +65,7 @@ namespace UnCredibles.UI.Garage
             float tabWidth = ((RectTransform)transform).rect.width + Reach;
             float centred = Mathf.Max(TextInset, (tabWidth - label.preferredWidth * grow) * .5f);
             float textX = Mathf.Lerp(TextInset, centred, e);
-            text.anchoredPosition = new Vector2(textX, textX * Mathf.Tan(Tilt * e * Mathf.Deg2Rad));
+            text.anchoredPosition = new Vector2(textX, textX * Mathf.Tan(Tilt * e * Mathf.Deg2Rad) + SelectedTextLift * e);
         }
     }
 }

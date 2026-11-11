@@ -15,6 +15,8 @@ namespace UnCredibles.Players
         private GameObject model;
         [SerializeField, Tooltip("One per material slot of the model.")]
         private Material[] materials = new Material[0];
+        [SerializeField, Tooltip("Optional first material per player slot (blue, red, green, yellow).")]
+        private Material[] playerMaterials = new Material[0];
         [SerializeField, Tooltip("Body zones hidden under this part.")]
         private BodyZone hiddenZones;
         [SerializeField, Tooltip("Hides eyes, eyelids and brows (helmets with a visor).")]
@@ -30,6 +32,21 @@ namespace UnCredibles.Players
         public CharacterPartSlot Slot => slot;
         public GameObject Model => model;
         public Material[] Materials => materials;
+        public Material MaterialForPlayer(Color color)
+        {
+            if (playerMaterials.Length == 0) return null;
+            int closest = 0;
+            float distance = float.PositiveInfinity;
+            for (int i = 0; i < playerMaterials.Length; i++)
+            {
+                var candidate = PlayerIdentity.ColorFor(i);
+                float delta = ((Vector4)(candidate - color)).sqrMagnitude;
+                if (delta >= distance) continue;
+                distance = delta;
+                closest = i;
+            }
+            return playerMaterials[closest];
+        }
         public BodyZone HiddenZones => hiddenZones;
         public bool CoversFace => coversFace;
         public bool UsePlayerColor => usePlayerColor;

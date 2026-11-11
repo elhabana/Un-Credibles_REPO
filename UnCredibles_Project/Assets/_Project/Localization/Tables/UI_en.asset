@@ -552,6 +552,18 @@ MonoBehaviour:
     m_Localized: "VOTED!"
     m_Metadata:
       m_Items: []
+  - m_Id: 9104622072496128
+    m_Localized: Hero suit
+    m_Metadata:
+      m_Items: []
+  - m_Id: 9104622139604992
+    m_Localized: Hero mask
+    m_Metadata:
+      m_Items: []
+  - m_Id: 9104622139604993
+    m_Localized: Hero boots
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

@@ -550,6 +550,18 @@ MonoBehaviour:
     m_Localized: "\xA1VOTADO!"
     m_Metadata:
       m_Items: []
+  - m_Id: 9104622072496128
+    m_Localized: "Traje de h\xE9roe"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 9104622139604992
+    m_Localized: "M\xE1scara de h\xE9roe"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 9104622139604993
+    m_Localized: "Botas de h\xE9roe"
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

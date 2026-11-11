@@ -36,6 +36,9 @@ namespace UnCredibles.Characters.Editor
             ("part.Traje_Mono", "Mono", "Jumpsuit"),
             ("part.Traje_Tunica", "Túnica", "Tunic"),
             ("part.Botas_Altas", "Botas altas", "Tall boots"),
+            ("part.HeroCostume_Body", "Traje de héroe", "Hero suit"),
+            ("part.HeroCostume_Mask", "Máscara de héroe", "Hero mask"),
+            ("part.HeroCostume_Boots", "Botas de héroe", "Hero boots"),
         };
 
         // Keys of the old standalone editor, removed from the table.
@@ -80,9 +83,11 @@ namespace UnCredibles.Characters.Editor
                 // Shown in a player colour, so clothes that take it read as clothes.
                 var skin = AssetDatabase.LoadAssetAtPath<Material>(PlayerMaterials + "Blue.mat");
                 if (skin != null)
-                    foreach (var renderer in character.GetComponentsInChildren<Renderer>(true))
-                        if (renderer.name.StartsWith("Cuerpo_") || renderer.name.StartsWith("Parpado_"))
-                            renderer.sharedMaterials = Enumerable.Repeat(skin, renderer.sharedMaterials.Length).ToArray();
+                {
+                    var serialized = new SerializedObject(outfit);
+                    serialized.FindProperty("playerColorMaterial").objectReferenceValue = skin;
+                    serialized.ApplyModifiedPropertiesWithoutUndo();
+                }
 
                 var lightObject = new GameObject("Light");
                 SceneManager.MoveGameObjectToScene(lightObject, scene);

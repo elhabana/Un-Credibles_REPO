@@ -98,6 +98,59 @@
           0.20000000298023224
         ]
       ]
+    },
+    {
+      "id": "HeroCostume_Body",
+      "slot": "Ropa",
+      "fbx": "SK_PJ_Part_HeroCostume_Body.fbx",
+      "mesh": "SM_HeroCostume_Body",
+      "hides": [
+        "Torso",
+        "Brazos",
+        "Manos",
+        "Muslos"
+      ],
+      "coversFace": false,
+      "usePlayerColor": false,
+      "playerMaterials": [
+        "Assets/_Project/Player/Prefabs/PJ_Textura/Materials/HC_Blue.mat",
+        "Assets/_Project/Player/Prefabs/PJ_Textura/Materials/HC_Red.mat",
+        "Assets/_Project/Player/Prefabs/PJ_Textura/Materials/HC_Green.mat",
+        "Assets/_Project/Player/Prefabs/PJ_Textura/Materials/HC_Yellow.mat"
+      ]
+    },
+    {
+      "id": "HeroCostume_Mask",
+      "slot": "Casco",
+      "fbx": "SK_PJ_Part_HeroCostume_Mask.fbx",
+      "mesh": "SM_HeroCostume_Interfaz",
+      "hides": [],
+      "coversFace": false,
+      "usePlayerColor": false,
+      "playerMaterials": [
+        "Assets/_Project/Player/Prefabs/PJ_Textura/Materials/HC_Blue.mat",
+        "Assets/_Project/Player/Prefabs/PJ_Textura/Materials/HC_Red.mat",
+        "Assets/_Project/Player/Prefabs/PJ_Textura/Materials/HC_Green.mat",
+        "Assets/_Project/Player/Prefabs/PJ_Textura/Materials/HC_Yellow.mat"
+      ]
+    },
+    {
+      "id": "HeroCostume_Boots",
+      "slot": "Botas",
+      "fbx": "SK_PJ_Part_HeroCostume_Boots.fbx",
+      "mesh": "SM_HeroCostume_Shoes",
+      "hides": [
+        "Tobillos",
+        "Pies"
+      ],
+      "coversFace": false,
+      "usePlayerColor": false,
+      "playerMaterials": [
+        "Assets/_Project/Player/Prefabs/PJ_Textura/Materials/HC_Blue.mat",
+        "Assets/_Project/Player/Prefabs/PJ_Textura/Materials/HC_Red.mat",
+        "Assets/_Project/Player/Prefabs/PJ_Textura/Materials/HC_Green.mat",
+        "Assets/_Project/Player/Prefabs/PJ_Textura/Materials/HC_Yellow.mat"
+      ]
     }
   ]
 }

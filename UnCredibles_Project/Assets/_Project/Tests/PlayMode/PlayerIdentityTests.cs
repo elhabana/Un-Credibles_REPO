@@ -44,7 +44,19 @@ public sealed class PlayerIdentityTests
                     Assert.IsTrue(text.text == PlayerIdentity.LabelFor(index));
                     Assert.IsTrue(text.color == PlayerIdentity.ColorFor(index), scene + " changed the slot color.");
                     Assert.IsTrue((Color)text.outlineColor == Color.white && text.outlineWidth > 0f);
-                    Assert.IsTrue(HasSlotVariant(view, text.color), scene + " must spawn the slot's prefab, matching its label.");
+                    if (scene == "SCN_MG_CrossyRoad")
+                    {
+                        const string heroSuit = "HeroCostume_Body";
+                        var outfit = view.GetComponentInChildren<PlayerCharacterOutfit>();
+                        Assert.NotNull(outfit);
+                        outfit.Equip(CharacterPartSlot.Outfit, heroSuit);
+                        var expectedMaterial = outfit.Catalog.Find(heroSuit).MaterialForPlayer(text.color);
+                        Assert.IsNotNull(expectedMaterial);
+                        Assert.IsTrue(outfit.VisibleRenderers().Any(renderer => renderer.sharedMaterial == expectedMaterial),
+                            "The hero suit must match the player's slot.");
+                    }
+                    else
+                        Assert.IsTrue(HasSlotVariant(view, text.color), scene + " must spawn the slot's prefab, matching its label.");
                     Assert.IsTrue(Quaternion.Angle(text.transform.rotation, Camera.main.transform.rotation) < .1f);
                 }
                 Capture(scene);
