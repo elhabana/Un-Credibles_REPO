@@ -182,6 +182,7 @@ namespace UnCredibles.Characters.Editor
                 ragdoll.arraySize = bodies.Length;
                 for (int i = 0; i < bodies.Length; i++) ragdoll.GetArrayElementAtIndex(i).objectReferenceValue = bodies[i];
                 so.ApplyModifiedPropertiesWithoutUndo();
+                root.AddComponent<UnCredibles.Shared.ComicFilter>().Filter = AssetDatabase.LoadAssetAtPath<Material>(PJCharacterSetup.ComicFilterPath);
 
                 var prefab = PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
                 Debug.Log("[Abuela] PF_Shared_Grandma creado (altura 1, mira a +Z)");

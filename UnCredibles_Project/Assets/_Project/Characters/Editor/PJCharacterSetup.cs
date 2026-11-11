@@ -21,6 +21,7 @@ namespace UnCredibles.Characters.Editor
         private const string ModelPath = Folder + "/SK_Shared_PJ.fbx";
         private const string ControllerPath = Folder + "/AC_Shared_PJ.controller";
         private const string PrefabPath = Folder + "/PF_Shared_PJ.prefab";
+        public const string ComicFilterPath = "Assets/_Project/Shared/Materials/M_Shared_ComicFilter_Characters.mat";
         private const string EyesMaterialPath = Folder + "/M_Shared_PJ_Eyes.mat";
         private const string BrowsMaterialPath = Folder + "/M_Shared_PJ_Brows.mat";
         private const string RunClipName = "AN_Shared_PJ_Run";
@@ -291,6 +292,7 @@ namespace UnCredibles.Characters.Editor
                 for (int i = 0; i < faceRenderers.Length; i++) faceList.GetArrayElementAtIndex(i).objectReferenceValue = faceRenderers[i];
                 outfitSo.ApplyModifiedPropertiesWithoutUndo();
                 if (FindDeep(model.transform, "Socket_Cabeza") == null) Debug.LogError("[PJ] El FBX no tiene el hueso Socket_Cabeza (cascos)");
+                root.AddComponent<UnCredibles.Shared.ComicFilter>().Filter = AssetDatabase.LoadAssetAtPath<Material>(ComicFilterPath);
 
                 var prefab = PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
                 Debug.Log("[PJ] PF_Shared_PJ creado (altura 1, mira a +Z)");

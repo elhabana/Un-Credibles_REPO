@@ -99,6 +99,8 @@ namespace UnCredibles.Players
             foreach (var faceRenderer in face)
                 if (faceRenderer != null) faceRenderer.enabled = !coverFace;
             ExtraHeadHeight = extraHeight * transform.lossyScale.y;
+            // Parts hang deep under the model, out of reach of the filter's own child watch.
+            if (TryGetComponent<UnCredibles.Shared.ComicFilter>(out var comic)) comic.Collect();
             Changed?.Invoke();
         }
 

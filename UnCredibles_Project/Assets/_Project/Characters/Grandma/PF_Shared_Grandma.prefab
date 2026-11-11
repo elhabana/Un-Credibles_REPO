@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5173357829428431520}
   - component: {fileID: 7975485391626780925}
+  - component: {fileID: 3221271572323934544}
   m_Layer: 0
   m_Name: PF_Shared_Grandma
   m_TagString: Untagged
@@ -54,6 +55,20 @@ MonoBehaviour:
   - {fileID: 8260401721522008991}
   - {fileID: 8338201570011167367}
   - {fileID: 8483541130927582619}
+--- !u!114 &3221271572323934544
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8384499360325487769}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f318464241d34c1098b9f08a0bd323b1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnCredibles.Shared::UnCredibles.Shared.ComicFilter
+  filter: {fileID: 2100000, guid: a26823246940e28429413ce793a7bbe0, type: 2}
+  includeChildren: 1
 --- !u!1001 &7516095295597002452
 PrefabInstance:
   m_ObjectHideFlags: 0

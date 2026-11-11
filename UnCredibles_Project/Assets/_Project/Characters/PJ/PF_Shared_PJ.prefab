@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 112595458905677570}
   - component: {fileID: 6007661539926961660}
   - component: {fileID: 4692532301661516352}
+  - component: {fileID: 4252946495961722985}
   m_Layer: 0
   m_Name: PF_Shared_PJ
   m_TagString: Untagged
@@ -101,6 +102,20 @@ MonoBehaviour:
     Outfit: 
     Boots: 
   playerColorMaterial: {fileID: 0}
+--- !u!114 &4252946495961722985
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8232949972670473878}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f318464241d34c1098b9f08a0bd323b1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnCredibles.Shared::UnCredibles.Shared.ComicFilter
+  filter: {fileID: 2100000, guid: a26823246940e28429413ce793a7bbe0, type: 2}
+  includeChildren: 1
 --- !u!1001 &4290876428288082110
 PrefabInstance:
   m_ObjectHideFlags: 0
