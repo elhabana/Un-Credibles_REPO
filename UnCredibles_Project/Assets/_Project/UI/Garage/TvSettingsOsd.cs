@@ -5,7 +5,7 @@ using UnityEngine.UI;
 namespace UnCredibles.UI.Garage
 {
     // Look of the settings on the garage TV: a retro pixel-art screen with a sky, clouds, hills, a grass
-    // ground and a mouse running about; one orange row per setting with an icon tile, red volume bars and
+    // ground and heroes messing up their minigame chores (TvHeroGags); one orange row per setting with an icon tile, red volume bars and
     // a language picker. Lays out the scene's settings widgets in canvas units (170 x 100) and frames
     // the selected row or button in yellow.
     public sealed class TvSettingsOsd
@@ -21,8 +21,7 @@ namespace UnCredibles.UI.Garage
         private const float RowHeight = 10.5f;
         private const float RowWidth = 134f;
         private const float RowX = 1f;
-        private const float GroundTop = -38f;
-        private const float MouseSpeed = 9f;
+        private const float GroundTop = -43f; // low enough for the heroes to fit under the hint
 
         private readonly TvMenuSkin skin;
         private readonly Slider[] sliders;
@@ -36,7 +35,7 @@ namespace UnCredibles.UI.Garage
         private Image[] arrowFrames;
         private TextMeshProUGUI title;
         private TextMeshProUGUI titleShadow;
-        private RectTransform mouse;
+        private TvHeroGags gags;
 
         public TvSettingsOsd(TvMenuSkin skin, Slider[] sliders, TextMeshProUGUI[] volumeLabels, RectTransform back,
             TextMeshProUGUI languageLabel, Button[] languageArrows)
@@ -107,7 +106,7 @@ namespace UnCredibles.UI.Garage
             }
 
             Style(instruction, 4f, Hint, TextAlignmentOptions.Center);
-            Place(instruction.rectTransform, new Vector2(0f, -25f), new Vector2(RowWidth, 7f));
+            Place(instruction.rectTransform, new Vector2(0f, -23f), new Vector2(RowWidth, 7f));
             LinkNavigation();
         }
 
@@ -131,12 +130,10 @@ namespace UnCredibles.UI.Garage
             // The shadow copies the title, which the scene localizes.
             if (titleShadow.text != title.text) titleShadow.text = title.text;
 
-            // The mouse runs back and forth along the ground, facing where it goes.
-            float run = Mathf.PingPong(Time.unscaledTime * MouseSpeed, 150f);
-            bool right = Mathf.Repeat(Time.unscaledTime * MouseSpeed, 300f) < 150f;
-            mouse.anchoredPosition = new Vector2(-75f + run, mouse.anchoredPosition.y);
-            mouse.localScale = new Vector3(right ? 1f : -1f, 1f, 1f);
+            gags.Tick();
         }
+
+        public void Destroy() => gags?.Destroy();
 
         // Name on the left and the value right-aligned on the same line.
         public static string VolumeText(string label, float value) =>
@@ -146,7 +143,7 @@ namespace UnCredibles.UI.Garage
 
         private void BuildScenery(RectTransform root)
         {
-            // Behind everything else, back to front: clouds, hills, bush, ground and the mouse on it.
+            // Behind everything else, back to front: clouds, hills, bush, ground and the heroes on it.
             int order = 0;
             Behind(AddImage(root, "Cloud", skin.cloud, Color.white, new Vector2(-80f, 22f), Size(skin.cloud, ScenePixel)), ref order);
             Behind(AddImage(root, "Cloud", skin.cloud, Color.white, new Vector2(10f, 44f), Size(skin.cloud, Pixel)), ref order);
@@ -166,9 +163,8 @@ namespace UnCredibles.UI.Garage
             groundRect.sizeDelta = new Vector2(0f, root.rect.height * .5f + GroundTop);
             Behind(ground, ref order);
 
-            var runner = OnGround(root, "Mouse", skin.mouse, -40f, Pixel);
-            Behind(runner, ref order);
-            mouse = runner.rectTransform;
+            gags = new TvHeroGags(root, GroundTop);
+            Behind(gags.Image, ref order);
         }
 
         private Image OnGround(RectTransform root, string name, Sprite sprite, float x, float pixel)
@@ -177,7 +173,7 @@ namespace UnCredibles.UI.Garage
             return AddImage(root, name, sprite, Color.white, new Vector2(x, GroundTop + size.y * .5f - .5f), size);
         }
 
-        private static void Behind(Image image, ref int order) => image.transform.SetSiblingIndex(order++);
+        private static void Behind(Graphic image, ref int order) => image.transform.SetSiblingIndex(order++);
 
         private void BuildTitle(RectTransform root, TextMeshProUGUI sceneTitle)
         {

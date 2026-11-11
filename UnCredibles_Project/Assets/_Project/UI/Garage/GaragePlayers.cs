@@ -29,6 +29,17 @@ namespace UnCredibles.UI.Garage
         private const float RunStart = .45f; // the door is already half up
         // The door panel of the garage model that rises when the players leave; found by name when left empty.
         private static readonly string[] GarageDoorNames = { "SM_GarageDoor.001", "GarageDoor.001", "garagedoor.001" };
+        // The brick wall behind the door has no hole: as the door rises, a warm glow fills the opening and
+        // lights the garage (GarageDoorLight), the players vanish into it and the camera pushes in on it
+        // while the screen flashes white, and the vote comes up as the flash fades.
+        private static readonly Color FlashColor = new Color(1f, .97f, .9f);
+        private const float GlowInset = .15f;       // behind the door panel, in front of the wall
+        private const float FlashIn = .55f;         // ends with the departure
+        private const float FlashHold = .75f;       // covers the wait and the switch to the vote
+        private const float FlashOut = .7f;
+        private const float ZoomStart = 1.3f;       // seconds into the departure
+        private const float ZoomTravel = .55f;      // part of the way to the door the camera covers
+        private const float ZoomFov = 12f;          // degrees narrower at the end
         public Transform garageDoor;
         public PartyLobbyController lobby;
         // One spot per slot (with its accessory anchors); the slot's figure is placed inside it.
@@ -46,6 +57,13 @@ namespace UnCredibles.UI.Garage
         private PlayerCharacterOutfit[] outfits;
         private Quaternion[] avatarRotations;
         private Coroutine departure;
+        private GarageDoorLight doorLight;
+        private ScreenFlash flash;
+        private Camera zoomCamera;
+        private Vector3 cameraStart;
+        private Quaternion cameraStartRotation;
+        private float cameraStartFov;
+        private bool zoomed;
 
         private void Awake()
         {
@@ -76,6 +94,7 @@ namespace UnCredibles.UI.Garage
             }
             ReframeLobbyCamera();
             PlanExit();
+            BuildDoorGlow();
             gameObject.AddComponent<LobbyOutfitArrows>().Init(lobby, avatars, outfits);
         }
 
@@ -100,6 +119,23 @@ namespace UnCredibles.UI.Garage
             foreach (var part in renderers) doorOpening.Encapsulate(part.bounds);
             garageDoorStart = garageDoor.position;
             hasGarageDoor = true;
+        }
+
+        private void BuildDoorGlow()
+        {
+            flash = ScreenFlash.Create(FlashColor);
+            if (hasGarageDoor) doorLight = GarageDoorLight.Build(doorOpening, DoorX() - GlowInset);
+        }
+
+        private void OnDestroy()
+        {
+            if (doorLight != null) Destroy(doorLight.gameObject);
+            if (flash != null) Destroy(flash.gameObject);
+        }
+
+        private void SetGlow(float amount)
+        {
+            if (doorLight != null) doorLight.Set(amount);
         }
 
         // Where the garage door stands (west of the players); without one, 4 m ahead of them.
@@ -176,6 +212,7 @@ namespace UnCredibles.UI.Garage
             lobby.SlotsChanged += Refresh;
             lobby.CountdownTick += HandleCountdown;
             lobby.CountdownCancelled += ResetDeparture;
+            lobby.CountdownCancelled += Refresh; // figures that went into the light come back
             ResetDeparture();
             Refresh();
         }
@@ -185,6 +222,7 @@ namespace UnCredibles.UI.Garage
             lobby.SlotsChanged -= Refresh;
             lobby.CountdownTick -= HandleCountdown;
             lobby.CountdownCancelled -= ResetDeparture;
+            lobby.CountdownCancelled -= Refresh;
             ResetDeparture();
             foreach (var avatar in avatars)
                 if (avatar != null) avatar.SetActive(false);
@@ -203,11 +241,38 @@ namespace UnCredibles.UI.Garage
             float doorX = DoorX();
             float exitX = doorX - ExitPastDoor;
             float doorRise = doorOpening.size.y + .1f;
+            var rig = FindFirstObjectByType<GarageCameraRig>();
+            zoomCamera = rig != null ? rig.output : null;
+            if (zoomCamera != null)
+            {
+                cameraStart = zoomCamera.transform.position;
+                cameraStartRotation = zoomCamera.transform.rotation;
+                cameraStartFov = zoomCamera.fieldOfView;
+            }
+            var glowCentre = new Vector3(doorX - GlowInset, hasGarageDoor ? doorOpening.center.y : 1.5f,
+                hasGarageDoor ? doorOpening.center.z : GarageMiddleZ());
+            bool flashed = false;
             while (elapsed < DepartureSeconds)
             {
                 elapsed += Time.deltaTime;
                 float open = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / .95f));
                 if (hasGarageDoor) garageDoor.position = garageDoorStart + Vector3.up * (open * doorRise);
+                SetGlow(Mathf.Clamp01(open * 3f)); // full glow before the bricks behind can show
+                if (!flashed && elapsed >= DepartureSeconds - FlashIn)
+                {
+                    flashed = true;
+                    flash.Play(FlashIn, FlashHold, FlashOut);
+                }
+                // Push in on the glow, faster and faster, narrowing the view: the cut into the vote.
+                float zoom = Mathf.Clamp01((elapsed - ZoomStart) / (DepartureSeconds - ZoomStart));
+                if (zoomCamera != null && zoom > 0f)
+                {
+                    zoomed = true;
+                    float e = zoom * zoom;
+                    zoomCamera.transform.SetPositionAndRotation(Vector3.Lerp(cameraStart, glowCentre, e * ZoomTravel),
+                        Quaternion.Slerp(cameraStartRotation, Quaternion.LookRotation(glowCentre - cameraStart), e * .5f));
+                    zoomCamera.fieldOfView = cameraStartFov - ZoomFov * e;
+                }
 
                 for (int i = 0; i < avatars.Length; i++)
                 {
@@ -220,6 +285,11 @@ namespace UnCredibles.UI.Garage
                     run = run * run * (2f - run);
                     if (character != null && elapsed >= begin) character.SetRunning(true);
                     float x = Mathf.Lerp(start.x, exitX, run);
+                    if (hasGarageDoor && x < doorX - GlowInset - .1f)
+                    {
+                        avatars[i].SetActive(false); // gone into the light; Refresh brings it back
+                        continue;
+                    }
                     // Lined up with its lane by the time it reaches the door frame.
                     float toDoor = Mathf.Clamp01(Mathf.InverseLerp(start.x, doorX + FigureWidth, x));
                     float z = Mathf.Lerp(start.z, exitLanes[i], Mathf.SmoothStep(0f, 1f, toDoor));
@@ -240,6 +310,13 @@ namespace UnCredibles.UI.Garage
             if (departure != null) StopCoroutine(departure);
             departure = null;
             if (hasGarageDoor && garageDoor != null) garageDoor.position = garageDoorStart; // already destroyed when the scene closes
+            SetGlow(0f);
+            if (zoomed && zoomCamera != null)
+            {
+                zoomCamera.transform.SetPositionAndRotation(cameraStart, cameraStartRotation);
+                zoomCamera.fieldOfView = cameraStartFov;
+            }
+            zoomed = false;
             for (int i = 0; i < avatars.Length; i++)
             {
                 if (avatars[i] == null) continue;

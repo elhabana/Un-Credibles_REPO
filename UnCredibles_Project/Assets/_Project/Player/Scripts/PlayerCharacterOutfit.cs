@@ -30,6 +30,13 @@ namespace UnCredibles.Players
         // Darker shade of each player colour, shared by every character wearing it.
         private static readonly Dictionary<Material, Material> Shades = new Dictionary<Material, Material>();
         private const float ShadeValue = .72f;
+        // Black censor bar over the groin while no suit is worn (BodyNude), in the spine bone's space
+        // (measured on SK_Shared_PJ, whose spine bone is scaled .3533): about 10 x 7 cm, just in front of the body.
+        private const string CensorBone = "spine";
+        private static readonly Vector3 CensorPosition = new Vector3(0f, -.05f, .19f);
+        private static readonly Vector3 CensorSize = new Vector3(.28f, .19f, .042f);
+        private static Material censorMaterial;
+        private GameObject censor;
 
         private readonly List<GameObject> mounted = new List<GameObject>();
         private readonly List<Renderer> partRenderers = new List<Renderer>();
@@ -88,6 +95,7 @@ namespace UnCredibles.Players
 
             foreach (var zone in zones)
                 if (zone.Renderer != null) zone.Renderer.enabled = (hidden & zone.Zone) == 0;
+            Censor(catalog == null || catalog.Find(loadout.Outfit) == null);
             foreach (var faceRenderer in face)
                 if (faceRenderer != null) faceRenderer.enabled = !coverFace;
             ExtraHeadHeight = extraHeight * transform.lossyScale.y;
@@ -121,6 +129,50 @@ namespace UnCredibles.Players
                 }
             }
             finally { Kill(instance); } // its own skeleton is not needed any more
+        }
+
+        private void Censor(bool show)
+        {
+            if (!show)
+            {
+                if (censor != null) censor.SetActive(false);
+                return;
+            }
+            if (censor == null)
+            {
+                bones ??= CollectBones();
+                if (!bones.TryGetValue(CensorBone, out var bone)) return;
+                censor = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                censor.name = "Censura";
+                censor.hideFlags = HideFlags.DontSave; // editor previews must not bake it into a prefab
+                DestroyImmediate(censor.GetComponent<Collider>());
+                censor.transform.SetParent(bone, false);
+                censor.transform.localPosition = CensorPosition;
+                censor.transform.localScale = CensorSize;
+                censor.layer = model.gameObject.layer;
+                var renderer = censor.GetComponent<Renderer>();
+                renderer.sharedMaterial = CensorMaterial(SkinMaterial());
+                renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            }
+            censor.SetActive(true);
+        }
+
+        // Flat matte black, from the body's own (URP Lit) material so the shader is always in the build.
+        private static Material CensorMaterial(Material skin)
+        {
+            if (censorMaterial != null || skin == null) return censorMaterial;
+            censorMaterial = new Material(skin) { name = "Censura", hideFlags = HideFlags.DontSave };
+            foreach (var texture in new[] { "_BaseMap", "_BumpMap", "_MetallicGlossMap", "_OcclusionMap", "_EmissionMap" })
+                if (censorMaterial.HasProperty(texture)) censorMaterial.SetTexture(texture, null);
+            censorMaterial.DisableKeyword("_NORMALMAP");
+            censorMaterial.DisableKeyword("_METALLICSPECGLOSSMAP");
+            censorMaterial.DisableKeyword("_OCCLUSIONMAP");
+            censorMaterial.DisableKeyword("_EMISSION");
+            if (censorMaterial.HasProperty("_Smoothness")) censorMaterial.SetFloat("_Smoothness", 0f);
+            if (censorMaterial.HasProperty("_Metallic")) censorMaterial.SetFloat("_Metallic", 0f);
+            censorMaterial.SetColor("_BaseColor", Color.black);
+            censorMaterial.color = Color.black;
+            return censorMaterial;
         }
 
         // Skinned part: same bones by name as the character, mounted next to the body meshes.

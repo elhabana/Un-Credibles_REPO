@@ -102,6 +102,7 @@ namespace UnCredibles.UI.Garage
                 tvCamera.targetTexture.Release();
                 Destroy(tvCamera.targetTexture);
             }
+            tvOsd?.Destroy();
             Destroy(tvMaterial);
             Destroy(tvMesh);
         }
