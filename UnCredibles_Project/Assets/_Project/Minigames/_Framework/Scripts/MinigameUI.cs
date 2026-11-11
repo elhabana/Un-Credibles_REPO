@@ -1,6 +1,5 @@
 using System.Collections;
 using System.Collections.Generic;
-using System.Text;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -10,6 +9,7 @@ using UnCredibles.Players;
 namespace UnCredibles.Minigames
 {
     // Generic HUD: countdown, timer, player badges and results. Every scene text is optional.
+    // The results are a paper sheet built over the HUD when the minigame ends: a strip per player, best first.
     // The paper HUD (PF_MinigameHud: the turquoise timer pill, plus a PF_PlayerBadge per player in the
     // corners) is the same in every minigame. It only listens to the controller's events, so it works
     // unchanged on online replicas.
@@ -18,6 +18,22 @@ namespace UnCredibles.Minigames
     {
         private const int UrgentSeconds = 10;
         private const float VerdictDelay = .8f;
+        // Results sheet, in the HUD's 1920x1080 reference.
+        private const float SheetWidth = 860f;
+        private const float SheetRowHeight = 92f;
+        private const float SheetRowStep = 104f;
+        private const float SheetHeader = 136f;
+        private const float RowDelay = .12f; // stagger between rows
+        private const float PopSeconds = .3f;
+        private static readonly Color LeaderPaper = new Color(1f, .96f, .82f);
+        private static readonly Color[] MedalColors =
+        {
+            new Color(1f, .78f, .2f), new Color(.78f, .8f, .84f), new Color(.85f, .55f, .3f),
+        };
+        private static readonly Vector2 Middle = new Vector2(.5f, .5f);
+        private static readonly Vector2 Top = new Vector2(.5f, 1f);
+        private static readonly Vector2 Left = new Vector2(0f, .5f);
+        private static readonly Vector2 Right = new Vector2(1f, .5f);
 
         [SerializeField] private MinigameController controller;
         [SerializeField, Tooltip("Title font of the art bible (Bangers): countdown and banners of the scene.")]
@@ -33,11 +49,11 @@ namespace UnCredibles.Minigames
         private TMP_Text timerText;
         [SerializeField, Tooltip("Old plain score list: hidden, the paper HUD shows the badges.")]
         private TMP_Text scoreText;
-        [SerializeField] private GameObject resultsPanel;
+        [SerializeField, Tooltip("Old plain results: hidden, the paper sheet shows them.")]
+        private GameObject resultsPanel;
         [SerializeField] private TMP_Text resultsText;
         [SerializeField, Min(0f)] private float startLabelSeconds = 0.75f;
 
-        private readonly StringBuilder builder = new StringBuilder(128);
         private readonly List<PlayerBadge> badges = new List<PlayerBadge>(PlayerRegistry.MaxPlayers);
         private readonly int[] shownScores = new int[PlayerRegistry.MaxPlayers]; // same order as badges
         private WaitForSeconds hideStartLabel;
@@ -136,18 +152,97 @@ namespace UnCredibles.Minigames
         {
             GameAudio.Play(GameSfx.RoundEnd);
             StartCoroutine(PlayVerdict(HumanWon(results)));
-            builder.Clear();
-            foreach (var result in results)
-                builder.Append(result.Placement).Append(". ").Append(PlayerName(result.PlayerId))
-                       .Append("  ").Append(result.Score).Append('\n');
+            StartCoroutine(PopRows(BuildResultsSheet(results)));
+        }
 
-            if (resultsText == null)
+        // Taped paper sheet in the middle of the HUD: the title and one strip per player with the place on its
+        // medal, the player's disc (the badge's portrait when there is one), the name and the score.
+        private RectTransform[] BuildResultsSheet(IReadOnlyList<MinigameResult> results)
+        {
+            var sheet = PaperUI.Panel("Results sheet", hud, PaperUI.Paper, -1f, true).rectTransform;
+            Center(sheet, Middle, new Vector2(0f, -100f),
+                new Vector2(SheetWidth, SheetHeader + results.Count * SheetRowStep + 20f));
+            var title = PaperUI.Text("Title", sheet, titleFont, 76f, PaperUI.Ink, TextAlignmentOptions.Center);
+            title.text = L10n.Get(L10n.Minigames, "common.results");
+            Center(title.rectTransform, Top, new Vector2(0f, -70f), new Vector2(SheetWidth - 80f, 90f));
+
+            var rows = new RectTransform[results.Count];
+            for (int i = 0; i < rows.Length; i++)
             {
-                Debug.Log($"Results:\n{builder}", this);
-                return;
+                var result = results[i];
+                PlayerSlot player = null;
+                foreach (var candidate in controller.Players)
+                    if (candidate.PlayerId == result.PlayerId) player = candidate;
+                PlayerBadge badge = null;
+                foreach (var candidate in badges)
+                    if (candidate.PlayerId == result.PlayerId) badge = candidate;
+                int slotIndex = player != null ? player.SlotIndex : i;
+                bool isAI = player != null && player.IsAI;
+                var color = PlayerIdentity.ColorFor(slotIndex, isAI);
+
+                var row = PaperUI.Panel("Row " + (i + 1), sheet,
+                    result.Placement == 1 ? LeaderPaper : Color.Lerp(Color.white, color, .1f), i % 2 == 0 ? -.6f : .6f);
+                Center(row.rectTransform, Top, new Vector2(0f, -SheetHeader - i * SheetRowStep - SheetRowHeight * .5f),
+                    new Vector2(SheetWidth - 70f, SheetRowHeight));
+                var content = row.transform;
+
+                if (result.Placement <= MedalColors.Length)
+                    Center(PaperUI.Disc("Medal", content, MedalColors[result.Placement - 1]).rectTransform, Left,
+                        new Vector2(58f, 0f), new Vector2(78f, 78f));
+                var place = PaperUI.Text("Place", content, titleFont, 50f, PaperUI.Ink, TextAlignmentOptions.Center);
+                place.SetText("{0}", result.Placement);
+                Center(place.rectTransform, Left, new Vector2(58f, 0f), new Vector2(78f, 78f));
+
+                var disc = PaperUI.Disc("Disc", content, color);
+                Center(disc.rectTransform, Left, new Vector2(150f, 0f), new Vector2(78f, 78f));
+                if (badge != null && badge.Portrait != null) PlayerBadge.ShowPortrait(disc, badge.Portrait);
+                else
+                {
+                    var tag = PaperUI.Text("Tag", disc.transform, titleFont, 34f, PaperUI.Ink, TextAlignmentOptions.Center);
+                    tag.text = PlayerIdentity.LabelFor(slotIndex, isAI);
+                    PaperUI.Stretch(tag.rectTransform);
+                }
+
+                // Typed player names can hold any character: the default font, not the title one.
+                var playerName = PaperUI.Text("Name", content, null, 40f, PaperUI.Ink, TextAlignmentOptions.Left);
+                playerName.text = PlayerName(result.PlayerId);
+                playerName.overflowMode = TextOverflowModes.Ellipsis;
+                PaperUI.Place(playerName.rectTransform, Left, new Vector2(206f, 0f), new Vector2(380f, 70f));
+
+                var score = PaperUI.Text("Score", content, titleFont, 66f, PaperUI.Ink, TextAlignmentOptions.Right);
+                score.SetText("{0}", result.Score);
+                PaperUI.Place(score.rectTransform, Right, new Vector2(-30f, 0f), new Vector2(170f, 80f));
+
+                row.rectTransform.localScale = Vector3.zero; // until its turn to pop in
+                rows[i] = row.rectTransform;
             }
-            resultsText.text = builder.ToString();
-            if (resultsPanel != null) resultsPanel.SetActive(true);
+            return rows;
+        }
+
+        // Each row pops in a little after the one above: from nothing, past full size, and back (ease-out back).
+        private static IEnumerator PopRows(RectTransform[] rows)
+        {
+            float time = 0f;
+            float total = (rows.Length - 1) * RowDelay + PopSeconds;
+            while (time < total)
+            {
+                yield return null;
+                time += Time.unscaledDeltaTime;
+                for (int i = 0; i < rows.Length; i++)
+                {
+                    float t = Mathf.Clamp01((time - i * RowDelay) / PopSeconds);
+                    float k = t - 1f;
+                    float scale = t <= 0f ? 0f : 1f + 2.70158f * k * k * k + 1.70158f * k * k;
+                    rows[i].localScale = new Vector3(scale, scale, 1f);
+                }
+            }
+        }
+
+        // Like PaperUI.Place but turning around its centre (tilt and pop).
+        private static void Center(RectTransform rect, Vector2 anchor, Vector2 position, Vector2 size)
+        {
+            PaperUI.Place(rect, anchor, position, size);
+            rect.pivot = Middle;
         }
 
         protected string PlayerName(int playerId)

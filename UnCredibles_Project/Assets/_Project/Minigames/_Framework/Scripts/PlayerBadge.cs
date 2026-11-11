@@ -6,18 +6,22 @@ using UnityEngine.UI;
 
 namespace UnCredibles.Minigames
 {
-    // One player's corner badge (PF_PlayerBadge): paper frame, a disc in the slot colour with the tag
-    // ("J1" / "BOT") or a portrait, the score and, if the minigame has one, its points icon. A score change
+    // One player's corner badge (PF_PlayerBadge): paper frame, a disc in the slot colour with the player's
+    // 3D character (or the tag, "J1" / "BOT", without figures), the score and, if the minigame has one, its
+    // points icon. A score change
     // pops a +N / -N next to it. Only shows values; MinigameUI feeds it from ScoreManager (also on replicas).
     // The prefab is laid out for the top-left corner; Setup mirrors it for the other corners.
     public sealed class PlayerBadge : MonoBehaviour
     {
         private const float PopupSeconds = 1f;
         private const float PopupRise = 40f;
+        private const float PortraitInset = 4f; // the disc's ink border stays around the picture
 
         [SerializeField] private GameObject tape;
         [SerializeField] private Image disc;
         [SerializeField] private Image portrait;
+        [SerializeField, Tooltip("Lobby figures: the slot's one, dressed the same, is filmed into the disc.")]
+        private PlayerFigureSet figures;
         [SerializeField] private TMP_Text tagText;
         [SerializeField] private Image icon;
         [SerializeField] private TMP_Text score;
@@ -32,7 +36,12 @@ namespace UnCredibles.Minigames
         private int shownScore;
         private int popupDelta;
         private bool wasAI;
+        private PlayerPortrait portrait3D;
 
+        // Live view of the player's character, and the figure it films (for expressions and reactions).
+        // Null when there are no figures.
+        public Texture Portrait => portrait3D != null ? portrait3D.Texture : null;
+        public GameObject Figure => portrait3D != null ? portrait3D.Figure : null;
         public int PlayerId => slot.PlayerId;
         public int SlotIndex => slot.SlotIndex;
 
@@ -69,6 +78,7 @@ namespace UnCredibles.Minigames
 
             SetPortrait(null);
             RefreshTag();
+            BuildPortrait();
             L10n.LanguageChanged += RefreshTag; // "P1" / "J1"
         }
 
@@ -78,6 +88,33 @@ namespace UnCredibles.Minigames
             var rect = (RectTransform)transform;
             rect.anchoredPosition = new Vector2(rect.anchorMin.x > .5f ? -margin.x : margin.x,
                 rect.anchorMin.y > .5f ? -margin.y : margin.y);
+        }
+
+        private void BuildPortrait()
+        {
+            portrait3D = PlayerPortrait.Create(figures, slot.SlotIndex, slot.Loadout, disc.color);
+            if (portrait3D == null) return;
+            ShowPortrait(disc, portrait3D.Texture);
+            tagText.gameObject.SetActive(false);
+        }
+
+        // Fills a disc with a portrait, cut round just inside its ink border. The cut is a child of its own:
+        // masking with the disc itself would let its hard shadow show through beside the picture.
+        public static RawImage ShowPortrait(Image disc, Texture picture)
+        {
+            var cut = new GameObject("Portrait 3D", typeof(RectTransform)).AddComponent<Image>();
+            cut.transform.SetParent(disc.transform, false);
+            PaperUI.Stretch(cut.rectTransform, PortraitInset);
+            cut.sprite = disc.sprite;
+            cut.raycastTarget = false;
+            cut.gameObject.AddComponent<Mask>().showMaskGraphic = false;
+
+            var image = new GameObject("Picture", typeof(RectTransform)).AddComponent<RawImage>();
+            image.transform.SetParent(cut.transform, false);
+            PaperUI.Stretch(image.rectTransform);
+            image.texture = picture;
+            image.raycastTarget = false;
+            return image;
         }
 
         // Drawn portraits arrive later; until then the disc shows the tag.
@@ -158,6 +195,10 @@ namespace UnCredibles.Minigames
             rect.offsetMax = offsetMax;
         }
 
-        private void OnDestroy() => L10n.LanguageChanged -= RefreshTag;
+        private void OnDestroy()
+        {
+            L10n.LanguageChanged -= RefreshTag;
+            if (portrait3D != null) Destroy(portrait3D.gameObject);
+        }
     }
 }

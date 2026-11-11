@@ -229,6 +229,8 @@ namespace UnCredibles.Minigames.Editor
             Assign(badge, "tape", frame.transform.Find("Tape").gameObject);
             Assign(badge, "disc", disc);
             Assign(badge, "portrait", portrait);
+            Assign(badge, "figures", AssetDatabase.LoadAssetAtPath<PlayerFigureSet>(
+                "Assets/_Project/Player/ScriptableObjects/SO_PlayerFigures.asset"));
             Assign(badge, "tagText", tag);
             Assign(badge, "icon", icon);
             Assign(badge, "score", score);

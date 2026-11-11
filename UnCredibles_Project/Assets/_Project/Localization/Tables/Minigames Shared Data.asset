@@ -166,6 +166,30 @@ MonoBehaviour:
     m_Key: rules.garage_mice
     m_Metadata:
       m_Items: []
+  - m_Id: 17129679224839
+    m_Key: controls.crossy_road
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17129679224840
+    m_Key: controls.churro
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17129679224841
+    m_Key: controls.mowthelawn
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17129679224842
+    m_Key: controls.garage_mice
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17129679224843
+    m_Key: phone.crossy_road.a
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17129679224844
+    m_Key: common.results
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

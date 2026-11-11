@@ -132,19 +132,43 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 17129679224835
-    m_Localized: "Lleva a las abuelas al otro lado de la calle. +50 por cada abuela salvada (+100 en los \xFAltimos 30 segundos). Si te atropella un coche pierdes 20 puntos. Sin abuela, pulsa el bot\xF3n para empujar y desviar a los que llevan una. El tr\xE1fico aumenta con el tiempo."
+    m_Localized: "\xB7 Coge una abuela y ll\xE9vala a la otra acera: <b>+50</b> puntos.\n\xB7 \xDAltimos 30 segundos: cada abuela vale <b>+100</b>.\n\xB7 Si te atropellan pierdes <b>20</b> puntos y la abuela sale volando.\n\xB7 Sin abuela corres m\xE1s y puedes <b>empujar</b> a tus rivales... \xA1hacia los coches!\n\xB7 Los camiones dejan manchas de aceite que resbalan. El tr\xE1fico va a m\xE1s."
     m_Metadata:
       m_Items: []
   - m_Id: 17129679224836
-    m_Localized: "Salta el churro gigante (puede cambiar de sentido) y ag\xE1chate para esquivar las pelotas de playa. El \xFAltimo que quede en pie gana la ronda. Se juegan 3 rondas."
+    m_Localized: "\xB7 Salta el churro gigante cuando pase por tu flotador.\n\xB7 \xA1Ojo! El ni\xF1o frena y cambia de sentido sin avisar.\n\xB7 Ag\xE1chate para esquivar las pelotas de playa: agachado <b>no puedes saltar</b>.\n\xB7 Los bombazos en la piscina salpican la pantalla.\n\xB7 3 rondas. Cuantos m\xE1s rivales caigan antes que t\xFA, <b>m\xE1s puntos</b>."
     m_Metadata:
       m_Items: []
   - m_Id: 17129679224837
-    m_Localized: "Corta el c\xE9sped para llenar bolsas que arrastras detr\xE1s como una cola. Solo punt\xFAan cuando las vac\xEDas en tu contenedor, en tu esquina del jard\xEDn. Atraviesa la cola de un rival para soltar sus bolsas o emb\xEDstelo con el turbo para que las pierda. En el frenes\xED final todo el c\xE9sped vuelve a crecer y cada bolsa vale m\xE1s."
+    m_Localized: "\xB7 Corta c\xE9sped para llenar bolsas: te siguen en fila y te frenan un poco.\n\xB7 Solo punt\xFAan al vaciarlas en <b>tu contenedor</b>, en tu esquina.\n\xB7 Cruza la cola de un rival para soltarle las bolsas y qu\xE9datelas.\n\xB7 Emb\xEDstelo con el <b>turbo</b>: pierde 3 bolsas y se queda girando.\n\xB7 Frenes\xED final (30 s): el c\xE9sped vuelve a crecer y cada bolsa vale <b>x2</b>."
     m_Metadata:
       m_Items: []
   - m_Id: 17129679224838
-    m_Localized: "Mu\xE9vete por el garaje y da escobazos a los ratones. Cada rat\xF3n vale 1 punto y el dorado vale 5; si caen varios de un escobazo, los puntos se multiplican. Si le das a un rival, lo aturdes un momento. Gana quien tenga m\xE1s puntos a los 90 segundos."
+    m_Localized: "\xB7 Da escobazos a los ratones: <b>1</b> punto cada uno y <b>5</b> el dorado.\n\xB7 Varios de un solo escobazo: los puntos se multiplican.\n\xB7 Huyen de ti y se esconden bajo las estanter\xEDas y en los agujeros.\n\xB7 Dale a un rival para <b>aturdirlo</b> un momento.\n\xB7 Gana quien tenga m\xE1s puntos a los 90 segundos."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17129679224839
+    m_Localized: "Joystick / WASD: mu\xE9vete \xB7 A / Espacio: empuja a un rival (solo sin abuela)"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17129679224840
+    m_Localized: "A / Espacio: salta el churro \xB7 Mant\xE9n B / Ctrl: ag\xE1chate"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17129679224841
+    m_Localized: "Joystick / WASD: conduce \xB7 A / Espacio: turbo (recarga en 5 s) \xB7 Tu contenedor: ac\xE9rcate y las bolsas se vac\xEDan solas"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17129679224842
+    m_Localized: "Joystick / WASD: mu\xE9vete \xB7 A / Espacio: escobazo"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17129679224843
+    m_Localized: "Empujar"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17129679224844
+    m_Localized: RESULTADOS
     m_Metadata:
       m_Items: []
   references:

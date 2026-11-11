@@ -536,6 +536,7 @@ MonoBehaviour:
   tape: {fileID: 8124601719461805971}
   disc: {fileID: 4672555857880082427}
   portrait: {fileID: 6174073833855504822}
+  figures: {fileID: 11400000, guid: 7bf4c2ec883171c45a0d3fb70778e371, type: 2}
   tagText: {fileID: 4191325278519155439}
   icon: {fileID: 1980760874743162102}
   score: {fileID: 2492061358787339535}

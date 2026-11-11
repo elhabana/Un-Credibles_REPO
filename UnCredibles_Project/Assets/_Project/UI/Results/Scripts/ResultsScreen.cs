@@ -33,11 +33,12 @@ namespace UnCredibles.UI.Results
         private int shownSeconds = -1;
         private Camera resultsCamera;
         private ResultsPodium podium;
+        private readonly PlayerPortrait[] portraits = new PlayerPortrait[PlayerRegistry.MaxPlayers];
 
         private void Awake()
         {
             resultsCamera = Camera.main;
-            podium = new ResultsPodium(transform, figures, podiumPrefabs);
+            podium = new ResultsPodium(transform, figures, podiumPrefabs, sheet.TitleFont);
         }
 
         private IEnumerator Start()
@@ -117,9 +118,9 @@ namespace UnCredibles.UI.Results
                 }
                 var row = standings.Rows[i];
                 sheet.SetRow(i, row.Placement, row.Name, PlayerSlotIndex(row.PlayerId, i), IsBot(row.PlayerId),
-                    row.Gained, row.Total);
+                    row.Gained, row.Total, PortraitFor(PlayerSlotIndex(row.PlayerId, i), IsBot(row.PlayerId)));
                 if (isFinal) podiumEntries.Add(new PodiumEntry(row.Placement, row.Name, row.Total,
-                    PlayerSlotIndex(row.PlayerId, i)));
+                    PlayerSlotIndex(row.PlayerId, i), IsBot(row.PlayerId)));
                 if (row.Placement == 1) humanWon |= IsHuman(row.PlayerId);
             }
             if (isFinal) podium.Render(podiumEntries);
@@ -179,13 +180,25 @@ namespace UnCredibles.UI.Results
                     if (result.PlayerId == standing.PlayerId) gained = core.Match.PointsFor(result.Placement);
 
                 sheet.SetRow(i, standing.Placement, PlayerName(standing.PlayerId),
-                    PlayerSlotIndex(standing.PlayerId, i), IsBot(standing.PlayerId), gained, standing.Score);
+                    PlayerSlotIndex(standing.PlayerId, i), IsBot(standing.PlayerId), gained, standing.Score,
+                    PortraitFor(PlayerSlotIndex(standing.PlayerId, i), IsBot(standing.PlayerId)));
                 if (isFinal) podiumEntries.Add(new PodiumEntry(standing.Placement, PlayerName(standing.PlayerId),
-                    standing.Score, PlayerSlotIndex(standing.PlayerId, i)));
+                    standing.Score, PlayerSlotIndex(standing.PlayerId, i), IsBot(standing.PlayerId)));
                 if (standing.Placement == 1) humanWon |= IsHuman(standing.PlayerId);
             }
             if (isFinal) podium.Render(podiumEntries);
             StartMusic(humanWon);
+        }
+
+        // The player's character for the standings sheet, filmed once per slot. The final podium already
+        // shows the figures themselves.
+        private Texture PortraitFor(int slotIndex, bool isAI)
+        {
+            if (isFinal || slotIndex < 0 || slotIndex >= portraits.Length) return null;
+            if (portraits[slotIndex] == null)
+                portraits[slotIndex] = PlayerPortrait.Create(figures, slotIndex, core.Players.Slots[slotIndex].Loadout,
+                    PlayerIdentity.ColorFor(slotIndex, isAI));
+            return portraits[slotIndex] != null ? portraits[slotIndex].Texture : null;
         }
 
         private bool IsHuman(int playerId) => core.Players.TryGetByPlayerId(playerId, out var slot) && !slot.IsAI;

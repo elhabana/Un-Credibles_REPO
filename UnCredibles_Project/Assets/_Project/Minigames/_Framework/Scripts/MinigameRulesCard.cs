@@ -13,7 +13,7 @@ namespace UnCredibles.Minigames
     // The countdown waits until every connected human is ready (see MinigameController.AwaitingReady);
     // this card only shows that state, so it works unchanged on online replicas.
     // Lives in PF_MinigameRulesCard; MinigameController binds it. Texts come from the Minigames
-    // table: "name.<id>", "rules.<id>" and "phone.<id>" (controls, "Key: action · Key: action");
+    // table: "name.<id>", "rules.<id>" and "controls.<id>" ("Key: action · Key: action"; falls back to "phone.<id>");
     // the MinigameData fields are the fallback.
     public sealed class MinigameRulesCard : MonoBehaviour
     {
@@ -128,7 +128,7 @@ namespace UnCredibles.Minigames
             rules.text = Localized("rules." + id, data != null ? data.Rules : string.Empty);
             SetTab(missionTab, L10n.Get(L10n.UI, "rules.mission"));
             SetTab(controlsTab, L10n.Get(L10n.UI, "rules.controls"));
-            ShowControls(Localized("phone." + id, string.Empty));
+            ShowControls(Localized("controls." + id, Localized("phone." + id, string.Empty)));
             SetDisplay(startLabel, L10n.Get(L10n.UI, "rules.start"));
             SetDisplay(pressLabel, L10n.Get(L10n.UI, "rules.press"));
 

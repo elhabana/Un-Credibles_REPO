@@ -19,6 +19,7 @@ namespace UnCredibles.UI.Results
         private float animTime = -1f; // -1 = rows settled
 
         public int RowCount => rows.Length;
+        public TMP_FontAsset TitleFont => title.font;
 
         public void SetVisible(bool visible)
         {
@@ -39,8 +40,9 @@ namespace UnCredibles.UI.Results
 
         public void SetHint(string text) => hint.text = text;
 
-        public void SetRow(int index, int placement, string playerName, int slotIndex, bool isAI, int gained, int total) =>
-            rows[index].Set(placement, playerName, slotIndex, isAI, gained, total);
+        public void SetRow(int index, int placement, string playerName, int slotIndex, bool isAI, int gained, int total,
+            Texture portrait) =>
+            rows[index].Set(placement, playerName, slotIndex, isAI, gained, total, portrait);
 
         public void HideRow(int index) => rows[index].Hide();
 
