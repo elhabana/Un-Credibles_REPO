@@ -38,7 +38,7 @@ namespace UnCredibles.UI.Garage
         public LayerMask tvScreenLayer;
         [Tooltip("Sprites and title font of the settings menu on the TV.")]
         public TvMenuSkin tvMenuSkin;
-        [Tooltip("Title font of the art bible (Bangers SDF) for the paper vote screen.")]
+        [Tooltip("Title font of the art bible (Bangers SDF) for the paper menus.")]
         public TMP_FontAsset titleFont;
         [Header("Menus")]
         [Tooltip("Plays when the selection moves to another button in the garage menus and on the TV.")]
@@ -70,15 +70,10 @@ namespace UnCredibles.UI.Garage
         {
             PlaceSettingsOnTv();
             CreditsCrawl.Build((RectTransform)detailPanels[(int)GarageView.Credits - 2].transform, tvMenuSkin.Font);
-            // Art bible look over the scene's plain buttons: comic panel with tabs at home, paper sheets in the lobby.
-            menu.ApplyArt(titleFont);
-            var lobbyView = lobbyRoot.GetComponentInChildren<UnCredibles.UI.PartyLobby.PartyLobbyView>(true);
-            if (lobbyView != null) lobbyView.ApplyArt(titleFont);
             // On the canvas that holds every garage menu (Garage UI).
             menuRoot.transform.parent.gameObject.AddComponent<SelectionHighlight>().Init(detailPanels[0].transform, selectSound);
             while (CoreRoot.Instance == null) yield return null;
             core = CoreRoot.Instance;
-            gameObject.AddComponent<UnCredibles.UI.Voting.MapVoteView>().TitleFont = titleFont;
             core.GameFlow.StateChanged += StateChanged;
             menu.SettingsRequested += ShowSettings;
             masterVolume.SetValueWithoutNotify(core.Settings.MasterVolume);

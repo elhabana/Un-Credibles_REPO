@@ -13,20 +13,16 @@ namespace UnCredibles.UI.Results
     // Intermediate rounds use the standings list. The final round uses a character podium.
     public sealed class ResultsScreen : MonoBehaviour
     {
-        [SerializeField] private ResultRowView[] rows = new ResultRowView[PlayerRegistry.MaxPlayers];
-        [SerializeField, Tooltip("Hidden with the standings list on the final screen.")] private GameObject listBackground;
-        [SerializeField] private GameObject listHeader;
+        [SerializeField, Tooltip("Paper standings sheet shown between rounds.")] private ResultsSheet sheet;
+        [SerializeField, Tooltip("Hidden with the standings sheet on the final screen.")] private GameObject listBackground;
         [SerializeField] private TMP_Text titleText;
         [SerializeField] private TMP_Text roundText;
-        [SerializeField] private TMP_Text hintText;
         [SerializeField] private GameObject finalButtons;
         [SerializeField] private Button lobbyButton;
         [SerializeField] private Button mainMenuButton;
         [SerializeField, Min(1f)] private float autoContinueSeconds = 6f;
         [SerializeField] private PlayerFigureSet figures;
         [SerializeField] private PodiumPrefabs podiumPrefabs;
-        [SerializeField, Tooltip("Title font of the art bible (Bangers SDF) for the paper standings sheet.")]
-        private TMP_FontAsset titleFont;
 
         private CoreRoot core;
         private bool isOnlineClient; // shows the host's standings and waits for the host
@@ -35,17 +31,13 @@ namespace UnCredibles.UI.Results
         private bool musicStarted;
         private float remaining;
         private int shownSeconds = -1;
-        private GameObject listRows;
         private Camera resultsCamera;
         private ResultsPodium podium;
-        private ResultsSheet sheet; // between rounds it replaces the scene's flat list, header and hint
 
         private void Awake()
         {
-            listRows = rows[0].transform.parent.gameObject;
             resultsCamera = Camera.main;
             podium = new ResultsPodium(transform, figures, podiumPrefabs);
-            sheet = ResultsSheet.Create(transform, titleFont);
         }
 
         private IEnumerator Start()
@@ -95,10 +87,7 @@ namespace UnCredibles.UI.Results
             finalButtons.SetActive(isFinal);
             titleText.gameObject.SetActive(isFinal);
             roundText.gameObject.SetActive(isFinal);
-            hintText.gameObject.SetActive(false);
             listBackground.SetActive(!isFinal);
-            listHeader.SetActive(false);
-            listRows.SetActive(false);
             sheet.SetHeader(titleText.text, roundText.text);
             sheet.SetVisible(!isFinal);
             podium.SetVisible(isFinal);
@@ -119,7 +108,7 @@ namespace UnCredibles.UI.Results
             sheet.SetHint(L10n.Get(L10n.UI, "results.waiting_host"));
             var podiumEntries = new List<PodiumEntry>(standings.Rows.Count);
             bool humanWon = false;
-            for (int i = 0; i < rows.Length; i++)
+            for (int i = 0; i < sheet.RowCount; i++)
             {
                 if (i >= standings.Rows.Count)
                 {
@@ -176,7 +165,7 @@ namespace UnCredibles.UI.Results
             var podiumEntries = new List<PodiumEntry>(standings.Length);
             bool humanWon = false;
 
-            for (int i = 0; i < rows.Length; i++)
+            for (int i = 0; i < sheet.RowCount; i++)
             {
                 if (i >= standings.Length)
                 {

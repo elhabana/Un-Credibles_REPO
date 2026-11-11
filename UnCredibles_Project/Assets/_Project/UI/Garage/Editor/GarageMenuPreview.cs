@@ -1,6 +1,5 @@
 #if UNITY_EDITOR
 using System.Collections.Generic;
-using UnCredibles.UI.PartyLobby;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -8,10 +7,8 @@ using UnityEngine.SceneManagement;
 
 namespace UnCredibles.UI.Garage.Editor
 {
-    // Edit-mode preview of the garage menus' runtime look (MainMenuController / PartyLobbyView build it in code
-    // at Start, so outside Play the scene shows its plain authoring buttons). Nothing in the scene is touched:
-    // the look goes on a hidden copy of the Garage UI canvas (HideAndDontSave: never saved, selected or edited),
-    // and the real canvas is hidden with CanvasRenderer.cull, a runtime flag that is not serialized.
+    // Optional edit-mode preview of the authored Home or Lobby panel without changing scene activation.
+    // A hidden copy displays the selected panel and the original renderers are culled until the preview closes.
     // Rebuilt shortly after each edit; removed before Play, assembly reloads and closing the scene.
     [InitializeOnLoad]
     public static class GarageMenuPreview
@@ -36,7 +33,7 @@ namespace UnCredibles.UI.Garage.Editor
             Schedule();
         }
 
-        private static Mode Current => (Mode)EditorPrefs.GetInt(ModeKey, (int)Mode.Home);
+        private static Mode Current => (Mode)EditorPrefs.GetInt(ModeKey, (int)Mode.Off);
 
         [MenuItem(MenuPath + "Home", priority = 100)] private static void ShowHome() => SetMode(Mode.Home);
         [MenuItem(MenuPath + "Lobby", priority = 101)] private static void ShowLobby() => SetMode(Mode.Lobby);
@@ -77,7 +74,7 @@ namespace UnCredibles.UI.Garage.Editor
             if (change == PlayModeStateChange.ExitingEditMode)
             {
                 rebuildAt = -1;
-                Clear(); // Play builds the real thing: nothing of the preview may go in with it
+                Clear();
             }
             else if (change == PlayModeStateChange.EnteredEditMode) Schedule();
         }
@@ -103,11 +100,6 @@ namespace UnCredibles.UI.Garage.Editor
                 bool home = Current == Mode.Home || lobbyRoot == null;
                 menuRoot.gameObject.SetActive(home);
                 if (lobbyRoot != null) lobbyRoot.gameObject.SetActive(!home);
-                if (home)
-                    Counterpart(canvas, copy, front.menu.transform).GetComponent<UnCredibles.UI.MainMenu.MainMenuController>().BuildPreview(front.titleFont);
-                else
-                    lobbyRoot.GetComponentInChildren<PartyLobbyView>(true).BuildPreview(front.titleFont);
-                Hide(preview); // and everything the styling added
                 // Last, so the copy above was not made from culled renderers.
                 foreach (var renderer in canvas.GetComponentsInChildren<CanvasRenderer>(true))
                     if (!renderer.cull)

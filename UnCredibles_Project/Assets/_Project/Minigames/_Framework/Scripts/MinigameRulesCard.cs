@@ -12,64 +12,56 @@ namespace UnCredibles.Minigames
     // that gets a READY stamp when they press Jump, and the START box.
     // The countdown waits until every connected human is ready (see MinigameController.AwaitingReady);
     // this card only shows that state, so it works unchanged on online replicas.
-    // Built in code, so every minigame scene gets it without setup. Texts come from the Minigames
+    // Lives in PF_MinigameRulesCard; MinigameController binds it. Texts come from the Minigames
     // table: "name.<id>", "rules.<id>" and "phone.<id>" (controls, "Key: action · Key: action");
     // the MinigameData fields are the fallback.
     public sealed class MinigameRulesCard : MonoBehaviour
     {
-        private static readonly Color Backdrop = new Color(.114f, .114f, .106f, .85f); // see-through ink
-        private static readonly Color DotColor = new Color(.169f, .647f, .604f, .3f);
-        private static readonly Vector2 Middle = new Vector2(.5f, .5f);
-        private static readonly Vector2 TopLeft = new Vector2(0f, 1f);
-        private static readonly Vector2 TopRight = new Vector2(1f, 1f);
-        private static readonly Vector2 BottomLeft = new Vector2(0f, 0f);
-        private static readonly Vector2 BottomRight = new Vector2(1f, 0f);
-        private static readonly Vector2 SheetSize = new Vector2(1560f, 880f);
-        private const float SheetTilt = -1.5f;
         private const float Margin = 50f;
         private const float LeftWidth = 860f;   // title, mission, controls
         private const float RightWidth = 600f;  // media, players, START
         // Gameplay video or thumbnail, inside the media frame (16:9).
         private const float MediaWidth = 560f;
         private const float MediaHeight = 315f;
-        private const int MaxControls = 4;
         private const float KeyHeight = 46f;
-        private const float RowStep = 54f;
         private const float KeyInset = 28f;
-        private const float DiscSize = 90f;
         private const float DiscSpacing = 145f;
         private const float InSeconds = .45f;
         private const float OutSeconds = .3f;
         private const float StampSeconds = .15f;
         private const float SlideDistance = 700f;
 
-        private MinigameController controller;
+        [SerializeField, Tooltip("Title font (Bangers); texts it cannot draw fall back to the default font.")]
         private TMP_FontAsset titleFont;
-        private GameObject root;
-        private CanvasGroup group;
-        private RectTransform sheet;
-        private RectTransform startBox;
-        private Image thumbnail;
-        private GameObject placeholder;
+        [SerializeField] private CanvasGroup group;
+        [SerializeField] private RectTransform sheet;
+        [SerializeField] private TMP_Text title;
+        [SerializeField] private TMP_Text missionTab;
+        [SerializeField] private TMP_Text rules;
+        [SerializeField] private GameObject controlsBox;
+        [SerializeField] private TMP_Text controlsTab;
+        [SerializeField, Tooltip("One row per control: ink key button, its label and the action.")]
+        private Image[] keys;
+        [SerializeField] private TMP_Text[] keyLabels;
+        [SerializeField] private TMP_Text[] actions;
+        [SerializeField] private Image thumbnail;
+        [SerializeField] private GameObject placeholder;
+        [SerializeField] private TMP_Text placeholderName;
+        [SerializeField, Tooltip("Inactive until the minigame has a preview clip.")]
         private RawImage video;
-        private VideoPlayer videoPlayer;
+        [SerializeField] private VideoPlayer videoPlayer;
+        [SerializeField, Tooltip("One disc per player slot, with its tag, name and READY stamp.")]
+        private Image[] discs;
+        [SerializeField] private TMP_Text[] tags;
+        [SerializeField] private TMP_Text[] names;
+        [SerializeField] private RectTransform[] stamps;
+        [SerializeField] private TMP_Text[] stampLabels;
+        [SerializeField] private RectTransform startBox;
+        [SerializeField] private TMP_Text startLabel;
+        [SerializeField] private TMP_Text pressLabel;
+
+        private MinigameController controller;
         private RenderTexture videoTexture;
-        private TMP_Text title;
-        private TMP_Text placeholderName;
-        private TMP_Text missionTab;
-        private TMP_Text rules;
-        private GameObject controlsBox;
-        private TMP_Text controlsTab;
-        private TMP_Text startLabel;
-        private TMP_Text pressLabel;
-        private readonly Image[] keys = new Image[MaxControls];
-        private readonly TMP_Text[] keyLabels = new TMP_Text[MaxControls];
-        private readonly TMP_Text[] actions = new TMP_Text[MaxControls];
-        private readonly Image[] discs = new Image[PlayerRegistry.MaxPlayers];
-        private readonly TMP_Text[] tags = new TMP_Text[PlayerRegistry.MaxPlayers];
-        private readonly TMP_Text[] names = new TMP_Text[PlayerRegistry.MaxPlayers];
-        private readonly RectTransform[] stamps = new RectTransform[PlayerRegistry.MaxPlayers];
-        private readonly TMP_Text[] stampLabels = new TMP_Text[PlayerRegistry.MaxPlayers];
         private readonly bool[] wasReady = new bool[PlayerRegistry.MaxPlayers];
         private readonly float[] stampTime = new float[PlayerRegistry.MaxPlayers];
         private float animTime;
@@ -79,27 +71,7 @@ namespace UnCredibles.Minigames
         public void Setup(MinigameController game)
         {
             controller = game;
-            var ui = game.GetComponent<MinigameUI>();
-            if (ui == null) ui = FindAnyObjectByType<MinigameUI>();
-            titleFont = ui != null ? ui.TitleFont : null;
-
-            root = PaperUI.Canvas("Rules card", transform, 50).gameObject; // above the minigame HUD
-            group = root.AddComponent<CanvasGroup>();
-            var backdrop = new GameObject("Backdrop", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
-            backdrop.transform.SetParent(root.transform, false);
-            backdrop.color = Backdrop;
-            backdrop.raycastTarget = false;
-            PaperUI.Stretch(backdrop.rectTransform);
-
-            sheet = PaperUI.Panel("Sheet", root.transform, PaperUI.Paper, SheetTilt, true).rectTransform;
-            Center(sheet, Middle, Vector2.zero, SheetSize);
-            // The kit's tape is sized for small badges; a sheet this big needs a wider strip.
-            if (sheet.Find("Tape") is RectTransform tape) tape.sizeDelta = new Vector2(170f, 50f);
-
-            BuildLeftColumn();
-            BuildMedia();
-            BuildPlayers();
-            BuildStart();
+            SetupVideo(controller.Data != null ? controller.Data.Preview : null);
 
             for (int i = 0; i < stampTime.Length; i++) stampTime[i] = -1f;
             controller.ReadyChanged += Refresh;
@@ -108,125 +80,18 @@ namespace UnCredibles.Minigames
             Refresh();
         }
 
-        private void BuildLeftColumn()
-        {
-            var titleBox = PaperUI.Panel("Title", sheet, Color.white, 1.5f);
-            PaperUI.Place(titleBox.rectTransform, TopLeft, new Vector2(Margin, -40f), new Vector2(LeftWidth, 130f));
-            title = PaperUI.Text("Name", titleBox.transform, titleFont, 84f, PaperUI.Ink, TextAlignmentOptions.Center);
-            AutoSize(title, 40f, 84f);
-            PaperUI.Stretch(title.rectTransform, 16f);
-
-            var mission = PaperUI.Panel("Mission", sheet, Color.white);
-            PaperUI.Place(mission.rectTransform, TopLeft, new Vector2(Margin, -215f), new Vector2(LeftWidth, 320f));
-            missionTab = Tab(mission.transform);
-            rules = PaperUI.Text("Rules", mission.transform, null, 32f, PaperUI.Ink, TextAlignmentOptions.TopLeft);
-            rules.textWrappingMode = TextWrappingModes.Normal;
-            AutoSize(rules, 20f, 32f);
-            PaperUI.Stretch(rules.rectTransform, KeyInset);
-            rules.rectTransform.offsetMax = new Vector2(-KeyInset, -40f); // below the tab
-
-            var controls = PaperUI.Panel("Controls", sheet, Color.white);
-            PaperUI.Place(controls.rectTransform, BottomLeft, new Vector2(Margin, 40f), new Vector2(LeftWidth, 270f));
-            controlsBox = controls.gameObject;
-            controlsTab = Tab(controls.transform);
-            for (int i = 0; i < MaxControls; i++)
-            {
-                float y = -42f - i * RowStep;
-                // Round ink button; a longer key ("JOYSTICK") stretches it into a pill.
-                keys[i] = PaperUI.Pill("Key", controls.transform, PaperUI.Ink, KeyHeight);
-                PaperUI.Place(keys[i].rectTransform, TopLeft, new Vector2(KeyInset, y), new Vector2(KeyHeight, KeyHeight));
-                keyLabels[i] = PaperUI.Text("Label", keys[i].transform, titleFont, 28f, PaperUI.Paper, TextAlignmentOptions.Center);
-                PaperUI.Stretch(keyLabels[i].rectTransform);
-                actions[i] = PaperUI.Text("Action", controls.transform, null, 28f, PaperUI.Ink, TextAlignmentOptions.Left);
-                AutoSize(actions[i], 18f, 28f);
-                PaperUI.Place(actions[i].rectTransform, TopLeft, new Vector2(KeyInset, y), new Vector2(LeftWidth, KeyHeight));
-            }
-        }
-
-        private void BuildMedia()
-        {
-            var frame = PaperUI.Panel("Media", sheet, Color.white, 2f);
-            PaperUI.Place(frame.rectTransform, TopRight, new Vector2(-Margin, -40f), new Vector2(RightWidth, 355f));
-            var mediaSize = new Vector2(MediaWidth, MediaHeight);
-
-            thumbnail = new GameObject("Thumbnail", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
-            thumbnail.transform.SetParent(frame.transform, false);
-            thumbnail.preserveAspect = true;
-            thumbnail.raycastTarget = false;
-            Center(thumbnail.rectTransform, Middle, Vector2.zero, mediaSize);
-
-            // Without video or thumbnail: a dotted pattern with the name, never an empty grey box.
-            var dots = new GameObject("Placeholder", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
-            dots.transform.SetParent(frame.transform, false);
-            dots.sprite = PaperUI.DiscSprite;
-            dots.type = Image.Type.Tiled;
-            dots.pixelsPerUnitMultiplier = 3f;
-            dots.color = DotColor;
-            dots.raycastTarget = false;
-            Center(dots.rectTransform, Middle, Vector2.zero, mediaSize);
-            placeholder = dots.gameObject;
-            placeholderName = PaperUI.Text("Name", dots.transform, titleFont, 64f, PaperUI.Ink, TextAlignmentOptions.Center);
-            placeholderName.textWrappingMode = TextWrappingModes.Normal;
-            AutoSize(placeholderName, 32f, 64f);
-            PaperUI.Stretch(placeholderName.rectTransform, 24f);
-
-            BuildVideo(frame.transform, controller.Data != null ? controller.Data.Preview : null);
-        }
-
-        // Gameplay loop: muted, looping, drawn into a texture the card shows. Only built when there is a clip.
-        private void BuildVideo(Transform parent, VideoClip clip)
+        // Gameplay loop: muted, looping, drawn into a texture the card shows. Only when there is a clip.
+        private void SetupVideo(VideoClip clip)
         {
             if (clip == null) return;
             videoTexture = new RenderTexture((int)clip.width, (int)clip.height, 0);
-            video = new GameObject("Gameplay", typeof(RectTransform), typeof(RawImage)).GetComponent<RawImage>();
-            video.transform.SetParent(parent, false);
             video.texture = videoTexture;
-            video.raycastTarget = false;
             // Fit the clip inside the media box, keeping its proportions.
             float scale = Mathf.Min(MediaWidth / clip.width, MediaHeight / clip.height);
-            Center(video.rectTransform, Middle, Vector2.zero, new Vector2(clip.width * scale, clip.height * scale));
-
-            videoPlayer = video.gameObject.AddComponent<VideoPlayer>();
-            videoPlayer.playOnAwake = false;
-            videoPlayer.isLooping = true;
-            videoPlayer.audioOutputMode = VideoAudioOutputMode.None;
-            videoPlayer.renderMode = VideoRenderMode.RenderTexture;
+            video.rectTransform.sizeDelta = new Vector2(clip.width * scale, clip.height * scale);
             videoPlayer.targetTexture = videoTexture;
             videoPlayer.clip = clip;
-        }
-
-        private void BuildPlayers()
-        {
-            for (int i = 0; i < discs.Length; i++)
-            {
-                discs[i] = PaperUI.Disc("Player " + (i + 1), sheet, Color.white);
-                tags[i] = PaperUI.Text("Tag", discs[i].transform, titleFont, 40f, PaperUI.Ink, TextAlignmentOptions.Center);
-                PaperUI.Stretch(tags[i].rectTransform);
-                names[i] = PaperUI.Text("Name", discs[i].transform, null, 22f, PaperUI.Ink, TextAlignmentOptions.Center);
-                names[i].overflowMode = TextOverflowModes.Ellipsis;
-                PaperUI.Place(names[i].rectTransform, new Vector2(.5f, 0f), new Vector2(0f, -36f), new Vector2(DiscSpacing, 30f));
-
-                // Rubber stamp slapped over the disc when the player is ready.
-                var stamp = PaperUI.Pill("Ready stamp", discs[i].transform, PaperUI.Alarm, 48f);
-                stamps[i] = stamp.rectTransform;
-                Center(stamps[i], Middle, new Vector2(0f, -4f), new Vector2(140f, 48f));
-                stamps[i].localEulerAngles = new Vector3(0f, 0f, -14f);
-                stampLabels[i] = PaperUI.Text("Label", stamps[i], titleFont, 32f, PaperUI.Paper, TextAlignmentOptions.Center);
-                PaperUI.Stretch(stampLabels[i].rectTransform);
-            }
-        }
-
-        private void BuildStart()
-        {
-            var box = PaperUI.Panel("Start", sheet, PaperUI.Ink, -2f);
-            startBox = box.rectTransform;
-            Center(startBox, BottomRight, new Vector2(-Margin - RightWidth * .5f, 40f + 115f), new Vector2(RightWidth, 230f));
-            startLabel = PaperUI.Text("Start", startBox, titleFont, 110f, PaperUI.Paper, TextAlignmentOptions.Center);
-            AutoSize(startLabel, 50f, 110f);
-            PaperUI.Place(startLabel.rectTransform, new Vector2(.5f, 1f), new Vector2(0f, -20f), new Vector2(RightWidth - 40f, 130f));
-            pressLabel = PaperUI.Text("Press", startBox, titleFont, 40f, PaperUI.TimerTeal, TextAlignmentOptions.Center);
-            AutoSize(pressLabel, 24f, 40f);
-            PaperUI.Place(pressLabel.rectTransform, new Vector2(.5f, 0f), new Vector2(0f, 24f), new Vector2(RightWidth - 40f, 56f));
+            video.gameObject.SetActive(true);
         }
 
         private void OnDestroy()
@@ -268,7 +133,7 @@ namespace UnCredibles.Minigames
             SetDisplay(pressLabel, L10n.Get(L10n.UI, "rules.press"));
 
             // The video wins over the thumbnail; without either, the placeholder fills the frame.
-            bool hasVideo = videoPlayer != null;
+            bool hasVideo = videoTexture != null;
             if (hasVideo && !videoPlayer.isPlaying) videoPlayer.Play();
             bool hasThumbnail = !hasVideo && data != null && data.Thumbnail != null;
             thumbnail.gameObject.SetActive(hasThumbnail);
@@ -288,9 +153,8 @@ namespace UnCredibles.Minigames
                     continue;
                 }
                 var player = players[i];
-                Center(discs[i].rectTransform, TopRight,
-                    new Vector2(-Margin - RightWidth * .5f + (i - (count - 1) * .5f) * DiscSpacing, -470f),
-                    new Vector2(DiscSize, DiscSize));
+                discs[i].rectTransform.anchoredPosition =
+                    new Vector2(-Margin - RightWidth * .5f + (i - (count - 1) * .5f) * DiscSpacing, -470f);
                 var color = PlayerIdentity.ColorFor(player.SlotIndex, player.IsAI);
                 if (!player.IsConnected) color.a = .35f; // left the game: nobody waits for them
                 discs[i].color = color;
@@ -319,7 +183,7 @@ namespace UnCredibles.Minigames
             {
                 foreach (string part in text.Split('·'))
                 {
-                    if (row == MaxControls) break;
+                    if (row == keys.Length) break;
                     string entry = part.Trim();
                     if (entry.Length == 0) continue;
                     int colon = entry.IndexOf(':');
@@ -344,7 +208,7 @@ namespace UnCredibles.Minigames
                 }
             }
             controlsBox.SetActive(row > 0);
-            for (int i = row; i < MaxControls; i++)
+            for (int i = row; i < keys.Length; i++)
             {
                 keys[i].gameObject.SetActive(false);
                 actions[i].gameObject.SetActive(false);
@@ -358,14 +222,14 @@ namespace UnCredibles.Minigames
             animTime = 0f;
             group.alpha = 0f;
             sheet.anchoredPosition = new Vector2(0f, -SlideDistance);
-            root.SetActive(true);
+            gameObject.SetActive(true);
         }
 
         private void Hide()
         {
             if (!shown)
             {
-                if (!leaving) root.SetActive(false);
+                if (!leaving) gameObject.SetActive(false);
                 return;
             }
             shown = false;
@@ -375,7 +239,6 @@ namespace UnCredibles.Minigames
 
         private void Update()
         {
-            if (root == null || !root.activeSelf) return;
             // Unscaled: the card animates even if something pauses time.
             float dt = Time.unscaledDeltaTime;
             animTime += dt;
@@ -388,7 +251,7 @@ namespace UnCredibles.Minigames
                 if (t >= 1f)
                 {
                     leaving = false;
-                    root.SetActive(false);
+                    gameObject.SetActive(false);
                 }
                 return;
             }
@@ -413,16 +276,7 @@ namespace UnCredibles.Minigames
             }
         }
 
-        // Ink tab on the top edge of a box, like the labels of the art bible.
-        private TMP_Text Tab(Transform box)
-        {
-            var pill = PaperUI.Pill("Tab", box, PaperUI.Ink, 44f);
-            PaperUI.Place(pill.rectTransform, TopLeft, new Vector2(24f, 22f), new Vector2(200f, 44f));
-            var label = PaperUI.Text("Label", pill.transform, titleFont, 30f, PaperUI.Paper, TextAlignmentOptions.Center);
-            PaperUI.Stretch(label.rectTransform);
-            return label;
-        }
-
+        // The ink tab on the top edge of a box grows with its label.
         private void SetTab(TMP_Text label, string text)
         {
             SetDisplay(label, text);
@@ -451,20 +305,6 @@ namespace UnCredibles.Minigames
         {
             string text = L10n.Get(L10n.Minigames, key);
             return text == key ? fallback ?? string.Empty : text;
-        }
-
-        private static void AutoSize(TMP_Text label, float min, float max)
-        {
-            label.enableAutoSizing = true;
-            label.fontSizeMin = min;
-            label.fontSizeMax = max;
-        }
-
-        // Like PaperUI.Place but turning around its centre (tilt, pop and pulse).
-        private static void Center(RectTransform rect, Vector2 anchor, Vector2 position, Vector2 size)
-        {
-            PaperUI.Place(rect, anchor, position, size);
-            rect.pivot = Middle;
         }
     }
 }

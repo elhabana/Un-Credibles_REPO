@@ -10,19 +10,24 @@ using UnCredibles.Players;
 namespace UnCredibles.Minigames
 {
     // Generic HUD: countdown, timer, player badges and results. Every scene text is optional.
-    // The paper HUD (a badge per player in the corners and the turquoise timer pill) is built in code
-    // with PaperUI, the same in every minigame. It only listens to the controller's events, so it works
+    // The paper HUD (PF_MinigameHud: the turquoise timer pill, plus a PF_PlayerBadge per player in the
+    // corners) is the same in every minigame. It only listens to the controller's events, so it works
     // unchanged on online replicas.
     // Subclass it when a minigame needs its own UI on top of this.
     public class MinigameUI : MonoBehaviour
     {
         private const int UrgentSeconds = 10;
-        private const float PillHeight = 84f;
         private const float VerdictDelay = .8f;
 
         [SerializeField] private MinigameController controller;
-        [SerializeField, Tooltip("Title font of the art bible (Bangers): badges, timer, countdown and banners.")]
+        [SerializeField, Tooltip("Title font of the art bible (Bangers): countdown and banners of the scene.")]
         private TMP_FontAsset titleFont;
+        [SerializeField, Tooltip("Paper HUD canvas (PF_MinigameHud instance): the badges go here.")]
+        private RectTransform hud;
+        [SerializeField] private Image timerPill;
+        [SerializeField] private TMP_Text timerLabel;
+        [SerializeField, Tooltip("One per player, in the corners of the paper HUD.")]
+        private PlayerBadge badgePrefab;
         [SerializeField] private TMP_Text countdownText;
         [SerializeField, Tooltip("Old plain timer: hidden, the paper HUD shows the time.")]
         private TMP_Text timerText;
@@ -36,9 +41,6 @@ namespace UnCredibles.Minigames
         private readonly List<PlayerBadge> badges = new List<PlayerBadge>(PlayerRegistry.MaxPlayers);
         private readonly int[] shownScores = new int[PlayerRegistry.MaxPlayers]; // same order as badges
         private WaitForSeconds hideStartLabel;
-        private Canvas hud;
-        private Image timerPill;
-        private TMP_Text timerLabel;
         private int shownSeconds = int.MaxValue;
         private bool urgentShown;
         private int placedWidth;
@@ -56,7 +58,8 @@ namespace UnCredibles.Minigames
             SetActive(scoreText, false);
             if (resultsPanel != null) resultsPanel.SetActive(false);
             StyleSceneTexts();
-            BuildHud();
+            // Hidden until the first time arrives (minigames without a time limit never show it).
+            timerPill.gameObject.SetActive(false);
         }
 
         protected virtual void OnEnable()
@@ -161,19 +164,6 @@ namespace UnCredibles.Minigames
             else if (state == MinigameState.Results) timerPill.gameObject.SetActive(false);
         }
 
-        // Timer pill, top centre. Hidden until the first time arrives (minigames without a time limit never show it).
-        private void BuildHud()
-        {
-            hud = PaperUI.Canvas("Paper HUD", transform, 10); // under the rules card (50)
-            timerPill = PaperUI.Pill("Timer", hud.transform, PaperUI.TimerTeal, PillHeight);
-            PaperUI.Place(timerPill.rectTransform, new Vector2(.5f, 1f), new Vector2(0f, -24f), new Vector2(180f, PillHeight));
-            timerPill.rectTransform.pivot = new Vector2(.5f, .5f); // beats around its centre
-            timerPill.rectTransform.anchoredPosition = new Vector2(0f, -24f - PillHeight * .5f);
-            timerLabel = PaperUI.Text("Seconds", timerPill.transform, titleFont, 62f, PaperUI.Paper, TextAlignmentOptions.Center);
-            PaperUI.Stretch(timerLabel.rectTransform);
-            timerPill.gameObject.SetActive(false);
-        }
-
         private void BuildBadges()
         {
             if (badges.Count > 0 || controller == null) return;
@@ -183,8 +173,8 @@ namespace UnCredibles.Minigames
                 controller.GetHudPlacement(player.SlotIndex, out var corner, out var margin);
                 bool left = corner.x < .5f;
                 // Tilt away from the edge; tape on the top-left and bottom-right badges only.
-                var badge = PlayerBadge.Create(hud.transform, player, corner, margin, titleFont, icon,
-                    left ? 1.5f : -1.5f, left == (corner.y > .5f));
+                var badge = Instantiate(badgePrefab, hud);
+                badge.Setup(player, corner, margin, icon, left ? 1.5f : -1.5f, left == (corner.y > .5f));
                 shownScores[badges.Count] = controller.Score != null ? controller.Score.GetScore(player.PlayerId) : 0;
                 badge.SetScore(shownScores[badges.Count], false);
                 badges.Add(badge);

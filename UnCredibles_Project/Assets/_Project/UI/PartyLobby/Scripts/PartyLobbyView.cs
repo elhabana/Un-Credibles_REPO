@@ -22,97 +22,46 @@ namespace UnCredibles.UI.PartyLobby
         [Header("BatPad")]
         [SerializeField] private RawImage batPadQr;
         [SerializeField] private TMP_Text batPadText;
+        [SerializeField] private TMP_Text addPlayerCallout; // blinking "another player? gamepad or QR" above the QR
+        // The small QR is replaced by a "connect with your phone" button that opens it big.
+        [Header("Phone QR")]
+        [SerializeField] private Button phoneButton;
+        [SerializeField] private TMP_Text phoneButtonLabel;
+        [SerializeField] private GameObject phoneOverlay;
+        [SerializeField] private RawImage bigQr;
+        [SerializeField] private TMP_Text phoneScanText;
+        [SerializeField] private Button phoneClose;
+        [SerializeField] private TMP_Text phoneCloseLabel;
+        // Art bible look: title on a taped label, the room code in a turquoise pill.
+        [Header("Title")]
+        [SerializeField] private RectTransform titleLabel;
+        [SerializeField] private Image codePill;
+        [SerializeField] private TMP_Text codeText;
 
         private const float CalloutBlinkSpeed = 2.5f;
 
         private bool locked;
         private Texture2D batPadQrTexture;
-        private TMP_Text addPlayerCallout; // blinking "another player? gamepad or QR" above the QR
-        // The small QR is replaced by a "connect with your phone" button that opens it big.
-        private Button phoneButton;
-        private GameObject phoneOverlay;
-        private RawImage bigQr;
-        private TMP_Text phoneButtonLabel, phoneScanText, phoneCloseLabel;
-        private Button phoneClose;
-        // Art bible look (ApplyArt): title on a taped label, the room code in a turquoise pill.
-        private TMP_FontAsset titleFont;
-        private bool artRequested;
-        private RectTransform titleLabel;
-        private Image codePill;
-        private TMP_Text codeText;
         private Vector2 titleCenter;
 
         private void Awake()
         {
             for (int i = 0; i < slotViews.Length; i++) slotViews[i].Setup(i);
             countdownText.gameObject.SetActive(false);
-            CreateAddPlayerCallout();
-            CreatePhonePanel();
-            if (artRequested) Style();
+            titleCenter = titleLabel.anchoredPosition; // baked where the title sits; LayoutTitle moves it
+            addPlayerCallout.text = L10n.Get(L10n.UI, "lobby.add_player");
+            addPlayerCallout.gameObject.SetActive(false);
+            phoneButton.onClick.AddListener(() =>
+            {
+                phoneOverlay.transform.SetAsLastSibling(); // above the cards and the outfit arrows
+                phoneOverlay.SetActive(true);
+            });
+            phoneClose.onClick.AddListener(() => phoneOverlay.SetActive(false));
+            batPadQr.gameObject.SetActive(false);
+            phoneButton.gameObject.SetActive(false);
+            phoneOverlay.SetActive(false);
+            SetPhoneTexts();
             RenderBatPad();
-        }
-
-        // Called by GarageFrontend with Bangers; styles now, or at Awake if the lobby has not woken up yet.
-        public void ApplyArt(TMP_FontAsset font)
-        {
-            titleFont = font;
-            artRequested = true;
-            if (addPlayerCallout != null) Style();
-        }
-
-#if UNITY_EDITOR
-        // Edit-mode preview only, on GarageMenuPreview's hidden throwaway copy of the canvas: the runtime look
-        // with four empty local slots (no controller, BatPad or players outside Play).
-        public void BuildPreview(TMP_FontAsset font)
-        {
-            Awake();
-            ApplyArt(font);
-            for (int i = 0; i < slotViews.Length; i++) slotViews[i].Render(default, true, false, false, false);
-        }
-#endif
-
-        private void Style()
-        {
-            artRequested = false;
-            foreach (var view in slotViews) view.ApplyArt(titleFont);
-            var parent = modeText.transform.parent;
-
-            titleCenter = modeText.rectTransform.anchoredPosition;
-            var label = PaperUI.Panel("Title label", parent, Color.white, -1.5f, true);
-            label.transform.SetSiblingIndex(modeText.transform.GetSiblingIndex());
-            titleLabel = label.rectTransform;
-            PaperUI.Place(titleLabel, modeText.rectTransform.anchorMin, titleCenter, new Vector2(500f, 84f));
-            SignButton.Text(modeText, titleFont, PaperUI.Ink, false);
-            modeText.enableAutoSizing = true;
-            modeText.fontSizeMin = 24f;
-            modeText.fontSizeMax = 52f;
-            modeText.rectTransform.localEulerAngles = new Vector3(0f, 0f, -1.5f);
-
-            codePill = PaperUI.Pill("Room code", parent, PaperUI.TimerTeal, 68f);
-            codePill.rectTransform.localEulerAngles = new Vector3(0f, 0f, 2f);
-            codeText = PaperUI.Text("Code", codePill.transform, titleFont, 44f, PaperUI.Paper, TextAlignmentOptions.Center);
-            PaperUI.Stretch(codeText.rectTransform, 6f);
-            codePill.gameObject.SetActive(false);
-
-            // Controls footer on a paper pill, one line per hint.
-            var hintRect = hintText.rectTransform;
-            var footer = PaperUI.Pill("Controls", parent, PaperUI.Paper, 84f);
-            footer.transform.SetSiblingIndex(hintText.transform.GetSiblingIndex());
-            PaperUI.Place(footer.rectTransform, hintRect.anchorMin, hintRect.anchoredPosition, new Vector2(hintRect.sizeDelta.x + 40f, 84f));
-            SignButton.Text(hintText, titleFont, PaperUI.Ink, false);
-            hintText.fontSizeMax = hintText.fontSize;
-            hintText.fontSizeMin = 14f;
-            hintText.enableAutoSizing = true;
-            hintRect.sizeDelta = new Vector2(hintRect.sizeDelta.x - 40f, 74f);
-
-            SignButton.Text(countdownText, titleFont, PaperUI.Paper, true);
-            SignButton.Text(addPlayerCallout, titleFont, SignButton.Mustard, true);
-            SignButton.Text(batPadText, titleFont, PaperUI.Paper, true);
-            SignButton.Text(phoneScanText, titleFont, PaperUI.Paper, false);
-            SignButton.Pill(backButton, titleFont, SignButton.Brick, PaperUI.Paper, -1.5f);
-            SignButton.Pill(phoneButton, titleFont, SignButton.SofaBlue, PaperUI.Paper, 1.5f);
-            SignButton.Pill(phoneClose, titleFont, PaperUI.Ink, PaperUI.Paper);
-            if (controller.Players != null) RenderAll();
         }
 
         // Label sized to the title, the code pill right after it; the pair centred where the title was.
@@ -128,35 +77,15 @@ namespace UnCredibles.UI.PartyLobby
             modeText.rectTransform.anchoredPosition = labelCenter;
             modeText.rectTransform.sizeDelta = new Vector2(labelWidth - 40f, 64f);
             codePill.gameObject.SetActive(withCode);
-            if (withCode)
-                PaperUI.Place(codePill.rectTransform, titleLabel.anchorMin,
-                    titleCenter + new Vector2((total - pillWidth) * .5f, 0f), new Vector2(pillWidth, 68f));
+            if (!withCode) return;
+            codePill.rectTransform.anchoredPosition = titleCenter + new Vector2((total - pillWidth) * .5f, 0f);
+            codePill.rectTransform.sizeDelta = new Vector2(pillWidth, 68f);
         }
 
         private void Update()
         {
             if (!addPlayerCallout.gameObject.activeSelf) return;
             addPlayerCallout.alpha = Mathf.Lerp(0.35f, 1f, Mathf.PingPong(Time.unscaledTime * CalloutBlinkSpeed, 1f));
-        }
-
-        // Built from the QR caption at runtime so the shared lobby scene does not need a new object.
-        private void CreateAddPlayerCallout()
-        {
-            addPlayerCallout = Instantiate(batPadText, batPadText.transform.parent);
-            addPlayerCallout.name = "Add Player Callout";
-            var qrRect = (RectTransform)batPadQr.transform;
-            var rect = addPlayerCallout.rectTransform;
-            rect.anchorMin = rect.anchorMax = qrRect.anchorMin;
-            // Three short lines (question, gamepad, QR) read the same in every language and stay
-            // narrow enough not to leave the screen next to the QR.
-            rect.sizeDelta = new Vector2(340f, 120f);
-            rect.anchoredPosition = qrRect.anchoredPosition + new Vector2(0f, (qrRect.sizeDelta.y + rect.sizeDelta.y) * 0.5f + 8f);
-            addPlayerCallout.fontSize = batPadText.fontSize * 1.2f;
-            addPlayerCallout.lineSpacing = -10f;
-            addPlayerCallout.fontStyle = FontStyles.Bold | FontStyles.UpperCase;
-            addPlayerCallout.alignment = TextAlignmentOptions.Center;
-            addPlayerCallout.text = L10n.Get(L10n.UI, "lobby.add_player");
-            addPlayerCallout.gameObject.SetActive(false);
         }
 
         // Only while someone can still join here: the QR is up, a slot is free and the match is not starting.
@@ -166,76 +95,6 @@ namespace UnCredibles.UI.PartyLobby
             addPlayerCallout.gameObject.SetActive(show);
             phoneButton.gameObject.SetActive(show);
             if (!show) phoneOverlay.SetActive(false);
-        }
-
-        // Built at runtime, like the callout: a button where the small QR was, and a dark panel
-        // with the QR big enough to scan from the sofa.
-        private void CreatePhonePanel()
-        {
-            var parent = batPadQr.transform.parent;
-            var qrRect = (RectTransform)batPadQr.transform;
-
-            phoneButton = PlainButton(parent, out phoneButtonLabel, 24f);
-            var buttonRect = (RectTransform)phoneButton.transform;
-            buttonRect.anchorMin = buttonRect.anchorMax = qrRect.anchorMin;
-            buttonRect.sizeDelta = new Vector2(330f, 76f);
-            buttonRect.anchoredPosition = qrRect.anchoredPosition + new Vector2(-50f, 0f); // its text fits on screen
-            phoneButton.onClick.AddListener(() =>
-            {
-                phoneOverlay.transform.SetAsLastSibling(); // above the cards and the outfit arrows
-                phoneOverlay.SetActive(true);
-            });
-
-            phoneOverlay = new GameObject("Phone QR Panel", typeof(RectTransform), typeof(Image));
-            var overlay = (RectTransform)phoneOverlay.transform;
-            overlay.SetParent(parent, false);
-            overlay.anchorMin = Vector2.zero; overlay.anchorMax = Vector2.one;
-            overlay.offsetMin = overlay.offsetMax = Vector2.zero;
-            phoneOverlay.GetComponent<Image>().color = new Color(0f, 0f, 0f, .9f); // also blocks clicks behind
-
-            bigQr = new GameObject("Big QR", typeof(RectTransform), typeof(RawImage)).GetComponent<RawImage>();
-            bigQr.rectTransform.SetParent(overlay, false);
-            bigQr.rectTransform.sizeDelta = new Vector2(560f, 560f);
-            bigQr.rectTransform.anchoredPosition = new Vector2(0f, 40f);
-
-            phoneScanText = Instantiate(batPadText, overlay);
-            phoneScanText.gameObject.SetActive(true);
-            phoneScanText.rectTransform.anchorMin = phoneScanText.rectTransform.anchorMax = new Vector2(.5f, .5f);
-            phoneScanText.rectTransform.sizeDelta = new Vector2(1500f, 60f);
-            phoneScanText.rectTransform.anchoredPosition = new Vector2(0f, 370f);
-            phoneScanText.fontSize = 32f;
-            phoneScanText.textWrappingMode = TextWrappingModes.NoWrap;
-            phoneScanText.alignment = TextAlignmentOptions.Center;
-
-            var close = phoneClose = PlainButton(overlay, out phoneCloseLabel, 28f);
-            var closeRect = (RectTransform)close.transform;
-            closeRect.anchorMin = closeRect.anchorMax = new Vector2(.5f, .5f);
-            closeRect.sizeDelta = new Vector2(280f, 70f);
-            closeRect.anchoredPosition = new Vector2(0f, -300f);
-            close.onClick.AddListener(() => phoneOverlay.SetActive(false));
-
-            batPadQr.gameObject.SetActive(false);
-            phoneButton.gameObject.SetActive(false);
-            phoneOverlay.SetActive(false);
-            SetPhoneTexts();
-        }
-
-        // Same look as the lobby buttons, with a plain label (the copied one is translated
-        // to its own text).
-        private Button PlainButton(Transform parent, out TMP_Text label, float fontSize)
-        {
-            var button = Instantiate(backButton, parent);
-            button.onClick = new Button.ButtonClickedEvent();
-            // Immediate: Style may run in this same frame and must find the new label, not the old one (and edit mode has no Destroy).
-            foreach (var old in button.GetComponentsInChildren<TMP_Text>(true)) DestroyImmediate(old.gameObject);
-            label = Instantiate(batPadText, button.transform);
-            label.gameObject.SetActive(true);
-            label.rectTransform.anchorMin = Vector2.zero; label.rectTransform.anchorMax = Vector2.one;
-            label.rectTransform.offsetMin = label.rectTransform.offsetMax = Vector2.zero;
-            label.fontSize = fontSize;
-            label.fontStyle = FontStyles.Bold;
-            label.alignment = TextAlignmentOptions.Center;
-            return button;
         }
 
         private void SetPhoneTexts()
@@ -353,11 +212,6 @@ namespace UnCredibles.UI.PartyLobby
             string mode = controller.IsOnline
                 ? L10n.Format(L10n.UI, "lobby.mode_multi", occupied, controller.RoomCode)
                 : L10n.Get(L10n.UI, "lobby.mode_single");
-            if (codePill == null)
-            {
-                modeText.text = mode;
-                return;
-            }
             // shortcut: the code pill splits "MULTIJUGADOR n/4 | CODIGO: X" at the bar; a translation without
             // a bar stays whole on the label. Give the code its own key if that ever happens.
             int bar = controller.IsOnline ? mode.IndexOf('|') : -1;

@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
@@ -10,48 +11,23 @@ using UnCredibles.Localization;
 
 namespace UnCredibles.UI.Voting
 {
-    // A screen-space route map over the garage, drawn with the art bible's paper kit (PaperUI): a taped
-    // title label, the turquoise timer pill, the 3 stops of the route as small paper cards and every
-    // candidate as a tilted polaroid. The Core owns the ballot and its result; this only shows it, so
-    // online clients see the same through MatchVote.Changed.
+    // A screen-space route map over the garage (PF_MapVote, in SCN_MainMenu), drawn with the art bible's paper
+    // kit: a taped title label, the turquoise timer pill, the 3 stops of the route as small paper cards and every
+    // candidate as a tilted polaroid (PF_VoteCard). The Core owns the ballot and its result; this only shows it,
+    // so online clients see the same through MatchVote.Changed.
     public sealed class MapVoteView : MonoBehaviour
     {
-        private static readonly Color Backdrop = new Color(.114f, .114f, .106f, .85f); // see-through ink
         private static readonly Color FadedPaper = new Color(.957f, .922f, .867f, .55f);
         private static readonly Color FadedInk = new Color(.114f, .114f, .106f, .45f);
         private static readonly Color Dimmed = new Color(.62f, .62f, .6f);
         private static readonly Color EmptyPhoto = new Color(.114f, .114f, .106f, .12f);
-        private static readonly Vector2 Middle = new Vector2(.5f, .5f);
         private const int UrgentSeconds = 3;
-        private static readonly Vector2 CardTopAnchor = new Vector2(.5f, 1f);
-        // Polaroid, top to bottom: inset, photo (16:9), name, status, player discs, wider bottom margin.
         private const float CardTop = 90f;        // top edge of the cards, under the route
-        private const float PhotoInset = 14f;
-        private const float NameHeight = 52f;
-        private const float StatusHeight = 30f;
-        private const float BottomMargin = 34f;   // room for the vote stamp under the discs
-        private const float StopWidth = 420f;
-        private const float StopStep = 480f;
-        private const float BadgeSize = 56f;
         private const float BadgeGap = 10f;
         private const float StampSeconds = .15f;
 
-        // Bangers; set by GarageFrontend right after adding this component (falls back to TMP's default).
-        public TMP_FontAsset TitleFont { get; set; }
-
-        private CoreRoot core;
-        private GameObject root;
-        private TMP_Text heading;
-        private Image timerPill;
-        private TMP_Text timer;
-        private TMP_Text hint;
-        private readonly Stop[] stops = new Stop[MatchVote.VotedRounds];
-        private readonly List<Card> cards = new List<Card>();
-        private int renderedCandidateCount = -1;
-        private int shownSeconds = -1;
-        private int shownRound = -1;
-
-        private sealed class Stop
+        [Serializable]
+        internal sealed class Stop
         {
             public Image panel;
             public Image disc;
@@ -59,26 +35,22 @@ namespace UnCredibles.UI.Voting
             public TMP_Text label;
         }
 
-        private sealed class Card
-        {
-            public Image background;
-            public Image thumbnail;
-            public TMP_Text title;
-            public TMP_Text footer;
-            public GameObject inRoute;
-            public Button button;
-            public float badgeY; // centre of the disc row, from the card's top edge
-            public readonly Badge[] badges = new Badge[PlayerRegistry.MaxPlayers];
-        }
+        [Tooltip("The vote canvas; this object stays active to follow the game state and shows it only while voting.")]
+        [SerializeField] internal GameObject root;
+        [SerializeField] internal TMP_Text heading;
+        [SerializeField] internal Image timerPill;
+        [SerializeField] internal TMP_Text timer;
+        [SerializeField] internal TMP_Text hint;
+        [SerializeField] internal Stop[] stops = new Stop[MatchVote.VotedRounds];
+        [Tooltip("Parent of the polaroids, stretched over the canvas: they are placed from its centre.")]
+        [SerializeField] internal RectTransform cardContainer;
+        [SerializeField] internal VoteCard cardPrefab;
 
-        private sealed class Badge
-        {
-            public Image disc;
-            public TMP_Text label;
-            public RectTransform stamp;
-            public bool voted;
-            public float stampTime = -1f;
-        }
+        private CoreRoot core;
+        private readonly List<VoteCard> cards = new List<VoteCard>();
+        private int renderedCandidateCount = -1;
+        private int shownSeconds = -1;
+        private int shownRound = -1;
 
         private readonly bool[] votedBy = new bool[PlayerRegistry.MaxPlayers];
         private readonly bool[] hoveredBy = new bool[PlayerRegistry.MaxPlayers];
@@ -90,7 +62,8 @@ namespace UnCredibles.UI.Voting
         {
             while (CoreRoot.Instance == null) yield return null;
             core = CoreRoot.Instance;
-            Build();
+            for (int i = 0; i < shownCursor.Length; i++) shownCursor[i] = shownVote[i] = -1;
+            hint.text = L10n.Get(L10n.UI, "vote.hint");
             core.GameFlow.StateChanged += OnStateChanged;
             core.Vote.Changed += Render;
             L10n.LanguageChanged += HandleLanguageChanged;
@@ -134,70 +107,13 @@ namespace UnCredibles.UI.Voting
             if (current == GameState.Voting) Render();
         }
 
-        private void Build()
-        {
-            for (int i = 0; i < shownCursor.Length; i++) shownCursor[i] = shownVote[i] = -1;
-            var canvas = PaperUI.Canvas("Mapa de votacion", transform, 200);
-            root = canvas.gameObject;
-            root.AddComponent<GraphicRaycaster>(); // the cards take mouse clicks
-
-            var backdrop = new GameObject("Fondo", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
-            backdrop.transform.SetParent(root.transform, false);
-            backdrop.color = Backdrop;
-            backdrop.raycastTarget = false;
-            PaperUI.Stretch(backdrop.rectTransform);
-
-            var label = PaperUI.Panel("Titulo", root.transform, PaperUI.Paper, -1.5f, true);
-            Place(label.rectTransform, 0f, 440f, 1150f, 110f);
-            heading = Label("Texto", label.transform, TitleFont, 76f, 40f, PaperUI.Ink);
-            PaperUI.Stretch(heading.rectTransform, 14f);
-
-            timerPill = PaperUI.Pill("Tiempo", root.transform, PaperUI.TimerTeal, 72f);
-            Place(timerPill.rectTransform, 0f, 330f, 210f, 72f);
-            timer = Label("Texto", timerPill.transform, TitleFont, 56f, 30f, PaperUI.Paper);
-            PaperUI.Stretch(timer.rectTransform, 6f);
-
-            // The road joins the 3 stops; drawn first so the cards sit on it.
-            var road = new GameObject("Camino", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
-            road.transform.SetParent(root.transform, false);
-            road.color = PaperUI.Ink;
-            road.raycastTarget = false;
-            Place(road.rectTransform, 0f, 222f, StopStep * 2f, 8f);
-            for (int i = 0; i < stops.Length; i++) stops[i] = CreateStop(i);
-
-            var footer = PaperUI.Pill("Instrucciones", root.transform, PaperUI.Paper, 60f);
-            Place(footer.rectTransform, 0f, -478f, 1560f, 60f);
-            hint = Label("Texto", footer.transform, TitleFont, 30f, 16f, PaperUI.Ink);
-            PaperUI.Stretch(hint.rectTransform, 10f);
-            hint.rectTransform.offsetMin = new Vector2(30f, 6f);
-            hint.rectTransform.offsetMax = new Vector2(-30f, -6f);
-            hint.text = L10n.Get(L10n.UI, "vote.hint");
-            root.SetActive(false);
-        }
-
-        private Stop CreateStop(int index)
-        {
-            var stop = new Stop();
-            stop.panel = PaperUI.Panel("Parada " + (index + 1), root.transform, PaperUI.Paper, index % 2 == 0 ? -1.5f : 1.5f);
-            Place(stop.panel.rectTransform, (index - 1) * StopStep, 222f, StopWidth, 90f);
-            stop.disc = PaperUI.Disc("Numero", stop.panel.transform, PaperUI.Ink);
-            PaperUI.Place(stop.disc.rectTransform, new Vector2(0f, .5f), new Vector2(14f, 0f), new Vector2(62f, 62f));
-            stop.number = Label("Texto", stop.disc.transform, TitleFont, 38f, 20f, PaperUI.Paper);
-            PaperUI.Stretch(stop.number.rectTransform);
-            stop.number.text = (index + 1).ToString();
-            stop.label = Label("Nombre", stop.panel.transform, TitleFont, 34f, 18f, PaperUI.Ink);
-            PaperUI.Stretch(stop.label.rectTransform, 10f);
-            stop.label.rectTransform.offsetMin = new Vector2(88f, 10f);
-            return stop;
-        }
-
         private void Render()
         {
             if (root == null || core == null || core.GameFlow.State != GameState.Voting) return;
             var candidates = core.Vote.Candidates;
             if (renderedCandidateCount != candidates.Count)
             {
-                foreach (var card in cards) Destroy(card.background.gameObject);
+                foreach (var card in cards) Destroy(card.gameObject);
                 cards.Clear();
                 renderedCandidateCount = candidates.Count;
                 for (int i = 0; i < candidates.Count; i++) cards.Add(CreateCard(i, candidates[i], candidates.Count));
@@ -300,24 +216,29 @@ namespace UnCredibles.UI.Voting
             return 0;
         }
 
-        // Polaroid: white frame, the thumbnail as the photo, the name written on the bottom margin.
-        private Card CreateCard(int index, MinigameData data, int count)
+        // One PF_VoteCard per candidate, sized to share the row and tilted alternately.
+        private VoteCard CreateCard(int index, MinigameData data, int count)
         {
-            var card = new Card();
+            var card = Instantiate(cardPrefab, cardContainer);
+            card.name = "Destino " + data.DisplayName;
             float width = Mathf.Min(365f, 1540f / Mathf.Max(1, count) - 14f);
-            float photoWidth = width - PhotoInset * 2f;
-            float photoHeight = photoWidth * 9f / 16f;
-            // Height fits the content (y = distance from the card's top edge to each row's centre).
-            float nameY = PhotoInset + photoHeight + NameHeight * .5f;
-            float statusY = nameY + (NameHeight + StatusHeight) * .5f;
-            card.badgeY = statusY + StatusHeight * .5f + 4f + BadgeSize * .5f;
-            float height = card.badgeY + BadgeSize * .5f + BottomMargin;
+            float height = card.Layout(width);
+            var rect = card.background.rectTransform;
+            rect.anchoredPosition = new Vector2((index - (count - 1) * .5f) * (width + 22f), CardTop - height * .5f);
+            rect.localEulerAngles = new Vector3(0f, 0f, index % 2 == 0 ? -2.5f : 2f);
 
-            float tilt = index % 2 == 0 ? -2.5f : 2f;
-            card.background = PaperUI.Panel("Destino " + data.DisplayName, root.transform, Color.white, tilt, true);
-            card.background.raycastTarget = true;
-            Place(card.background.rectTransform, (index - (count - 1) * .5f) * (width + 22f), CardTop - height * .5f, width, height);
-            card.button = card.background.gameObject.AddComponent<Button>();
+            card.thumbnail.sprite = data.Thumbnail;
+            card.title.text = MinigameName(data);
+            card.routeLabel.text = L10n.Get(L10n.UI, "vote.in_route");
+            for (int slot = 0; slot < card.badges.Length; slot++)
+            {
+                var badge = card.badges[slot];
+                badge.label.text = PlayerIdentity.LabelFor(slot);
+                badge.stampLabel.text = L10n.Get(L10n.UI, "vote.voted");
+                badge.voted = false;
+                badge.stampTime = -1f;
+            }
+
             int selectedIndex = index;
             card.button.onClick.AddListener(() =>
             {
@@ -330,72 +251,13 @@ namespace UnCredibles.UI.Voting
                 }
                 if (voter != null) core.Vote.Cast(voter.PlayerId, selectedIndex);
             });
-
-            card.thumbnail = new GameObject("Miniatura", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
-            card.thumbnail.transform.SetParent(card.background.transform, false);
-            card.thumbnail.raycastTarget = false;
-            card.thumbnail.preserveAspect = true;
-            card.thumbnail.sprite = data.Thumbnail;
-            PlaceFromTop(card.thumbnail.rectTransform, 0f, PhotoInset + photoHeight * .5f, photoWidth, photoHeight);
-
-            card.title = Label("Nombre", card.background.transform, TitleFont, 46f, 24f, PaperUI.Ink);
-            card.title.text = MinigameName(data);
-            PlaceFromTop(card.title.rectTransform, 0f, nameY, width - 30f, NameHeight);
-            card.footer = Label("Votos", card.background.transform, TitleFont, 28f, 16f, PaperUI.TimerTeal);
-            PlaceFromTop(card.footer.rectTransform, 0f, statusY, width - 30f, StatusHeight);
-
-            for (int slot = 0; slot < card.badges.Length; slot++)
-                card.badges[slot] = CreateBadge(card.background.transform, slot, card.badgeY);
-            card.inRoute = CreateInRouteStamp(card.background.transform, width, height);
             return card;
         }
 
-        // "EN LA RUTA": an ink line crossing the photo out and a red rubber stamp over it.
-        private GameObject CreateInRouteStamp(Transform parent, float width, float height)
-        {
-            var group = new GameObject("En la ruta", typeof(RectTransform));
-            group.transform.SetParent(parent, false);
-            PaperUI.Stretch((RectTransform)group.transform);
-            var strike = new GameObject("Tachon", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
-            strike.transform.SetParent(group.transform, false);
-            strike.color = PaperUI.Ink;
-            strike.raycastTarget = false;
-            Place(strike.rectTransform, 0f, 0f, Mathf.Sqrt(width * width + height * height) - 20f, 10f);
-            strike.rectTransform.localEulerAngles = new Vector3(0f, 0f, Mathf.Atan2(height, width) * Mathf.Rad2Deg);
-            var stamp = PaperUI.Pill("Sello", group.transform, PaperUI.Alarm, 72f);
-            Place(stamp.rectTransform, 0f, 30f, width - 20f, 72f);
-            stamp.rectTransform.localEulerAngles = new Vector3(0f, 0f, -16f);
-            var label = Label("Texto", stamp.transform, TitleFont, 48f, 24f, PaperUI.Paper);
-            PaperUI.Stretch(label.rectTransform, 8f);
-            label.text = L10n.Get(L10n.UI, "vote.in_route");
-            group.SetActive(false);
-            return group;
-        }
-
-        // Player disc with the tag ("J1"); a confirmed vote also gets a small red stamp.
-        private Badge CreateBadge(Transform parent, int slotIndex, float y)
-        {
-            var badge = new Badge();
-            badge.disc = PaperUI.Disc("Ficha P" + (slotIndex + 1), parent, PlayerIdentity.ColorFor(slotIndex));
-            PlaceFromTop(badge.disc.rectTransform, 0f, y, BadgeSize, BadgeSize);
-            badge.label = Label("Texto", badge.disc.transform, TitleFont, 30f, 16f, PaperUI.Ink);
-            PaperUI.Stretch(badge.label.rectTransform, 4f);
-            badge.label.text = PlayerIdentity.LabelFor(slotIndex);
-            var stamp = PaperUI.Pill("Sello", badge.disc.transform, PaperUI.Alarm, 26f);
-            badge.stamp = stamp.rectTransform;
-            Place(badge.stamp, 0f, -30f, 96f, 26f);
-            badge.stamp.localEulerAngles = new Vector3(0f, 0f, -12f);
-            var stampLabel = Label("Texto", badge.stamp, TitleFont, 20f, 10f, PaperUI.Paper);
-            PaperUI.Stretch(stampLabel.rectTransform, 2f);
-            stampLabel.text = L10n.Get(L10n.UI, "vote.voted");
-            badge.stamp.gameObject.SetActive(false);
-            badge.disc.gameObject.SetActive(false);
-            return badge;
-        }
-
         // Confirmed votes are solid discs with a stamp; a local player only pointing at the card gets a faded disc.
-        private void LayoutBadges(Card card)
+        private void LayoutBadges(VoteCard card)
         {
+            const float BadgeSize = VoteCard.BadgeSize;
             int visible = 0;
             for (int i = 0; i < card.badges.Length; i++)
                 if (votedBy[i] || hoveredBy[i]) visible++;
@@ -418,7 +280,7 @@ namespace UnCredibles.UI.Voting
                 if (!voted) color.a = .45f;
                 badge.disc.color = color;
                 badge.label.color = voted ? PaperUI.Ink : FadedInk;
-                badge.disc.rectTransform.anchoredPosition = new Vector2(x, -card.badgeY);
+                badge.disc.rectTransform.anchoredPosition = new Vector2(x, -card.BadgeY);
                 x += BadgeSize + BadgeGap;
             }
         }
@@ -448,26 +310,6 @@ namespace UnCredibles.UI.Voting
             string key = "name." + data.Id;
             string text = L10n.Get(L10n.Minigames, key);
             return text == key ? data.DisplayName : text;
-        }
-
-        // Centred, auto-sized label of the paper kit.
-        private static TMP_Text Label(string name, Transform parent, TMP_FontAsset font, float size, float min, Color color)
-        {
-            var label = PaperUI.Text(name, parent, font, size, color, TextAlignmentOptions.Center);
-            label.enableAutoSizing = true;
-            label.fontSizeMin = min;
-            label.fontSizeMax = size;
-            return label;
-        }
-
-        private static void Place(RectTransform rect, float x, float y, float width, float height) =>
-            PaperUI.Place(rect, Middle, new Vector2(x, y), new Vector2(width, height));
-
-        // Centred on a point y below the parent's top edge (cards grow to fit, so their rows hang from the top).
-        private static void PlaceFromTop(RectTransform rect, float x, float y, float width, float height)
-        {
-            PaperUI.Place(rect, CardTopAnchor, new Vector2(x, -y), new Vector2(width, height));
-            rect.pivot = Middle;
         }
 
         private static bool Contains(IReadOnlyList<MinigameData> list, MinigameData data)

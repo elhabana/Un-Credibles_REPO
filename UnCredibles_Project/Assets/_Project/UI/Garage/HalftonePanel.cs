@@ -10,22 +10,19 @@ namespace UnCredibles.UI.Garage
     public sealed class HalftonePanel : MaskableGraphic
     {
         private const int DotTexture = 32;
-        private const float DotRadius = 9f;    // texels; centre + corner dots make a 45 degree grid when tiled
-        private const float DotShade = .82f;   // a dot is the fill colour times this
         private const float Feather = 1.5f;    // soft edge so the diagonal does not stair-step
         private static readonly Vector2 BlankUv = new Vector2(8.5f / DotTexture, 8.5f / DotTexture);
         private static readonly Color ShadowColor = new Color(.114f, .114f, .106f, .45f);
-        private static Texture2D dots;
 
-        [SerializeField] private float topEdge = 290f;    // x of the diagonal at the top, from the rect's left
-        [SerializeField] private float bottomEdge = 440f; // x of the diagonal at the bottom
+        [SerializeField] private Texture2D dots;          // T_UI_HalftoneDots
+        [SerializeField] private float topEdge = 440f;    // x of the diagonal at the top, from the rect's left
+        [SerializeField] private float bottomEdge = 290f; // x of the diagonal at the bottom
         [SerializeField] private float dotSpacing = 20f;  // canvas units per texture tile
         [SerializeField] private float inkWidth = 6f;
         [SerializeField] private float shadowWidth = 12f;
         [SerializeField] private float bleed = 200f;      // drawn past the left edge: the intro slide overshoots
 
-        // Unity null check: rebuilt if something destroyed it.
-        public override Texture mainTexture => dots != null ? dots : dots = BuildDots();
+        public override Texture mainTexture => dots != null ? dots : s_WhiteTexture;
 
         protected override void OnPopulateMesh(VertexHelper vh)
         {
@@ -64,31 +61,5 @@ namespace UnCredibles.UI.Garage
 
         private void Vertex(VertexHelper vh, float x, float y, Color tint, bool tiled) =>
             vh.AddVert(new Vector3(x, y), tint, tiled ? new Vector2(x, y) / dotSpacing : BlankUv);
-
-        // White tile with a grey dot in the centre and a quarter dot in each corner, antialiased over one texel.
-        private static Texture2D BuildDots()
-        {
-            var texture = new Texture2D(DotTexture, DotTexture, TextureFormat.RGBA32, false)
-            {
-                name = "Halftone dots",
-                hideFlags = HideFlags.DontSave,
-                wrapMode = TextureWrapMode.Repeat,
-                filterMode = FilterMode.Bilinear,
-            };
-            var pixels = new Color32[DotTexture * DotTexture];
-            float half = DotTexture * .5f;
-            for (int y = 0; y < DotTexture; y++)
-            for (int x = 0; x < DotTexture; x++)
-            {
-                float px = x + .5f, py = y + .5f;
-                float centre = new Vector2(px - half, py - half).magnitude;
-                float corner = new Vector2(Mathf.Min(px, DotTexture - px), Mathf.Min(py, DotTexture - py)).magnitude;
-                float v = Mathf.Lerp(DotShade, 1f, Mathf.Clamp01(Mathf.Min(centre, corner) - DotRadius + .5f));
-                pixels[y * DotTexture + x] = new Color(v, v, v, 1f);
-            }
-            texture.SetPixels32(pixels);
-            texture.Apply(false, true);
-            return texture;
-        }
     }
 }

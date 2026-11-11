@@ -23,6 +23,8 @@ namespace UnCredibles.Minigames
         [SerializeField] private SpawnManager spawnManager;
         [SerializeField] private ScoreManager scoreManager;
         [SerializeField] private RoundTimer roundTimer;
+        [SerializeField, Tooltip("Rules card instance shown before the countdown (not in debug sessions).")]
+        private MinigameRulesCard rulesCard;
 
         private readonly List<PlayerSlot> players = new List<PlayerSlot>(PlayerRegistry.MaxPlayers);
         private readonly MemoryStream sendStream = new MemoryStream(1024);
@@ -98,7 +100,7 @@ namespace UnCredibles.Minigames
             OnInitialize(context);
             // The HUD shows the whole time from the start (rules card, countdown), not the scene's placeholder.
             if (roundTimer != null && data != null && data.Duration > 0f) roundTimer.Show(Mathf.CeilToInt(data.Duration));
-            if (!IsDebugSession) gameObject.AddComponent<MinigameRulesCard>().Setup(this);
+            if (!IsDebugSession) rulesCard.Setup(this);
             SetState(MinigameState.Waiting);
         }
 

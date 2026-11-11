@@ -21,6 +21,8 @@ namespace UnCredibles.Minigames.GarageMice
         [SerializeField, Tooltip("Modelled for the back and front walls; turned for the side walls.")] private Transform holePrefab;
         [SerializeField] private Transform mousePrefab;
         [SerializeField] private Transform goldenMousePrefab;
+        [SerializeField, Tooltip("Garage mice HUD instance: controls pill and countdown / results text.")]
+        private GarageMiceHud hud;
 
         private sealed class Sweeper
         {
@@ -54,7 +56,6 @@ namespace UnCredibles.Minigames.GarageMice
         private Camera arenaCamera;
         private Vector3 cameraHome;
         private float cameraShake;
-        private GarageMiceHud hud;
         private GarageMicePopups popups;
 
         protected override void OnInitialize(MinigameContext context)
@@ -67,7 +68,7 @@ namespace UnCredibles.Minigames.GarageMice
             foreach (var slot in Players) SpawnSweeper(slot);
             for (int i = 0; i < settings.MouseCount; i++) SpawnMouse(i, false);
             SpawnMouse(settings.MouseCount, true);
-            hud = gameObject.AddComponent<GarageMiceHud>();
+            hud.gameObject.SetActive(true);
             hud.Setup(this);
             popups = gameObject.AddComponent<GarageMicePopups>();
             popups.Setup(arenaCamera != null ? arenaCamera.transform : null);
@@ -599,7 +600,7 @@ namespace UnCredibles.Minigames.GarageMice
         protected override void OnExit()
         {
             if (arenaCamera != null) arenaCamera.transform.position = cameraHome;
-            if (hud != null) Destroy(hud);
+            if (hud != null) Destroy(hud.gameObject);
             if (arena != null) Destroy(arena.gameObject);
             mice.Clear();
             sweepers.Clear();

@@ -7,7 +7,6 @@ using TMPro;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Utilities;
-using UnityEngine.Localization.Components;
 
 namespace UnCredibles.UI.MainMenu
 {
@@ -24,15 +23,26 @@ namespace UnCredibles.UI.MainMenu
         [SerializeField] private Button backButton;
         [SerializeField] private TMP_InputField roomCodeInput;
         [SerializeField] private TMP_Text connectionStatus;
+        // The confirmation sheet replaces the quit button while open.
+        [Header("Quit")]
+        [SerializeField] private Button quitButton;
+        [SerializeField] private Button quitAccept;
+        [SerializeField] private Button quitCancel;
+        [SerializeField] private GameObject quitSheet;
+        [SerializeField] private TMP_Text quitTitle;
+        [Header("Title screen")]
+        [SerializeField] private TMP_Text pressStart;
+        [Tooltip("Slid in from the left after the title screen, in this order: the comic panel, then the options.")]
+        [SerializeField] private RectTransform[] introSlide;
         private bool enteringOnline;
-        private Button quitButton;
-        private Button quitAccept;
-        private Button quitCancel;
         // Title screen: only the first time the menu opens in a session, not when coming back from a party.
         private const float TitleRevealSeconds = .25f;
+        private const float RevealEdgePixels = 12f;
         private static bool titleSeen;
-        private TMP_Text pressStart;
+        private bool titleActive;
         private bool titlePressed;
+        private bool waitingForEdge;
+        private System.IDisposable titleInput;
         private float titleReveal = TitleRevealSeconds;
         private readonly System.Collections.Generic.List<GameObject> titleHidden = new System.Collections.Generic.List<GameObject>();
         // Intro after the press: the camera punches in and back, then the buttons slide in from the left.
@@ -46,209 +56,65 @@ namespace UnCredibles.UI.MainMenu
         private float slideTime = -1f;             // < 0 = not sliding
         private float slideOffset;
         private readonly System.Collections.Generic.List<float> slideTargets = new System.Collections.Generic.List<float>();
-        // Art bible look (comic panel with tabs at home, paper sheets elsewhere), applied over the scene's plain buttons by ApplyArt.
-        private const float HomePanelWidth = 440f;  // to the bottom end of its diagonal edge
-        private const float QuitShift = 60f;        // ACEPTAR / CANCELAR clear of SALIR's tab
-        private TMP_FontAsset titleFont;
-        private bool artRequested;
-        private GameObject quitSheet;
-        private TMP_Text quitTitle;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetTitle() => titleSeen = false; // also with domain reload off in the editor
 
         private void Awake()
         {
-            BuildQuit();
-            // Reuse the existing canvas and font; no separate debug overlay in the menu.
-            if (connectionStatus == null)
-            {
-                connectionStatus = Instantiate(createRoomButton.GetComponentInChildren<TMP_Text>(), multiplayerSetupPanel.transform);
-                connectionStatus.name = "Connection Status";
-                connectionStatus.raycastTarget = false;
-                var rect = connectionStatus.rectTransform;
-                rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
-                rect.pivot = new Vector2(0.5f, 0.5f);
-                rect.anchoredPosition = new Vector2(0, -110);
-                rect.sizeDelta = new Vector2(600, 80);
-                connectionStatus.fontSize = 20;
-            }
             connectionStatus.text = "";
+            ShowQuitConfirm(false);
             ShowMultiplayerSetup(false);
-            if (!titleSeen) BuildTitle();
-            if (artRequested) Style();
+            pressStart.gameObject.SetActive(false);
+            foreach (var rect in introSlide)
+                if (rect != null && rect.gameObject.activeSelf) titleHidden.Add(rect.gameObject);
+            if (!titleSeen) StartTitle();
         }
 
-        // Called by GarageFrontend with Bangers; styles now, or at Awake if this menu has not woken up yet.
-        public void ApplyArt(TMP_FontAsset font)
+        private void StartTitle()
         {
-            titleFont = font;
-            artRequested = true;
-            if (quitButton != null) Style();
-        }
-
-#if UNITY_EDITOR
-        // Edit-mode preview only, on GarageMenuPreview's hidden throwaway copy of the canvas: the look Awake and
-        // ApplyArt give at runtime, without the title screen (no input hooks outside Play).
-        public void BuildPreview(TMP_FontAsset font)
-        {
-            BuildQuit();
-            titleFont = font;
-            Style();
-        }
-#endif
-
-        private void Style()
-        {
-            artRequested = false;
-            foreach (Transform child in mainPanel.transform)
-            {
-                var button = child.GetComponent<Button>();
-                if (button == null || button == quitAccept || button == quitCancel) continue;
-                MenuTab.Apply(button, titleFont);
-            }
-            BuildHomePanel();
-            StyleQuitConfirm();
-            StyleMultiplayerSetup();
-            if (pressStart != null) SignButton.Text(pressStart, titleFont, pressStart.color, true);
-        }
-
-        // Mustard halftone panel down the left of the screen, behind the logo and the options; its diagonal
-        // edge crosses the texts. Under the title screen it waits and slides in first with the buttons.
-        private void BuildHomePanel()
-        {
-            var panel = new GameObject("Home panel", typeof(RectTransform), typeof(CanvasRenderer), typeof(HalftonePanel)).GetComponent<HalftonePanel>();
-            panel.transform.SetParent(mainPanel.transform, false);
-            panel.transform.SetAsFirstSibling();
-            panel.color = SignButton.Mustard;
-            panel.raycastTarget = false;
-            var rect = panel.rectTransform;
-            rect.anchorMin = Vector2.zero;
-            rect.anchorMax = new Vector2(0f, 1f);
-            rect.pivot = new Vector2(0f, .5f);
-            rect.anchoredPosition = Vector2.zero;
-            rect.sizeDelta = new Vector2(HomePanelWidth, 0f);
-            if (pressStart != null) titleHidden.Insert(0, panel.gameObject);
-        }
-
-        // ACEPTAR / CANCELAR as pills on a small paper sheet with an ink tab, next to SALIR.
-        private void StyleQuitConfirm()
-        {
-            var accept = (RectTransform)quitAccept.transform;
-            var cancel = (RectTransform)quitCancel.transform;
-            foreach (var rect in new[] { accept, cancel })
-            {
-                rect.anchoredPosition += new Vector2(QuitShift, 0f);
-                rect.sizeDelta -= new Vector2(16f, 16f); // a gap between them and the sheet's edge
-                var label = rect.GetComponentInChildren<TMP_Text>(true).rectTransform;
-                label.sizeDelta = new Vector2(rect.sizeDelta.x - 10f, label.sizeDelta.y);
-            }
-            SignButton.Pill(quitAccept, titleFont, SignButton.Brick, PaperUI.Paper);
-            SignButton.Pill(quitCancel, titleFont, PaperUI.Ink, PaperUI.Paper);
-
-            float left = accept.anchoredPosition.x - accept.sizeDelta.x * .5f - 8f;
-            float right = cancel.anchoredPosition.x + cancel.sizeDelta.x * .5f + 16f;
-            var sheet = PaperUI.Panel("Quit sheet", mainPanel.transform, PaperUI.Paper, 1.5f);
-            sheet.transform.SetSiblingIndex(accept.GetSiblingIndex()); // under the two buttons
-            PaperUI.Place(sheet.rectTransform, accept.anchorMin,
-                new Vector2((left + right) * .5f, accept.anchoredPosition.y + 12f), new Vector2(right - left, accept.sizeDelta.y + 56f));
-            var tab = PaperUI.Pill("Tab", sheet.transform, PaperUI.Ink, 40f);
-            PaperUI.Place(tab.rectTransform, new Vector2(0f, 1f), new Vector2(20f, 18f), new Vector2(160f, 40f));
-            quitTitle = PaperUI.Text("Label", tab.transform, titleFont, 28f, PaperUI.Paper, TextAlignmentOptions.Center);
-            PaperUI.Stretch(quitTitle.rectTransform);
-            quitSheet = sheet.gameObject;
-            quitSheet.SetActive(quitAccept.gameObject.activeSelf);
-        }
-
-        // The online panel as a paper sheet: title on a taped label, the code field as a pasted note.
-        private void StyleMultiplayerSetup()
-        {
-            var root = multiplayerSetupPanel.transform;
-            var background = root.Find("Panel") != null ? root.Find("Panel").GetComponent<Image>() : null;
-            if (background != null)
-            {
-                background.sprite = PaperUI.PanelSprite;
-                background.type = Image.Type.Sliced;
-                background.pixelsPerUnitMultiplier = 1f;
-                background.color = PaperUI.Paper;
-                background.rectTransform.localEulerAngles = new Vector3(0f, 0f, -1.5f);
-                SignButton.AddShadow(background);
-            }
-            var title = root.Find("Text - MULTIPLAYER") != null ? root.Find("Text - MULTIPLAYER").GetComponent<TMP_Text>() : null;
-            if (title != null)
-            {
-                var label = PaperUI.Panel("Title label", root, Color.white, -2f, true);
-                label.transform.SetSiblingIndex(title.transform.GetSiblingIndex());
-                PaperUI.Place(label.rectTransform, title.rectTransform.anchorMin, title.rectTransform.anchoredPosition, new Vector2(440f, 90f));
-                title.rectTransform.localEulerAngles = new Vector3(0f, 0f, -2f);
-                SignButton.Text(title, titleFont, PaperUI.Ink, false);
-            }
-            var caption = root.Find("Text - CODIGO DE SALA") != null ? root.Find("Text - CODIGO DE SALA").GetComponent<TMP_Text>() : null;
-            if (caption != null) SignButton.Text(caption, titleFont, PaperUI.Ink, false);
-
-            if (roomCodeInput.targetGraphic is Image field)
-            {
-                field.sprite = PaperUI.PanelSprite;
-                field.type = Image.Type.Sliced;
-                field.pixelsPerUnitMultiplier = 1.6f; // smaller corners on a short field
-                field.color = Color.white;
-                field.rectTransform.localEulerAngles = new Vector3(0f, 0f, 1f);
-                SignButton.AddShadow(field);
-            }
-            if (titleFont != null) roomCodeInput.fontAsset = titleFont;
-            roomCodeInput.textComponent.color = PaperUI.Ink;
-            if (roomCodeInput.placeholder is TMP_Text hint) hint.color = SignButton.SoftInk;
-            roomCodeInput.customCaretColor = true;
-            roomCodeInput.caretColor = PaperUI.Ink;
-
-            SignButton.Pill(createRoomButton, titleFont, PaperUI.Ink, PaperUI.Paper, -1f);
-            SignButton.Pill(joinRoomButton, titleFont, SignButton.SofaBlue, PaperUI.Paper, 1f);
-            SignButton.Pill(backButton, titleFont, SignButton.Brick, PaperUI.Paper, -1f);
-            SignButton.Text(connectionStatus, titleFont, PaperUI.Ink, false);
-        }
-
-        private void BuildTitle()
-        {
-            pressStart = Instantiate(settingsButton.GetComponentInChildren<TMP_Text>(true), mainPanel.transform.parent);
-            var localized = pressStart.GetComponent<LocalizeStringEvent>();
-            if (localized != null) Destroy(localized);
-            pressStart.name = "Press Start";
-            pressStart.raycastTarget = false;
+            titleActive = true;
             pressStart.text = UnCredibles.Localization.L10n.Get(UnCredibles.Localization.L10n.UI, "menu.press_start");
-            pressStart.enableAutoSizing = false;
-            pressStart.fontSize = 60;
-            pressStart.alignment = TextAlignmentOptions.Center;
-            var rect = pressStart.rectTransform;
-            rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(.5f, .5f);
-            rect.anchoredPosition = new Vector2(0f, -((RectTransform)mainPanel.transform.parent).rect.height * .3f);
-            rect.sizeDelta = new Vector2(1000f, 90f);
-            // The logo stays; only the home buttons wait (ACEPTAR / CANCELAR stay closed).
-            foreach (Transform child in mainPanel.transform)
-                if (child.GetComponent<Button>() != null && child.gameObject.activeSelf) titleHidden.Add(child.gameObject);
-            InputSystem.onAnyButtonPress.CallOnce(_ => titlePressed = true);
+            pressStart.gameObject.SetActive(true);
+            // The logo stays; only the panel and the home options wait (ACEPTAR / CANCELAR stay closed).
+            foreach (var hidden in titleHidden) hidden.SetActive(false);
+            ListenForTitlePress();
         }
 
-        // Keeps the buttons hidden and the prompt blinking until any key, click or pad button.
-        // The buttons appear a moment later so that same press does not also click JUGAR LOCAL.
-        private bool UpdateTitle()
+        private void ListenForTitlePress() =>
+            titleInput = InputSystem.onAnyButtonPress.CallOnce(_ => titlePressed = true);
+
+        private void UpdateTitle()
         {
-            foreach (var hidden in titleHidden) hidden.SetActive(false);
-            if (titlePressed && zoomTime < 0f && titleReveal >= TitleRevealSeconds) StartZoom();
+            if (titlePressed && titleReveal >= TitleRevealSeconds) StartZoom();
             if (titlePressed) titleReveal -= Time.unscaledDeltaTime;
             float pop = titlePressed ? 1f + (1f - titleReveal / TitleRevealSeconds) * .3f : 1f;
             pressStart.transform.localScale = new Vector3(pop, pop, 1f);
             var color = pressStart.color;
             color.a = titlePressed ? Mathf.Clamp01(titleReveal / TitleRevealSeconds) : .6f + .4f * Mathf.Sin(Time.unscaledTime * 4f);
             pressStart.color = color;
-            if (titleReveal > 0f) return true;
+            if (titleReveal > 0f) return;
 
             titleSeen = true;
-            Destroy(pressStart.gameObject);
-            pressStart = null;
+            titleActive = false;
+            pressStart.gameObject.SetActive(false);
+            waitingForEdge = true;
+        }
+
+        private bool TryRevealMenu()
+        {
+            var mouse = Mouse.current;
+            if (!Application.isFocused || mouse == null || mouse.delta.ReadValue() == Vector2.zero) return false;
+            var pointer = mouse.position.ReadValue();
+            if (pointer.x < 0f || pointer.x > RevealEdgePixels || pointer.y < 0f || pointer.y >= Screen.height)
+                return false;
+
+            waitingForEdge = false;
+            GameAudio.Play(GameSfx.UiMove);
             foreach (var hidden in titleHidden) hidden.SetActive(true);
             ShowMultiplayerSetup(false); // shows the buttons with JUGAR LOCAL selected
             StartSlide();
-            return false;
+            return true;
         }
 
         private void StartZoom()
@@ -322,10 +188,23 @@ namespace UnCredibles.UI.MainMenu
         private void Update()
         {
             UpdateIntro();
-            if (pressStart != null && UpdateTitle()) return;
+            if (titleActive)
+            {
+                UpdateTitle();
+                return;
+            }
+            if (waitingForEdge && !TryRevealMenu()) return;
+            if (mainPanel.activeInHierarchy && slideTime < 0f &&
+                ((!quitSheet.activeSelf && BackPressed()) || ClickedOutsideMenu()))
+            {
+                ShowQuitConfirm(false);
+                waitingForEdge = true;
+                ShowMultiplayerSetup(false);
+                GameAudio.Play(GameSfx.UiBack);
+                return;
+            }
             if (multiplayerSetupPanel.activeInHierarchy &&
-                ((Gamepad.current != null && Gamepad.current.buttonEast.wasPressedThisFrame) ||
-                 (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)))
+                BackPressed())
                 CloseMultiplayerSetup();
             UpdateQuitConfirm();
             var core = CoreRoot.Instance;
@@ -347,18 +226,42 @@ namespace UnCredibles.UI.MainMenu
             else if (enteringOnline && core.Online.CanConnect) enteringOnline = false;
         }
 
+        private static bool BackPressed() =>
+            (Gamepad.current != null && Gamepad.current.buttonEast.wasPressedThisFrame) ||
+            (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame);
+
+        private bool ClickedOutsideMenu()
+        {
+            var mouse = Mouse.current;
+            var events = EventSystem.current;
+            if (mouse == null || events == null || !mouse.leftButton.wasPressedThisFrame) return false;
+            var position = mouse.position.ReadValue();
+            if (!new Rect(0f, 0f, Screen.width, Screen.height).Contains(position) ||
+                RectTransformUtility.RectangleContainsScreenPoint(introSlide[0], position)) return false;
+
+            var hits = new System.Collections.Generic.List<RaycastResult>();
+            events.RaycastAll(new PointerEventData(events) { position = position }, hits);
+            return !hits.Exists(hit => hit.gameObject.transform.IsChildOf(mainPanel.transform));
+        }
+
         private void OnEnable()
         {
+            if (titleActive && !titlePressed && titleInput == null) ListenForTitlePress();
             singleplayerButton.onClick.AddListener(OpenSingleplayer);
             multiplayerButton.onClick.AddListener(OpenMultiplayerSetup);
             settingsButton.onClick.AddListener(OpenSettings);
             createRoomButton.onClick.AddListener(CreateRoom);
             joinRoomButton.onClick.AddListener(JoinRoom);
             backButton.onClick.AddListener(CloseMultiplayerSetup);
+            quitButton.onClick.AddListener(OpenQuitConfirm);
+            quitAccept.onClick.AddListener(Quit);
+            quitCancel.onClick.AddListener(CancelQuit);
         }
 
         private void OnDisable()
         {
+            titleInput?.Dispose();
+            titleInput = null;
             if (zoomTime >= 0f && zoomCamera != null) zoomCamera.fieldOfView = zoomBaseFov; // never leave it zoomed
             zoomTime = -1f;
             if (slideTime >= 0f) { slideTime = SlideSeconds + titleHidden.Count * SlideStagger; UpdateIntro(); } // snap into place
@@ -368,6 +271,9 @@ namespace UnCredibles.UI.MainMenu
             createRoomButton.onClick.RemoveListener(CreateRoom);
             joinRoomButton.onClick.RemoveListener(JoinRoom);
             backButton.onClick.RemoveListener(CloseMultiplayerSetup);
+            quitButton.onClick.RemoveListener(OpenQuitConfirm);
+            quitAccept.onClick.RemoveListener(Quit);
+            quitCancel.onClick.RemoveListener(CancelQuit);
         }
 
         private void OpenSingleplayer()
@@ -410,65 +316,22 @@ namespace UnCredibles.UI.MainMenu
             SettingsRequested?.Invoke();
         }
 
-        public void ResetView() => ShowMultiplayerSetup(false);
+        public void ResetView()
+        {
+            ShowQuitConfirm(false);
+            ShowMultiplayerSetup(false);
+        }
 
         public void FocusMain()
         {
-            if (EventSystem.current != null && singleplayerButton.interactable)
+            if (!titleActive && !waitingForEdge && EventSystem.current != null && singleplayerButton.interactable)
                 EventSystem.current.SetSelectedGameObject(singleplayerButton.gameObject);
         }
 
-        // SALIR goes under the last home button, a copy of AJUSTES. Pressing it shows ACEPTAR and CANCELAR
-        // right next to it, joined to its right edge and as tall as it.
-        private void BuildQuit()
+        private void OpenQuitConfirm()
         {
-            var template = (RectTransform)settingsButton.transform;
-            float lowest = template.anchoredPosition.y;
-            float step = 0f;
-            foreach (Transform child in mainPanel.transform)
-            {
-                if (child.GetComponent<Button>() == null) continue;
-                float y = ((RectTransform)child).anchoredPosition.y;
-                if (y < lowest) lowest = y;
-                if (y < template.anchoredPosition.y && (step == 0f || template.anchoredPosition.y - y < step))
-                    step = template.anchoredPosition.y - y;
-            }
-            if (step == 0f) step = template.rect.height + 25f;
-
-            quitButton = CopyButton(template, "SALIR", "menu.quit", new Vector2(template.anchoredPosition.x, lowest - step), template.sizeDelta);
-            quitButton.onClick.AddListener(() =>
-            {
-                GameAudio.Play(GameSfx.UiConfirm);
-                ShowQuitConfirm(true);
-            });
-            var size = new Vector2(template.sizeDelta.x * .5f, template.sizeDelta.y);
-            float right = template.anchoredPosition.x + template.sizeDelta.x * .5f;
-            float y0 = lowest - step;
-            quitAccept = CopyButton(template, "ACEPTAR", "menu.quit_accept", new Vector2(right + size.x * .5f, y0), size);
-            quitAccept.onClick.AddListener(Quit);
-            quitAccept.gameObject.AddComponent<SelectionHighlight.KeepSize>();
-            quitCancel = CopyButton(template, "CANCELAR", "menu.quit_cancel", new Vector2(right + size.x * 1.5f, y0), size);
-            quitCancel.onClick.AddListener(CancelQuit);
-            quitCancel.gameObject.AddComponent<SelectionHighlight.KeepSize>();
-            ShowQuitConfirm(false);
-        }
-
-        private Button CopyButton(RectTransform template, string objectName, string key, Vector2 position, Vector2 size)
-        {
-            var rect = Instantiate(template, template.parent);
-            rect.name = objectName;
-            rect.anchoredPosition = position;
-            rect.sizeDelta = size;
-            var button = rect.GetComponent<Button>();
-            button.onClick = new Button.ButtonClickedEvent(); // drop AJUSTES's scene listeners
-            button.navigation = new Navigation { mode = Navigation.Mode.Automatic };
-            // The copy keeps AJUSTES's localized label: point it at its own entry.
-            rect.GetComponentInChildren<LocalizeStringEvent>(true).StringReference.SetReference("UI", key);
-            var label = rect.GetComponentInChildren<TMP_Text>(true);
-            label.rectTransform.sizeDelta = new Vector2(size.x - 10f, label.rectTransform.sizeDelta.y);
-            label.fontSizeMax = label.fontSize;
-            label.enableAutoSizing = true;
-            return button;
+            GameAudio.Play(GameSfx.UiConfirm);
+            ShowQuitConfirm(true);
         }
 
         private void CancelQuit()
@@ -479,35 +342,30 @@ namespace UnCredibles.UI.MainMenu
 
         private void ShowQuitConfirm(bool show)
         {
+            var events = EventSystem.current;
+            var selected = events != null ? events.currentSelectedGameObject : null;
+            bool wasConfirming = selected == quitAccept.gameObject || selected == quitCancel.gameObject;
+            quitButton.gameObject.SetActive(!show && !titleActive && !waitingForEdge);
             quitAccept.gameObject.SetActive(show);
             quitCancel.gameObject.SetActive(show);
-            if (quitSheet != null)
-            {
-                quitSheet.SetActive(show);
-                if (show) FitQuitTitle();
-            }
-            if (EventSystem.current != null && EventSystem.current.currentSelectedGameObject != null)
-                EventSystem.current.SetSelectedGameObject(show ? quitCancel.gameObject : quitButton.gameObject);
+            quitSheet.SetActive(show);
+            if (show) FitQuitTitle();
+            if (events != null && (show || wasConfirming))
+                events.SetSelectedGameObject(show ? quitCancel.gameObject : quitButton.gameObject);
         }
 
         // Back (B / Esc) or moving to another home button closes the confirmation.
         private void UpdateQuitConfirm()
         {
             if (!quitCancel.gameObject.activeSelf) return;
-            if ((Gamepad.current != null && Gamepad.current.buttonEast.wasPressedThisFrame) ||
-                (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame))
+            if (BackPressed())
             {
                 CancelQuit();
                 return;
             }
             var selected = EventSystem.current != null ? EventSystem.current.currentSelectedGameObject : null;
-            if (selected != null && selected != quitButton.gameObject && selected != quitAccept.gameObject &&
-                selected != quitCancel.gameObject)
-            {
-                quitAccept.gameObject.SetActive(false);
-                quitCancel.gameObject.SetActive(false);
-                if (quitSheet != null) quitSheet.SetActive(false);
-            }
+            if (selected != null && selected != quitAccept.gameObject && selected != quitCancel.gameObject)
+                ShowQuitConfirm(false);
         }
 
         // The tab reads like the SALIR sign, in the current language, and fits its text.
@@ -530,10 +388,11 @@ namespace UnCredibles.UI.MainMenu
 
         private void ShowMultiplayerSetup(bool show)
         {
-            mainPanel.SetActive(!show);
+            mainPanel.SetActive(!show && !waitingForEdge);
             multiplayerSetupPanel.SetActive(show);
             if (EventSystem.current != null)
-                EventSystem.current.SetSelectedGameObject(show ? createRoomButton.gameObject : singleplayerButton.gameObject);
+                EventSystem.current.SetSelectedGameObject(show ? createRoomButton.gameObject :
+                    titleActive || waitingForEdge ? null : singleplayerButton.gameObject);
         }
     }
 }

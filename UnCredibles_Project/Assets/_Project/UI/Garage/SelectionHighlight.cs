@@ -57,7 +57,7 @@ namespace UnCredibles.UI.Garage
             {
                 Restore(current);
                 current = target;
-                currentKeepsSize = current != null && current.GetComponent<KeepSize>() != null;
+                currentKeepsSize = current != null && current.GetComponent<KeepSelectionSize>() != null;
                 if (current != null && !baseScales.ContainsKey(current)) baseScales[current] = current.localScale;
             }
             if (current != null && !currentKeepsSize)
@@ -88,8 +88,17 @@ namespace UnCredibles.UI.Garage
         {
             if (!Marks(selectable) || !tinted.Add(selectable)) return;
             var colors = selectable.colors;
-            colors.selectedColor = Selected;
-            colors.highlightedColor = Hover;
+            if (selectable is TMP_InputField)
+            {
+                colors.highlightedColor = Color.Lerp(Color.white, SignButton.Mustard, .35f);
+                colors.selectedColor = SignButton.Mustard;
+                colors.pressedColor = SignButton.Mustard;
+            }
+            else
+            {
+                colors.selectedColor = Selected;
+                colors.highlightedColor = Hover;
+            }
             selectable.colors = colors;
         }
 
@@ -98,10 +107,6 @@ namespace UnCredibles.UI.Garage
             if (target != null && baseScales.TryGetValue(target, out var scale)) target.localScale = scale;
         }
 
-        // On buttons joined to others (side by side, no gap): selected, they only turn pink, so they don't overlap.
-        public sealed class KeepSize : MonoBehaviour
-        {
-        }
 
         private sealed class SelectOnHover : MonoBehaviour, IPointerEnterHandler
         {

@@ -18,21 +18,16 @@ namespace UnCredibles.Minigames
         private static readonly Vector2 ShadowOffset = new Vector2(6f, -6f);
 
         private const int ShapeSize = 64;    // texture side of the panel and pill shapes
-        private const int PanelRadius = 16;
-        private const int DiscSize = 128;
-        private const float InkWidth = 4f;   // reference pixels, as drawn at 1:1
-
+        // The shapes are assets in UI/Common/Resources/PaperUI so scenes and prefabs can reference them.
         private static Sprite panel;
         private static Sprite pill;
         private static Sprite disc;
-        private static Texture2D panelTexture;
-        private static Texture2D pillTexture;
-        private static Texture2D discTexture;
 
-        // Unity null check: the cached sprites are rebuilt if something destroyed them.
-        public static Sprite PanelSprite => panel != null ? panel : panel = Build(ref panelTexture, ShapeSize, PanelRadius, InkWidth, PanelRadius);
-        public static Sprite PillSprite => pill != null ? pill : pill = Build(ref pillTexture, ShapeSize, ShapeSize / 2, InkWidth, ShapeSize / 2);
-        public static Sprite DiscSprite => disc != null ? disc : disc = Build(ref discTexture, DiscSize, DiscSize / 2, InkWidth * 1.5f, 0);
+        public static Sprite PanelSprite => panel != null ? panel : panel = Load("T_UI_Panel");
+        public static Sprite PillSprite => pill != null ? pill : pill = Load("T_UI_Pill");
+        public static Sprite DiscSprite => disc != null ? disc : disc = Load("T_UI_Disc");
+
+        private static Sprite Load(string name) => Resources.Load<Sprite>("PaperUI/" + name);
 
         // Screen-space canvas at the 1920x1080 reference every minigame HUD uses.
         public static Canvas Canvas(string name, Transform parent, int sortingOrder)
@@ -122,45 +117,6 @@ namespace UnCredibles.Minigames
                 shadow.effectDistance = ShadowOffset;
             }
             return image;
-        }
-
-        // Rounded square with a white fill and an ink border, antialiased over one pixel. slice = 9-slice border.
-        // texture: the previous one of this shape, destroyed so a rebuilt sprite leaves no orphan.
-        private static Sprite Build(ref Texture2D texture, int size, float radius, float ink, int slice)
-        {
-            if (texture != null)
-            {
-                if (Application.isPlaying) Object.Destroy(texture);
-                else Object.DestroyImmediate(texture); // the garage menu preview builds these in edit mode
-            }
-            texture = new Texture2D(size, size, TextureFormat.RGBA32, false)
-            {
-                name = "PaperUI shape",
-                hideFlags = HideFlags.DontSave,
-                wrapMode = TextureWrapMode.Clamp,
-                filterMode = FilterMode.Bilinear,
-            };
-            var pixels = new Color32[size * size];
-            float half = size * .5f;
-            Color inkColor = Ink;
-            for (int y = 0; y < size; y++)
-            for (int x = 0; x < size; x++)
-            {
-                // Signed distance to the rounded square (negative inside).
-                float qx = Mathf.Abs(x + .5f - half) - (half - radius);
-                float qy = Mathf.Abs(y + .5f - half) - (half - radius);
-                float outside = new Vector2(Mathf.Max(qx, 0f), Mathf.Max(qy, 0f)).magnitude;
-                float distance = outside + Mathf.Min(Mathf.Max(qx, qy), 0f) - radius;
-                float alpha = Mathf.Clamp01(.5f - distance);
-                float paper = Mathf.Clamp01(.5f - (distance + ink));
-                var color = Color.Lerp(inkColor, Color.white, paper);
-                color.a = alpha;
-                pixels[y * size + x] = color;
-            }
-            texture.SetPixels32(pixels);
-            texture.Apply(false, true);
-            return Sprite.Create(texture, new Rect(0f, 0f, size, size), new Vector2(.5f, .5f), 100f, 0,
-                SpriteMeshType.FullRect, new Vector4(slice, slice, slice, slice));
         }
     }
 }

@@ -10,15 +10,16 @@ namespace UnCredibles.UI.Garage
     // which SelectionHighlight turns into a selection) a cream tab with a darker side slides out past the
     // panel's diagonal edge, tilted a little, and the text grows on it. Disabled, the text fades.
     // The button itself only keeps an invisible hit area: the intro slide moves it, this moves its children.
+    // The look lives in PF_MenuTab; the internal values are the ones it was baked with.
     public sealed class MenuTab : MonoBehaviour
     {
-        private static readonly Color Side = new Color(.541f, .416f, .2f); // darker mustard, the tab's depth
-        private static readonly Vector2 Depth = new Vector2(8f, -8f);
+        internal static readonly Color Side = new Color(.541f, .416f, .2f); // darker mustard, the tab's depth
+        internal static readonly Vector2 Depth = new Vector2(8f, -8f);
         private const float SlideSeconds = .12f;
-        private const float Reach = 40f;       // how far the tab passes the button's right edge
-        private const float TabBorder = .75f;  // sprite pixels per unit: thicker ink than a paper panel
-        private const float FontSize = 60f;
-        private const float TextInset = 18f;
+        internal const float Reach = 40f;       // how far the tab passes the button's right edge
+        internal const float TabBorder = .75f;  // sprite pixels per unit: thicker ink than a paper panel
+        internal const float FontSize = 60f;
+        internal const float TextInset = 18f;
         private const float TextGrow = .15f;
         private const float Tilt = 2.5f;       // degrees, tip up
         private const float DisabledAlpha = .5f;
@@ -29,48 +30,7 @@ namespace UnCredibles.UI.Garage
         private float shown;                   // 0 idle .. 1 fully out
         private bool shownDisabled;
 
-        public static void Apply(Selectable button, TMP_FontAsset font)
-        {
-            button.transition = Selectable.Transition.None; // the tab replaces the pink tint
-            if (button.GetComponent<SelectionHighlight.KeepSize>() == null)
-                button.gameObject.AddComponent<SelectionHighlight.KeepSize>(); // nor does it grow
-            if (button.targetGraphic != null) button.targetGraphic.color = Color.clear;
-
-            var label = button.GetComponentInChildren<TMP_Text>(true);
-            SignButton.Text(label, font, PaperUI.Ink, false);
-            label.enableAutoSizing = false;
-            label.fontSize = FontSize;
-            label.alignment = TextAlignmentOptions.Left;
-            label.textWrappingMode = TextWrappingModes.NoWrap;
-            var text = label.rectTransform;
-            text.anchorMin = Vector2.zero;
-            text.anchorMax = Vector2.one;
-            text.pivot = new Vector2(0f, .5f);
-            text.offsetMin = new Vector2(TextInset, 0f);
-            text.offsetMax = Vector2.zero;
-
-            var face = PaperUI.Panel("Tab", button.transform, PaperUI.Paper);
-            face.pixelsPerUnitMultiplier = TabBorder;
-            var depth = face.GetComponent<Shadow>();
-            depth.effectColor = Side;
-            depth.effectDistance = Depth;
-            var rect = face.rectTransform;
-            rect.SetAsFirstSibling(); // under the text
-            rect.anchorMin = Vector2.zero;
-            rect.anchorMax = Vector2.one;
-            rect.pivot = new Vector2(0f, .5f);
-            rect.offsetMin = Vector2.zero;
-            rect.offsetMax = new Vector2(Reach, 0f);
-
-            var look = button.GetComponent<MenuTab>();
-            if (look == null) look = button.gameObject.AddComponent<MenuTab>();
-            look.target = button;
-            look.tab = rect;
-            look.label = label;
-            look.shown = 0f;
-            look.shownDisabled = false;
-            look.Pose(0f);
-        }
+        private void Awake() => Pose(0f); // idle, whatever pose the prefab was saved in
 
         private void Update()
         {
@@ -103,7 +63,8 @@ namespace UnCredibles.UI.Garage
             // Idle: left-aligned on the panel. Selected: centred on the tab (the text grows from its left pivot).
             float tabWidth = ((RectTransform)transform).rect.width + Reach;
             float centred = Mathf.Max(TextInset, (tabWidth - label.preferredWidth * grow) * .5f);
-            text.anchoredPosition = new Vector2(Mathf.Lerp(TextInset, centred, e), 0f);
+            float textX = Mathf.Lerp(TextInset, centred, e);
+            text.anchoredPosition = new Vector2(textX, textX * Mathf.Tan(Tilt * e * Mathf.Deg2Rad));
         }
     }
 }

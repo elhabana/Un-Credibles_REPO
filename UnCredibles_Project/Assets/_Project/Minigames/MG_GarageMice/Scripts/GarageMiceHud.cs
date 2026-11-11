@@ -7,30 +7,18 @@ using UnCredibles.Localization;
 namespace UnCredibles.Minigames.GarageMice
 {
     // Garage mice extras on top of the shared MinigameUI (badges and timer): the controls in a paper
-    // pill at the bottom and the countdown / results in the middle. Built in code, so the scene can be
-    // played alone.
+    // pill at the bottom and the countdown / results in the middle. Lives in PF_GarageMiceHud.
     public sealed class GarageMiceHud : MonoBehaviour
     {
+        [SerializeField] private TMP_Text center;
+        [SerializeField] private TMP_Text instructions;
+
         private readonly StringBuilder builder = new StringBuilder(128);
         private GarageMiceController controller;
-        private GameObject root;
-        private TMP_Text center;
-        private TMP_Text instructions;
 
         public void Setup(GarageMiceController game)
         {
             controller = game;
-            root = PaperUI.Canvas("Garage mice HUD", null, 0).gameObject;
-            var ui = game.GetComponent<MinigameUI>();
-            var titleFont = ui != null ? ui.TitleFont : null;
-
-            var controls = PaperUI.Pill("Controls", root.transform, PaperUI.Paper, 56f);
-            PaperUI.Place(controls.rectTransform, new Vector2(.5f, 0f), new Vector2(0f, 26f), new Vector2(760f, 56f));
-            instructions = PaperUI.Text("Instructions", controls.transform, titleFont, 24f, PaperUI.Ink, TextAlignmentOptions.Center);
-            PaperUI.Stretch(instructions.rectTransform);
-            center = PaperUI.Text("Countdown and results", root.transform, titleFont, 70f, Color.white, TextAlignmentOptions.Center);
-            center.textWrappingMode = TextWrappingModes.Normal;
-            PaperUI.Place(center.rectTransform, new Vector2(.5f, .5f), Vector2.zero, new Vector2(900f, 430f));
             center.gameObject.SetActive(false);
             ShowFixedTexts();
 
@@ -75,7 +63,6 @@ namespace UnCredibles.Minigames.GarageMice
                 controller.Finished -= ShowResults;
             }
             L10n.LanguageChanged -= ShowFixedTexts;
-            if (root != null) Destroy(root);
         }
     }
 }
