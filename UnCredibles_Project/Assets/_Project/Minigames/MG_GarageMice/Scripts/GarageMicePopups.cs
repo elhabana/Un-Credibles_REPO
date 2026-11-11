@@ -13,7 +13,6 @@ namespace UnCredibles.Minigames.GarageMice
         private const float Height = 2.4f;
         private const float FontSize = 9f;
 
-        private static readonly Color GainColor = new Color(.35f, 1f, .35f);
         private static readonly Color ComboColor = new Color(1f, .55f, .15f);
         private static readonly Color GoldenColor = new Color(1f, .82f, .15f);
 
@@ -30,12 +29,14 @@ namespace UnCredibles.Minigames.GarageMice
 
         public void Setup(Transform cameraTransform) => viewCamera = cameraTransform;
 
+        // Points already pop on the HUD badge, so only the combo is shown over the player.
         public void Show(Vector3 position, int points, int combo, bool golden)
         {
+            if (combo <= 1) return;
             var popup = Take();
             popup.Origin = position + Vector3.up * Height;
-            popup.Color = golden ? GoldenColor : combo > 1 ? ComboColor : GainColor;
-            popup.Text.text = combo > 1 ? $"+{points}\n<size=55%>COMBO x{combo}</size>" : $"+{points}";
+            popup.Color = golden ? GoldenColor : ComboColor;
+            popup.Text.text = $"COMBO x{combo}";
         }
 
         public void Tick(float deltaTime)

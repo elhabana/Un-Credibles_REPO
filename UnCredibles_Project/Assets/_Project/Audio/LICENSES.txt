@@ -1,0 +1,32 @@
+Audio de UN-CREDIBLES: todo CC0 / dominio público (sin atribución obligatoria).
+Igualado de volumen: música -20 LUFS, efectos -16 LUFS (los de menos de 0,25 s, pico -6 dBFS), true peak -1,5 dBTP.
+
+Music/MUS_Menu.ogg  <-  Raspberry Jam · congusbongus  (OpenGameArt, CC0)
+Music/MUS_Grandma.ogg  <-  Countdown to Myocardial Infarction · josepharaoh99  (OpenGameArt, CC0)
+Music/MUS_Lawn.ogg  <-  Fast Cheerful punk rock lo-fi · annandistance  (OpenGameArt, CC0)
+Music/MUS_Mice.ogg  <-  Wacky Wobblings · Fupi  (OpenGameArt, CC0)
+Music/MUS_Churro.ogg  <-  Beach Sports Theme (Loop) · Trex0n  (OpenGameArt, CC0)
+Music/MUS_Results.ogg  <-  And the winner is · congusbongus  (OpenGameArt, CC0)
+Music/MUS_Defeat.ogg  <-  YARAKASHITA! (Gameover music) · MintoDog  (OpenGameArt, CC0)
+
+SFX/UI/SFX_UI_Move.ogg  <-  Kenney · select_001.ogg  (kenney.nl, CC0)
+SFX/UI/SFX_UI_Confirm.ogg  <-  Kenney · confirmation_001.ogg  (kenney.nl, CC0)
+SFX/UI/SFX_UI_Back.ogg  <-  Kenney · back_002.ogg  (kenney.nl, CC0)
+SFX/UI/SFX_UI_Error.ogg  <-  Kenney · error_004.ogg  (kenney.nl, CC0)
+SFX/UI/SFX_UI_Ready.ogg  <-  Kenney · jingles_PIZZI16.ogg  (kenney.nl, CC0)
+SFX/Game/SFX_Countdown_Beep.ogg  <-  Kenney · twoTone1.ogg  (kenney.nl, CC0)
+SFX/Game/SFX_Countdown_Go.ogg  <-  Kenney · threeTone2.ogg  (kenney.nl, CC0)
+SFX/Game/SFX_Timer_Tick.ogg  <-  Kenney · tick_002.ogg  (kenney.nl, CC0)
+SFX/Game/SFX_Round_End.ogg  <-  Kenney · jingles_PIZZI03.ogg  (kenney.nl, CC0)
+SFX/Game/SFX_Win.ogg  <-  Kenney · jingles_PIZZI02.ogg  (kenney.nl, CC0)
+SFX/Game/SFX_Lose.ogg  <-  Kenney · jingles_PIZZI14.ogg  (kenney.nl, CC0)
+SFX/Game/SFX_Score.ogg  <-  Kenney · pepSound3.ogg  (kenney.nl, CC0)
+SFX/Game/SFX_Deliver.ogg  <-  Kenney · pepSound5.ogg  (kenney.nl, CC0)
+SFX/Game/SFX_Jump.ogg  <-  Kenney · phaseJump2.ogg  (kenney.nl, CC0)
+SFX/Game/SFX_Stun.ogg  <-  Kenney · phaserDown1.ogg  (kenney.nl, CC0)
+SFX/Game/SFX_Hit_Soft.ogg  <-  Kenney · impactSoft_medium_001.ogg  (kenney.nl, CC0)
+SFX/Game/SFX_Hit_Rival.ogg  <-  Kenney · impactPunch_medium_000.ogg  (kenney.nl, CC0)
+SFX/Game/SFX_Run_Over.ogg  <-  Kenney · impactPunch_heavy_002.ogg  (kenney.nl, CC0)
+SFX/Game/SFX_Fail_Wah.ogg  <-  Kenney · jingles_SAX07.ogg  (kenney.nl, CC0)
+
+- Ajuste fino tras medir el volumen medio: Confirm -9 dB, Jump -3 dB, Score -2 dB (interfaz ~-21 dB de media, efectos de juego ~-17/-18 dB).

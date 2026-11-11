@@ -43,8 +43,8 @@ MonoBehaviour:
   stunSeconds: 1.25
   stunImmunitySeconds: 1.8
   playerPrefabs:
-  - {fileID: 9081827394291780430, guid: c48239da2fc6b474f8b851ee12c21f03, type: 3}
   - {fileID: 4198626495357598678, guid: 1c005b001c5434c4ebfca5dac18643d0, type: 3}
+  - {fileID: 9081827394291780430, guid: c48239da2fc6b474f8b851ee12c21f03, type: 3}
   - {fileID: 8373642448663418155, guid: 2353ec1b325f6cb4abf1cf2dd76e44cb, type: 3}
   - {fileID: 5604989434593552518, guid: 5df09d425366776408a8ff0c71111aa7, type: 3}
   mouseCount: 26

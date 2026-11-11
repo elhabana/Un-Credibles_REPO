@@ -159,6 +159,7 @@ namespace UnCredibles.Minigames.GarageMice
                 rival.Stun = settings.StunSeconds;
                 rival.Immunity = settings.StunImmunitySeconds;
                 cameraShake = Mathf.Max(cameraShake, .17f);
+                PlayRivalHit();
             }
         }
 
@@ -166,6 +167,7 @@ namespace UnCredibles.Minigames.GarageMice
         {
             Score.AddScore(attacker.Slot.PlayerId, points);
             popups.Show(attacker.Root.position, points, combo, golden);
+            GameAudio.Play(GameSfx.HitSoft);
             var message = BeginEvent(CatchEvent);
             message.Write((byte)sweepers.IndexOf(attacker));
             message.Write((short)points);
@@ -182,6 +184,14 @@ namespace UnCredibles.Minigames.GarageMice
             int combo = reader.ReadByte();
             bool golden = reader.ReadBoolean();
             if (index < sweepers.Count) popups.Show(sweepers[index].Root.position, points, combo, golden);
+            GameAudio.Play(GameSfx.HitSoft);
+        }
+
+        // Broom on a rival: host when it hits, clients when the stun shows up in a snapshot.
+        private static void PlayRivalHit()
+        {
+            GameAudio.Play(GameSfx.HitRival);
+            GameAudio.Play(GameSfx.Stun);
         }
 
         // Mice in a hole or hiding under a shelf cannot be hit.
@@ -508,7 +518,11 @@ namespace UnCredibles.Minigames.GarageMice
                 if (i >= sweepers.Count) continue;
                 var sweeper = sweepers[i];
                 sweeper.Root.SetPositionAndRotation(new Vector3(x, 0f, z), Quaternion.Euler(0f, yaw, 0f));
-                if (sweeper.Stun <= 0f && stun > 0f) cameraShake = Mathf.Max(cameraShake, .17f);
+                if (sweeper.Stun <= 0f && stun > 0f)
+                {
+                    cameraShake = Mathf.Max(cameraShake, .17f);
+                    PlayRivalHit();
+                }
                 sweeper.Stun = stun;
                 sweeper.SwingVisual = swing;
             }

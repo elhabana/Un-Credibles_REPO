@@ -25,22 +25,27 @@ namespace UnCredibles.UI.Results
         [SerializeField, Min(1f)] private float autoContinueSeconds = 6f;
         [SerializeField] private PlayerFigureSet figures;
         [SerializeField] private PodiumPrefabs podiumPrefabs;
+        [SerializeField, Tooltip("Title font of the art bible (Bangers SDF) for the paper standings sheet.")]
+        private TMP_FontAsset titleFont;
 
         private CoreRoot core;
         private bool isOnlineClient; // shows the host's standings and waits for the host
         private bool isFinal;
         private bool leaving;
+        private bool musicStarted;
         private float remaining;
         private int shownSeconds = -1;
         private GameObject listRows;
         private Camera resultsCamera;
         private ResultsPodium podium;
+        private ResultsSheet sheet; // between rounds it replaces the scene's flat list, header and hint
 
         private void Awake()
         {
             listRows = rows[0].transform.parent.gameObject;
             resultsCamera = Camera.main;
             podium = new ResultsPodium(transform, figures, podiumPrefabs);
+            sheet = ResultsSheet.Create(transform, titleFont);
         }
 
         private IEnumerator Start()
@@ -88,10 +93,14 @@ namespace UnCredibles.UI.Results
             titleText.text = isFinal ? L10n.Get(L10n.UI, "results.final_title") : L10n.Get(L10n.UI, "results.title");
             roundText.text = isFinal ? L10n.Get(L10n.UI, "results.total_points") : L10n.Format(L10n.UI, "results.round", round, totalRounds);
             finalButtons.SetActive(isFinal);
-            hintText.gameObject.SetActive(!isFinal);
+            titleText.gameObject.SetActive(isFinal);
+            roundText.gameObject.SetActive(isFinal);
+            hintText.gameObject.SetActive(false);
             listBackground.SetActive(!isFinal);
-            listHeader.SetActive(!isFinal);
-            listRows.SetActive(!isFinal);
+            listHeader.SetActive(false);
+            listRows.SetActive(false);
+            sheet.SetHeader(titleText.text, roundText.text);
+            sheet.SetVisible(!isFinal);
             podium.SetVisible(isFinal);
             if (isFinal && resultsCamera != null)
             {
@@ -107,21 +116,25 @@ namespace UnCredibles.UI.Results
             isFinal = standings.IsFinal;
             ShowHeader(standings.Round, standings.TotalRounds);
             lobbyButton.gameObject.SetActive(false); // only the host takes everybody back to the lobby
-            hintText.text = L10n.Get(L10n.UI, "results.waiting_host");
+            sheet.SetHint(L10n.Get(L10n.UI, "results.waiting_host"));
             var podiumEntries = new List<PodiumEntry>(standings.Rows.Count);
+            bool humanWon = false;
             for (int i = 0; i < rows.Length; i++)
             {
                 if (i >= standings.Rows.Count)
                 {
-                    rows[i].Hide();
+                    sheet.HideRow(i);
                     continue;
                 }
                 var row = standings.Rows[i];
-                rows[i].Render(row.Placement, row.Name, row.Gained, row.Total, isFinal && row.Placement == 1);
+                sheet.SetRow(i, row.Placement, row.Name, PlayerSlotIndex(row.PlayerId, i), IsBot(row.PlayerId),
+                    row.Gained, row.Total);
                 if (isFinal) podiumEntries.Add(new PodiumEntry(row.Placement, row.Name, row.Total,
                     PlayerSlotIndex(row.PlayerId, i)));
+                if (row.Placement == 1) humanWon |= IsHuman(row.PlayerId);
             }
             if (isFinal) podium.Render(podiumEntries);
+            StartMusic(humanWon);
         }
 
         private void OnEnable()
@@ -153,7 +166,7 @@ namespace UnCredibles.UI.Results
             int seconds = Mathf.CeilToInt(remaining);
             if (seconds == shownSeconds) return;
             shownSeconds = seconds;
-            hintText.text = L10n.Format(L10n.UI, "results.next_in", seconds);
+            sheet.SetHint(L10n.Format(L10n.UI, "results.next_in", seconds));
         }
 
         private void RenderStandings()
@@ -161,12 +174,13 @@ namespace UnCredibles.UI.Results
             var standings = core.Match.GetStandings();
             var lastRound = core.Match.LastRoundResults;
             var podiumEntries = new List<PodiumEntry>(standings.Length);
+            bool humanWon = false;
 
             for (int i = 0; i < rows.Length; i++)
             {
                 if (i >= standings.Length)
                 {
-                    rows[i].Hide();
+                    sheet.HideRow(i);
                     continue;
                 }
 
@@ -175,12 +189,27 @@ namespace UnCredibles.UI.Results
                 foreach (var result in lastRound)
                     if (result.PlayerId == standing.PlayerId) gained = core.Match.PointsFor(result.Placement);
 
-                rows[i].Render(standing.Placement, PlayerName(standing.PlayerId), gained, standing.Score,
-                    isFinal && standing.Placement == 1);
+                sheet.SetRow(i, standing.Placement, PlayerName(standing.PlayerId),
+                    PlayerSlotIndex(standing.PlayerId, i), IsBot(standing.PlayerId), gained, standing.Score);
                 if (isFinal) podiumEntries.Add(new PodiumEntry(standing.Placement, PlayerName(standing.PlayerId),
                     standing.Score, PlayerSlotIndex(standing.PlayerId, i)));
+                if (standing.Placement == 1) humanWon |= IsHuman(standing.PlayerId);
             }
             if (isFinal) podium.Render(podiumEntries);
+            StartMusic(humanWon);
+        }
+
+        private bool IsHuman(int playerId) => core.Players.TryGetByPlayerId(playerId, out var slot) && !slot.IsAI;
+        private bool IsBot(int playerId) => core.Players.TryGetByPlayerId(playerId, out var slot) && slot.IsAI;
+
+        // Once per screen (renders repeat on language changes): the fanfare, or the defeat loop on a
+        // final podium that no human won.
+        private void StartMusic(bool humanWon)
+        {
+            if (musicStarted) return;
+            musicStarted = true;
+            if (isFinal && !humanWon) core.Audio.PlayDefeatMusic();
+            else core.Audio.PlayResultsMusic();
         }
 
         private string PlayerName(int playerId) =>

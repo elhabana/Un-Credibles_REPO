@@ -43,6 +43,20 @@ namespace UnCredibles.Minigames
         public SpawnManager Spawns => spawnManager;
         public ScoreManager Score => scoreManager;
         public RoundTimer Timer => roundTimer;
+        // The HUD timer turns red and beats while true (a final rush...), besides its last seconds.
+        public virtual bool IsTimerUrgent => false;
+
+        private static readonly Vector2[] HudCorners =
+            { new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0f, 0f), new Vector2(1f, 0f) };
+
+        // Where each player's HUD badge goes: screen corner ((0,1) top-left, (1,0) bottom-right) and
+        // offset from it in reference pixels (1920x1080). Default: P1 top-left, P2 top-right,
+        // P3 bottom-left, P4 bottom-right. Override to match where each player lives on screen.
+        public virtual void GetHudPlacement(int slotIndex, out Vector2 corner, out Vector2 margin)
+        {
+            corner = HudCorners[slotIndex % HudCorners.Length];
+            margin = new Vector2(28f, 24f);
+        }
 
         // Online client: draws what the host sends and simulates nothing.
         public bool IsReplica { get; private set; }

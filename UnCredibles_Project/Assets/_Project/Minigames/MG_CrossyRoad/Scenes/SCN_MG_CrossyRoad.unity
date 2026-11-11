@@ -177,7 +177,6 @@ MonoBehaviour:
   traffic: {fileID: 312}
   grandmas: {fileID: 322}
   oil: {fileID: 342}
-  popups: {fileID: 872}
   playersParent: {fileID: 331}
 --- !u!114 &103
 MonoBehaviour:
@@ -233,6 +232,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   controller: {fileID: 102}
+  titleFont: {fileID: 11400000, guid: 0f4999180db1cd14f8de3280d6998060, type: 2}
   countdownText: {fileID: 833}
   timerText: {fileID: 813}
   scoreText: {fileID: 823}
@@ -277,9 +277,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   controller: {fileID: 102}
   bannerText: {fileID: 863}
-  timerText: {fileID: 813}
   bannerSeconds: 2.5
-  rushColor: {r: 1, g: 0.3, b: 0.2, a: 1}
 --- !u!1 &200
 GameObject:
   m_ObjectHideFlags: 0
@@ -1639,55 +1637,6 @@ MonoBehaviour:
   m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
---- !u!1 &870
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 871}
-  - component: {fileID: 872}
-  m_Layer: 0
-  m_Name: ScorePopups
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &871
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 870}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &872
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 870}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7876b45b7fe08b1ca55c0997dc3e20a1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  viewCamera: {fileID: 1001}
-  fontSize: 10
-  gainColor: {r: 0.35, g: 1, b: 0.35, a: 1}
-  bonusColor: {r: 1, g: 0.82, b: 0.15, a: 1}
-  lossColor: {r: 1, g: 0.25, b: 0.2, a: 1}
 --- !u!1 &1000
 GameObject:
   m_ObjectHideFlags: 0
@@ -1962,4 +1911,3 @@ SceneRoots:
   - {fileID: 401}
   - {fileID: 501}
   - {fileID: 801}
-  - {fileID: 871}

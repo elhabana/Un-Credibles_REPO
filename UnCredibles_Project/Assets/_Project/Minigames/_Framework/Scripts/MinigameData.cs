@@ -19,6 +19,8 @@ namespace UnCredibles.Minigames
         [Tooltip("Short gameplay loop (5-10 s, 16:9, no sound needed) played on the rules card. Empty = the thumbnail.")]
         [SerializeField] private VideoClip preview;
         [SerializeField] private AudioClip music;
+        [Tooltip("Points icon on the HUD badges (a grandma, a bag...). Empty = no icon.")]
+        [SerializeField] private Sprite scoreIcon;
         [SerializeField, TextArea(3, 8)] private string rules;
 
         public string Id => id;
@@ -31,6 +33,7 @@ namespace UnCredibles.Minigames
         public Sprite Thumbnail => thumbnail;
         public VideoClip Preview => preview;
         public AudioClip Music => music;
+        public Sprite ScoreIcon => scoreIcon;
         public string Rules => rules;
 
         public bool SupportsPlayerCount(int count) => count >= minPlayers && count <= maxPlayers;

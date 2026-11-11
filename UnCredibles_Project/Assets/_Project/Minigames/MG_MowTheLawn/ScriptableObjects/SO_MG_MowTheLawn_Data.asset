@@ -19,6 +19,8 @@ MonoBehaviour:
   countdownSeconds: 3
   minPlayers: 1
   maxPlayers: 4
-  thumbnail: {fileID: 0}
-  music: {fileID: 0}
+  thumbnail: {fileID: 21300000, guid: 47b5c3f8209ce344ca13fd2c0109e7f3, type: 3}
+  preview: {fileID: 0}
+  music: {fileID: 8300000, guid: 05a37adc4cd47e34e9cb7849b59f64eb, type: 3}
+  scoreIcon: {fileID: 0}
   rules: 

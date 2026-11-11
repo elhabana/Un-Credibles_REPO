@@ -89,7 +89,10 @@ namespace UnCredibles.Minigames.Churro
             IsDucking = canJump && height <= 0f && input != null && input.IsHeld(PlayerAction.Crouch);
             AnimateDuck(deltaTime, IsDucking);
             if (!IsDucking && canJump && height <= 0f && input != null && input.WasPressed(PlayerAction.Jump))
+            {
                 verticalSpeed = settings.JumpVelocity;
+                GameAudio.Play(GameSfx.Jump);
+            }
 
             if (height <= 0f && verticalSpeed <= 0f) return;
             verticalSpeed -= settings.Gravity * deltaTime;
@@ -127,6 +130,8 @@ namespace UnCredibles.Minigames.Churro
             var rotation = new Quaternion(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
 
             bool appeared = visible && !gameObject.activeSelf;
+            // Left the float since the last snapshot: the host saw a jump.
+            if (isIn && IsIn && remoteHeight <= 0f && feetHeight > 0f) GameAudio.Play(GameSfx.Jump);
             if (gameObject.activeSelf != visible) gameObject.SetActive(visible);
             IsIn = isIn;
             remoteDucking = ducking;

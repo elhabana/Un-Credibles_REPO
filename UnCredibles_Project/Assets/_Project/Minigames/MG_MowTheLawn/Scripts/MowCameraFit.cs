@@ -25,9 +25,11 @@ namespace UnCredibles.Minigames.MowTheLawn
         // A short jolt (rams). Fades out by itself.
         public void Shake(float amount) => shakeAmount = Mathf.Max(shakeAmount, amount);
 
-        private void LateUpdate()
+        // Frames the lawn for the current screen shape, without shake. Public so the HUD can measure
+        // the framed view before the first LateUpdate.
+        public bool Fit()
         {
-            if (settings == null || lawnCenter == null) return;
+            if (settings == null || lawnCenter == null) return false;
 
             // Seen from above at an angle, the ground looks shorter in depth by sin(pitch).
             float width = settings.LawnWidth + padding * 2f;
@@ -35,13 +37,15 @@ namespace UnCredibles.Minigames.MowTheLawn
             view.orthographicSize = Mathf.Max(depth * 0.5f, width * 0.5f / Mathf.Max(0.1f, view.aspect));
 
             var rotation = Quaternion.Euler(pitch, 0f, 0f);
-            var position = lawnCenter.position - rotation * Vector3.forward * distance;
-            if (shakeAmount > 0.001f)
-            {
-                position += rotation * (Vector3)(Random.insideUnitCircle * shakeAmount);
-                shakeAmount = Mathf.MoveTowards(shakeAmount, 0f, Time.unscaledDeltaTime * 1.5f);
-            }
-            transform.SetPositionAndRotation(position, rotation);
+            transform.SetPositionAndRotation(lawnCenter.position - rotation * Vector3.forward * distance, rotation);
+            return true;
+        }
+
+        private void LateUpdate()
+        {
+            if (!Fit() || shakeAmount <= 0.001f) return;
+            transform.position += transform.rotation * (Vector3)(Random.insideUnitCircle * shakeAmount);
+            shakeAmount = Mathf.MoveTowards(shakeAmount, 0f, Time.unscaledDeltaTime * 1.5f);
         }
     }
 }

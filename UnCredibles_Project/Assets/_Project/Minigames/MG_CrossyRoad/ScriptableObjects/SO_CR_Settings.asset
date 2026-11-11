@@ -121,7 +121,7 @@ MonoBehaviour:
   roadColor: {r: 0.22, g: 0.22, b: 0.25, a: 1}
   goalLaneColor: {r: 0.95, g: 0.85, b: 0.45, a: 1}
   playerPrefabs:
-  - {fileID: 1227499254454188631, guid: a6a63f4247a3f70469480f9a3dfc8d39, type: 3}
   - {fileID: 961549831250769308, guid: 48567cda79e08374abc1b76079bef779, type: 3}
+  - {fileID: 1227499254454188631, guid: a6a63f4247a3f70469480f9a3dfc8d39, type: 3}
   - {fileID: 6173742884838963368, guid: f65bd9b8e9f64254fb882f35ca0493f1, type: 3}
   - {fileID: 8395011585729413270, guid: dc5f4451e3ffe0b40a13d3f91ffff323, type: 3}

@@ -232,6 +232,28 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   musicSource: {fileID: 0}
   sfxSource: {fileID: 0}
+  menuMusic: {fileID: 8300000, guid: e3c9e8cc37efd884f9fda96bd9d52031, type: 3}
+  resultsMusic: {fileID: 8300000, guid: 9f106ce26a21ed64da54881c4cafe9f9, type: 3}
+  defeatMusic: {fileID: 8300000, guid: 690543f1e0c78a040a5084ef6e3323da, type: 3}
+  uiMove: {fileID: 8300000, guid: c8c5d03085d62b343b0c59031604d5e7, type: 3}
+  uiConfirm: {fileID: 8300000, guid: a14f843dd895ca44a96bf86f112b8fd7, type: 3}
+  uiBack: {fileID: 8300000, guid: 03feb64218cf98542860f5b2ef76d08b, type: 3}
+  uiError: {fileID: 8300000, guid: 057f2804681e71f40a8ca230ee8d4d18, type: 3}
+  uiReady: {fileID: 8300000, guid: 4466bc6cac8f163448d7f53f65bf3dcc, type: 3}
+  countdownBeep: {fileID: 8300000, guid: f6d2a42fdf5493b49900ae1e774777be, type: 3}
+  countdownGo: {fileID: 8300000, guid: aa41772a01a869e48973c7ea8fc8712c, type: 3}
+  timerTick: {fileID: 8300000, guid: b9db515ee48e4204e84c18721c015075, type: 3}
+  roundEnd: {fileID: 8300000, guid: 45ef8823fd82b8d45a065b604ac3544d, type: 3}
+  win: {fileID: 8300000, guid: 76e99fa397be1d14dba1150177dd5c93, type: 3}
+  lose: {fileID: 8300000, guid: cbef1e144a7099340a8b8fda25ee2f5f, type: 3}
+  score: {fileID: 8300000, guid: 1f13289e61443194a8a333dc29f28818, type: 3}
+  deliver: {fileID: 8300000, guid: d219dbcecc67fb04199b97004e2f5666, type: 3}
+  jump: {fileID: 8300000, guid: a0020a03a6dffad4ea3c9f149add7e37, type: 3}
+  stun: {fileID: 8300000, guid: a1e3cc99ee685fe4fb45a6d37390003c, type: 3}
+  hitSoft: {fileID: 8300000, guid: 9d594691f946ed24487fd86a68b3983f, type: 3}
+  hitRival: {fileID: 8300000, guid: e7966167f0eff9042b968262f612872c, type: 3}
+  runOver: {fileID: 8300000, guid: a3e08b6ff204a6344a9f319d9bc9b736, type: 3}
+  failWah: {fileID: 8300000, guid: ef530fa098f822548ae429c38bfabe4f, type: 3}
 --- !u!114 &1007
 MonoBehaviour:
   m_ObjectHideFlags: 0

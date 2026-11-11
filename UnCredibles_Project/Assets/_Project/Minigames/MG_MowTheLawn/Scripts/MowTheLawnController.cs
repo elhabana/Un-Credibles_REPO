@@ -33,6 +33,7 @@ namespace UnCredibles.Minigames.MowTheLawn
         private readonly float[] unloadTimers = new float[PlayerRegistry.MaxPlayers];
 
         public bool IsFrenzy { get; private set; }
+        public override bool IsTimerUrgent => IsFrenzy;
         public float TimeLeft => Timer != null && Timer.IsRunning ? Timer.Remaining : float.MaxValue;
         public event Action FrenzyStarted;
 
@@ -61,6 +62,38 @@ namespace UnCredibles.Minigames.MowTheLawn
         }
 
         protected override void OnGameStarted() { }
+
+        // The badge goes in the screen corner of the player's bin, beside it towards the middle of
+        // that edge so it does not cover it.
+        public override void GetHudPlacement(int slotIndex, out Vector2 corner, out Vector2 margin)
+        {
+            base.GetHudPlacement(slotIndex, out corner, out margin);
+            var view = Camera.main;
+            if (view == null) return;
+            // MowCameraFit frames the lawn in LateUpdate: frame it now so we measure the real view.
+            if (view.TryGetComponent<MowCameraFit>(out var fit)) fit.Fit();
+            Renderer[] renderers = null;
+            for (int i = 0; i < Players.Count && i < bins.Count; i++)
+                if (Players[i].SlotIndex == slotIndex) renderers = bins[i].GetComponentsInChildren<Renderer>();
+            if (renderers == null || renderers.Length == 0) return;
+
+            var bounds = renderers[0].bounds;
+            foreach (var renderer in renderers) bounds.Encapsulate(renderer.bounds);
+            float minX = 1f, maxX = 0f;
+            for (int i = 0; i < 8; i++)
+            {
+                var point = new Vector3((i & 1) == 0 ? bounds.min.x : bounds.max.x,
+                    (i & 2) == 0 ? bounds.min.y : bounds.max.y, (i & 4) == 0 ? bounds.min.z : bounds.max.z);
+                float x = view.WorldToViewportPoint(point).x;
+                minX = Mathf.Min(minX, x);
+                maxX = Mathf.Max(maxX, x);
+            }
+            var center = view.WorldToViewportPoint(bounds.center);
+            corner = new Vector2(center.x < .5f ? 0f : 1f, center.y < .5f ? 0f : 1f);
+            // shortcut: assumes the 1920-wide reference canvas (16:9); revisit for ultrawide screens.
+            float covered = corner.x < .5f ? maxX : 1f - minX;
+            margin.x = Mathf.Max(margin.x, Mathf.Clamp01(covered) * 1920f + 16f);
+        }
 
         // Slot 0 bottom-left, 1 bottom-right, 2 top-left, 3 top-right, like the spawn points.
         private Vector3 CornerOf(int slotIndex)

@@ -15,14 +15,12 @@ namespace UnCredibles.Minigames.CrossyRoad
     {
         private const byte GrandmaLaunchedEvent = 1;
         private const byte FinalRushEvent = 2;
-        private const byte ScoreEvent = 3;
         private const byte GrandmaDeliveredEvent = 4;
 
         [SerializeField] private CrossyRoadBoard board;
         [SerializeField] private CrossyRoadTraffic traffic;
         [SerializeField] private CrossyRoadGrandmas grandmas;
         [SerializeField] private CrossyRoadOil oil;
-        [SerializeField] private CrossyRoadScorePopups popups;
         [SerializeField] private Transform playersParent;
 
         private readonly List<CrossyRoadPlayer> avatars = new List<CrossyRoadPlayer>(PlayerRegistry.MaxPlayers);
@@ -32,6 +30,7 @@ namespace UnCredibles.Minigames.CrossyRoad
         private CrossyRoadJuice juice;
 
         public bool IsFinalRush { get; private set; }
+        public override bool IsTimerUrgent => IsFinalRush;
         public event System.Action FinalRushStarted;
 
         private CrossyRoadSettings Settings => board.Settings;
@@ -69,7 +68,6 @@ namespace UnCredibles.Minigames.CrossyRoad
                 // Online client: everything comes from the host, we only keep it moving smoothly.
                 float remoteDelta = Time.deltaTime;
                 traffic.TickRemote(remoteDelta);
-                if (popups != null) popups.Tick(remoteDelta);
                 grandmas.Tick(remoteDelta); // only flying and leaving grandmas move here
                 oil.TickRemote(remoteDelta);
                 foreach (var avatar in avatars) avatar.TickRemote(remoteDelta);
@@ -77,7 +75,6 @@ namespace UnCredibles.Minigames.CrossyRoad
             }
 
             traffic.SetDifficulty(Settings.Difficulty(GameProgress()));
-            if (popups != null) popups.Tick(Time.deltaTime);
             if (IsPlaying && !IsFinalRush && Timer != null && Timer.IsRunning && Timer.Remaining <= Settings.FinalRushSeconds)
                 StartFinalRush();
 
@@ -133,7 +130,7 @@ namespace UnCredibles.Minigames.CrossyRoad
             SendEvent();
             grandmas.Return(avatar.CarriedGrandma);
             avatar.SetCarrying(-1);
-            AwardPoints(avatar, Settings.PointsPerDelivery * (IsFinalRush ? Settings.FinalRushMultiplier : 1), IsFinalRush);
+            AwardPoints(avatar, Settings.PointsPerDelivery * (IsFinalRush ? Settings.FinalRushMultiplier : 1));
             if (Settings.ReturnToSpawnAfterDelivery) avatar.Respawn(FindFreeSpawn(avatar.SpawnPosition, avatar), 0f);
         }
 
@@ -211,7 +208,7 @@ namespace UnCredibles.Minigames.CrossyRoad
         private void KillPlayer(int index)
         {
             var avatar = avatars[index];
-            AwardPoints(avatar, -Settings.HitPenalty, false);
+            AwardPoints(avatar, -Settings.HitPenalty);
             // With a lot of force the way the car was going.
             if (avatar.IsCarrying) KnockGrandmaOff(avatar, Mathf.Sign(traffic.VelocityNear(avatar.Position.z)));
             avatar.Kill();
@@ -291,13 +288,6 @@ namespace UnCredibles.Minigames.CrossyRoad
                 grandmas.Launch(new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle()), reader.ReadSingle());
             else if (eventId == GrandmaDeliveredEvent)
                 grandmas.SendOff(new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle()));
-            else if (eventId == ScoreEvent)
-            {
-                int index = reader.ReadByte();
-                int points = reader.ReadInt16();
-                bool bonus = reader.ReadBoolean();
-                if (popups != null && index < avatars.Count) popups.Show(avatars[index].Position, points, bonus);
-            }
             else if (eventId == FinalRushEvent && !IsFinalRush)
             {
                 IsFinalRush = true;
@@ -312,18 +302,11 @@ namespace UnCredibles.Minigames.CrossyRoad
             return 1f - Timer.Remaining / Data.Duration;
         }
 
-        // Changes the score and shows it over the player, here and on the clients.
-        private void AwardPoints(CrossyRoadPlayer avatar, int points, bool bonus)
+        // The HUD badge shows the +/- points on every machine (scores are replicated), so nothing floats over the player.
+        private void AwardPoints(CrossyRoadPlayer avatar, int points)
         {
             if (points == 0) return;
             Score.AddScore(avatar.Slot.PlayerId, points);
-            if (popups != null) popups.Show(avatar.Position, points, bonus);
-
-            var message = BeginEvent(ScoreEvent);
-            message.Write((byte)avatars.IndexOf(avatar));
-            message.Write((short)points);
-            message.Write(bonus);
-            SendEvent();
         }
 
         private void StartFinalRush()

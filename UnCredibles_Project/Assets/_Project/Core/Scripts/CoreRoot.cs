@@ -90,6 +90,8 @@ namespace UnCredibles.Core
             Vote = new MatchVote(GameFlow, Players, Match, minigames, Online, Room, StartNextRound);
 
             audioManager.Bind(Settings);
+            GameAudio.Player = audioManager.PlaySfx;
+            GameFlow.StateChanged += UpdateMusic;
             Settings.Load();
             minigames.Bind(Players, sceneFlow);
             minigames.ClientsReady = Room.AllClientsIn;
@@ -216,6 +218,8 @@ namespace UnCredibles.Core
             batPad.PhoneReconnected -= HandlePhoneReconnected;
             InputSystem.onDeviceChange -= HandleDeviceChange;
             GameFlow.StateChanged -= UpdatePhoneHint;
+            GameFlow.StateChanged -= UpdateMusic;
+            GameAudio.Player = null;
             L10n.LanguageChanged -= ResendPhoneHint;
             Players.Clear();
             Instance = null;
@@ -330,6 +334,15 @@ namespace UnCredibles.Core
         {
             minigame.StateChanged += HandleMinigameStateChanged;
             GameFlow.ChangeState(GameState.Minigame);
+            if (minigames.ActiveData != null) audioManager.PlayMusic(minigames.ActiveData.Music);
+        }
+
+        // Menu, lobby and voting share one track that never restarts between them (same garage scene).
+        // Minigames start their own when they begin; the Results screen picks fanfare or defeat.
+        private void UpdateMusic(GameState previous, GameState current)
+        {
+            if (current == GameState.MainMenu || current == GameState.PartyLobby || current == GameState.Voting)
+                audioManager.PlayMenuMusic();
         }
 
         // The rules card ends when the countdown starts: phones go from "Ready" to the minigame controls.
@@ -470,6 +483,7 @@ namespace UnCredibles.Core
 
         private void HandleMinigameFinished(MinigameData data, IReadOnlyList<MinigameResult> results)
         {
+            audioManager.StopMusic(); // the round-end jingle and the results fanfare play over silence, on every machine
             if (IsOnlineClient) return; // the host decides what comes next
             Match.RegisterResults(data, results);
             StopResultsRoutine();

@@ -30,6 +30,8 @@ namespace UnCredibles.Minigames.MowTheLawn
 
         public void Ram(Vector3 position, int bagsLost)
         {
+            GameAudio.Play(GameSfx.HitRival);
+            GameAudio.Play(GameSfx.Stun); // a ram always stuns the victim
             var ring = Take(rings, CreateRing);
             ring.Origin = position + Vector3.up * 0.05f;
             ring.Transform.position = ring.Origin;

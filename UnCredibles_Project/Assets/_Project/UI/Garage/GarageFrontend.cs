@@ -1,6 +1,7 @@
 using System.Collections;
 using TMPro;
 using UnCredibles.Core;
+using UnCredibles.Minigames;
 using UnCredibles.UI.MainMenu;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -37,6 +38,8 @@ namespace UnCredibles.UI.Garage
         public LayerMask tvScreenLayer;
         [Tooltip("Sprites and title font of the settings menu on the TV.")]
         public TvMenuSkin tvMenuSkin;
+        [Tooltip("Title font of the art bible (Bangers SDF) for the paper vote screen.")]
+        public TMP_FontAsset titleFont;
         [Header("Menus")]
         [Tooltip("Plays when the selection moves to another button in the garage menus and on the TV.")]
         public AudioClip selectSound;
@@ -67,11 +70,15 @@ namespace UnCredibles.UI.Garage
         {
             PlaceSettingsOnTv();
             CreditsCrawl.Build((RectTransform)detailPanels[(int)GarageView.Credits - 2].transform, tvMenuSkin.Font);
+            // Art bible look over the scene's plain buttons: comic panel with tabs at home, paper sheets in the lobby.
+            menu.ApplyArt(titleFont);
+            var lobbyView = lobbyRoot.GetComponentInChildren<UnCredibles.UI.PartyLobby.PartyLobbyView>(true);
+            if (lobbyView != null) lobbyView.ApplyArt(titleFont);
             // On the canvas that holds every garage menu (Garage UI).
             menuRoot.transform.parent.gameObject.AddComponent<SelectionHighlight>().Init(detailPanels[0].transform, selectSound);
             while (CoreRoot.Instance == null) yield return null;
             core = CoreRoot.Instance;
-            gameObject.AddComponent<UnCredibles.UI.Voting.MapVoteView>();
+            gameObject.AddComponent<UnCredibles.UI.Voting.MapVoteView>().TitleFont = titleFont;
             core.GameFlow.StateChanged += StateChanged;
             menu.SettingsRequested += ShowSettings;
             masterVolume.SetValueWithoutNotify(core.Settings.MasterVolume);
@@ -83,8 +90,8 @@ namespace UnCredibles.UI.Garage
             masterVolume.onValueChanged.AddListener(SetVolume);
             musicVolume.onValueChanged.AddListener(SetVolume);
             sfxVolume.onValueChanged.AddListener(SetVolume);
-            previousLanguage.onClick.AddListener(() => core.Settings.SetLanguage(L10n.NextLanguage(-1)));
-            nextLanguage.onClick.AddListener(() => core.Settings.SetLanguage(L10n.NextLanguage(1)));
+            previousLanguage.onClick.AddListener(() => StepLanguage(-1));
+            nextLanguage.onClick.AddListener(() => StepLanguage(1));
             ShowLanguage();
             L10n.LanguageChanged += HandleLanguageChanged;
             StateChanged(core.GameFlow.State, core.GameFlow.State);
@@ -111,6 +118,12 @@ namespace UnCredibles.UI.Garage
             ShowVolume(sfxLabel, "settings.sfx", sfxVolume.value);
             ShowLanguage();
             ShowInstruction();
+        }
+
+        private void StepLanguage(int step)
+        {
+            GameAudio.Play(GameSfx.UiMove);
+            core.Settings.SetLanguage(L10n.NextLanguage(step));
         }
 
         private void ShowLanguage()
@@ -154,15 +167,25 @@ namespace UnCredibles.UI.Garage
             else lobbyRoot.SetActive(false);
         }
 
+        // Back to the home menu (VOLVER, B or Esc).
         public void ShowHome()
         {
+            GameAudio.Play(GameSfx.UiBack);
             if (core != null) core.Settings.Save();
             Show(GarageView.Home);
             menu.ResetView();
         }
         public void ShowSettings() => Show(GarageView.Settings);
-        public void ShowCredits() => Show(GarageView.Credits);
-        public void ShowGallery() => Show(GarageView.Gallery);
+        public void ShowCredits()
+        {
+            GameAudio.Play(GameSfx.UiConfirm);
+            Show(GarageView.Credits);
+        }
+        public void ShowGallery()
+        {
+            GameAudio.Play(GameSfx.UiConfirm);
+            Show(GarageView.Gallery);
+        }
 
         private void Show(GarageView view)
         {

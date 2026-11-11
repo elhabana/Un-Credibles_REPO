@@ -62,7 +62,7 @@ MonoBehaviour:
   aiLooseBagRange: 6
   aiAttackRange: 5
   playerPrefabs:
-  - {fileID: 1230469411051169273, guid: 338c9c05065ccf84ebd321ef1102ea81, type: 3}
   - {fileID: 3579630681584448036, guid: 16910149cfc1fcb4b8c97f229b04c390, type: 3}
+  - {fileID: 1230469411051169273, guid: 338c9c05065ccf84ebd321ef1102ea81, type: 3}
   - {fileID: 933435598639670620, guid: e3b5efc5e8af1b648bcd9498edd7cf5e, type: 3}
   - {fileID: 1844089717777996829, guid: aa6d264689709934a864629a072d6f0c, type: 3}

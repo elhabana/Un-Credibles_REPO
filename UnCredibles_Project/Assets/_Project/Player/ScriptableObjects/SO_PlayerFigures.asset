@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: SO_PlayerFigures
   m_EditorClassIdentifier: UnCredibles.Player::UnCredibles.Players.PlayerFigureSet
   figures:
-  - {fileID: 6064563184251268469, guid: 1ebbc7cf0a84ac746b23e2a339eef5fd, type: 3}
   - {fileID: 6225246435889961232, guid: b4d90c86a6145724f8cb18f2e7194d40, type: 3}
+  - {fileID: 6064563184251268469, guid: 1ebbc7cf0a84ac746b23e2a339eef5fd, type: 3}
   - {fileID: 6796573578078212561, guid: d7a0a635c5de32347a92b7069a38862d, type: 3}
   - {fileID: 4777725488375482812, guid: 873d085f874d6bb45867316c8bf74f32, type: 3}

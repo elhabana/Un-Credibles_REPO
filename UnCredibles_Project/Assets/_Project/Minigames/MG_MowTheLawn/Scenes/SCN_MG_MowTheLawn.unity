@@ -233,6 +233,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   controller: {fileID: 102}
+  titleFont: {fileID: 11400000, guid: 0f4999180db1cd14f8de3280d6998060, type: 2}
   countdownText: {fileID: 833}
   timerText: {fileID: 823}
   scoreText: {fileID: 813}

@@ -144,7 +144,7 @@ namespace UnCredibles.Minigames.MowTheLawn
             UnCredibles.Players.PlayerIdentity.ColorFor(slotIndex);
 
         [Header("Player prefabs")]
-        [SerializeField, Tooltip("One per slot, already in its colour: 0 red, 1 blue, 2 green, 3 yellow.")]
+        [SerializeField, Tooltip("One per slot, already in its colour: 0 blue, 1 red, 2 green, 3 yellow.")]
         private MowerPlayer[] playerPrefabs = new MowerPlayer[UnCredibles.Players.PlayerRegistry.MaxPlayers];
         public MowerPlayer PlayerPrefabFor(int slotIndex) => playerPrefabs[slotIndex];
     }

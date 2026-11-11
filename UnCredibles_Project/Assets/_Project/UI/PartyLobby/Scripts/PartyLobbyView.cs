@@ -1,6 +1,8 @@
 using TMPro;
 using UnCredibles.BatPad;
+using UnCredibles.Minigames;
 using UnCredibles.Players;
+using UnCredibles.UI.Garage;
 using UnityEngine;
 using UnityEngine.UI;
 using UnCredibles.Localization;
@@ -31,6 +33,14 @@ namespace UnCredibles.UI.PartyLobby
         private GameObject phoneOverlay;
         private RawImage bigQr;
         private TMP_Text phoneButtonLabel, phoneScanText, phoneCloseLabel;
+        private Button phoneClose;
+        // Art bible look (ApplyArt): title on a taped label, the room code in a turquoise pill.
+        private TMP_FontAsset titleFont;
+        private bool artRequested;
+        private RectTransform titleLabel;
+        private Image codePill;
+        private TMP_Text codeText;
+        private Vector2 titleCenter;
 
         private void Awake()
         {
@@ -38,7 +48,89 @@ namespace UnCredibles.UI.PartyLobby
             countdownText.gameObject.SetActive(false);
             CreateAddPlayerCallout();
             CreatePhonePanel();
+            if (artRequested) Style();
             RenderBatPad();
+        }
+
+        // Called by GarageFrontend with Bangers; styles now, or at Awake if the lobby has not woken up yet.
+        public void ApplyArt(TMP_FontAsset font)
+        {
+            titleFont = font;
+            artRequested = true;
+            if (addPlayerCallout != null) Style();
+        }
+
+#if UNITY_EDITOR
+        // Edit-mode preview only, on GarageMenuPreview's hidden throwaway copy of the canvas: the runtime look
+        // with four empty local slots (no controller, BatPad or players outside Play).
+        public void BuildPreview(TMP_FontAsset font)
+        {
+            Awake();
+            ApplyArt(font);
+            for (int i = 0; i < slotViews.Length; i++) slotViews[i].Render(default, true, false, false, false);
+        }
+#endif
+
+        private void Style()
+        {
+            artRequested = false;
+            foreach (var view in slotViews) view.ApplyArt(titleFont);
+            var parent = modeText.transform.parent;
+
+            titleCenter = modeText.rectTransform.anchoredPosition;
+            var label = PaperUI.Panel("Title label", parent, Color.white, -1.5f, true);
+            label.transform.SetSiblingIndex(modeText.transform.GetSiblingIndex());
+            titleLabel = label.rectTransform;
+            PaperUI.Place(titleLabel, modeText.rectTransform.anchorMin, titleCenter, new Vector2(500f, 84f));
+            SignButton.Text(modeText, titleFont, PaperUI.Ink, false);
+            modeText.enableAutoSizing = true;
+            modeText.fontSizeMin = 24f;
+            modeText.fontSizeMax = 52f;
+            modeText.rectTransform.localEulerAngles = new Vector3(0f, 0f, -1.5f);
+
+            codePill = PaperUI.Pill("Room code", parent, PaperUI.TimerTeal, 68f);
+            codePill.rectTransform.localEulerAngles = new Vector3(0f, 0f, 2f);
+            codeText = PaperUI.Text("Code", codePill.transform, titleFont, 44f, PaperUI.Paper, TextAlignmentOptions.Center);
+            PaperUI.Stretch(codeText.rectTransform, 6f);
+            codePill.gameObject.SetActive(false);
+
+            // Controls footer on a paper pill, one line per hint.
+            var hintRect = hintText.rectTransform;
+            var footer = PaperUI.Pill("Controls", parent, PaperUI.Paper, 84f);
+            footer.transform.SetSiblingIndex(hintText.transform.GetSiblingIndex());
+            PaperUI.Place(footer.rectTransform, hintRect.anchorMin, hintRect.anchoredPosition, new Vector2(hintRect.sizeDelta.x + 40f, 84f));
+            SignButton.Text(hintText, titleFont, PaperUI.Ink, false);
+            hintText.fontSizeMax = hintText.fontSize;
+            hintText.fontSizeMin = 14f;
+            hintText.enableAutoSizing = true;
+            hintRect.sizeDelta = new Vector2(hintRect.sizeDelta.x - 40f, 74f);
+
+            SignButton.Text(countdownText, titleFont, PaperUI.Paper, true);
+            SignButton.Text(addPlayerCallout, titleFont, SignButton.Mustard, true);
+            SignButton.Text(batPadText, titleFont, PaperUI.Paper, true);
+            SignButton.Text(phoneScanText, titleFont, PaperUI.Paper, false);
+            SignButton.Pill(backButton, titleFont, SignButton.Brick, PaperUI.Paper, -1.5f);
+            SignButton.Pill(phoneButton, titleFont, SignButton.SofaBlue, PaperUI.Paper, 1.5f);
+            SignButton.Pill(phoneClose, titleFont, PaperUI.Ink, PaperUI.Paper);
+            if (controller.Players != null) RenderAll();
+        }
+
+        // Label sized to the title, the code pill right after it; the pair centred where the title was.
+        private void LayoutTitle(bool withCode)
+        {
+            float labelWidth = Mathf.Min(modeText.GetPreferredValues(modeText.text).x + 80f, 540f);
+            float pillWidth = withCode ? Mathf.Min(codeText.GetPreferredValues(codeText.text).x + 60f, 380f) : 0f;
+            float gap = withCode ? 24f : 0f;
+            float total = labelWidth + gap + pillWidth;
+            var labelCenter = titleCenter + new Vector2((labelWidth - total) * .5f, 0f);
+            titleLabel.anchoredPosition = labelCenter;
+            titleLabel.sizeDelta = new Vector2(labelWidth, titleLabel.sizeDelta.y);
+            modeText.rectTransform.anchoredPosition = labelCenter;
+            modeText.rectTransform.sizeDelta = new Vector2(labelWidth - 40f, 64f);
+            codePill.gameObject.SetActive(withCode);
+            if (withCode)
+                PaperUI.Place(codePill.rectTransform, titleLabel.anchorMin,
+                    titleCenter + new Vector2((total - pillWidth) * .5f, 0f), new Vector2(pillWidth, 68f));
         }
 
         private void Update()
@@ -115,7 +207,7 @@ namespace UnCredibles.UI.PartyLobby
             phoneScanText.textWrappingMode = TextWrappingModes.NoWrap;
             phoneScanText.alignment = TextAlignmentOptions.Center;
 
-            var close = PlainButton(overlay, out phoneCloseLabel, 28f);
+            var close = phoneClose = PlainButton(overlay, out phoneCloseLabel, 28f);
             var closeRect = (RectTransform)close.transform;
             closeRect.anchorMin = closeRect.anchorMax = new Vector2(.5f, .5f);
             closeRect.sizeDelta = new Vector2(280f, 70f);
@@ -134,7 +226,8 @@ namespace UnCredibles.UI.PartyLobby
         {
             var button = Instantiate(backButton, parent);
             button.onClick = new Button.ButtonClickedEvent();
-            foreach (var old in button.GetComponentsInChildren<TMP_Text>(true)) Destroy(old.gameObject);
+            // Immediate: Style may run in this same frame and must find the new label, not the old one (and edit mode has no Destroy).
+            foreach (var old in button.GetComponentsInChildren<TMP_Text>(true)) DestroyImmediate(old.gameObject);
             label = Instantiate(batPadText, button.transform);
             label.gameObject.SetActive(true);
             label.rectTransform.anchorMin = Vector2.zero; label.rectTransform.anchorMax = Vector2.one;
@@ -257,9 +350,20 @@ namespace UnCredibles.UI.PartyLobby
             RenderAddPlayerCallout(occupied);
 
             // Same code for friends online and for the BatPad room of the phones.
-            modeText.text = controller.IsOnline
+            string mode = controller.IsOnline
                 ? L10n.Format(L10n.UI, "lobby.mode_multi", occupied, controller.RoomCode)
                 : L10n.Get(L10n.UI, "lobby.mode_single");
+            if (codePill == null)
+            {
+                modeText.text = mode;
+                return;
+            }
+            // shortcut: the code pill splits "MULTIJUGADOR n/4 | CODIGO: X" at the bar; a translation without
+            // a bar stays whole on the label. Give the code its own key if that ever happens.
+            int bar = controller.IsOnline ? mode.IndexOf('|') : -1;
+            modeText.text = bar < 0 ? mode : mode.Substring(0, bar).Trim();
+            if (bar >= 0) codeText.text = mode.Substring(bar + 1).Trim();
+            LayoutTitle(bar >= 0);
         }
 
         private void HandleCountdownTick(int secondsLeft)
@@ -284,8 +388,10 @@ namespace UnCredibles.UI.PartyLobby
 
         private void ShowNotice(string message) => hintText.text = message;
 
-        private void HandleAddAI(int slotIndex, BotDifficulty difficulty) => controller.AddAI(slotIndex, difficulty);
+        private void HandleAddAI(int slotIndex, BotDifficulty difficulty) =>
+            GameAudio.Play(controller.AddAI(slotIndex, difficulty) ? GameSfx.UiConfirm : GameSfx.UiError);
         private void HandleInvite(int slotIndex) => controller.InviteFriend(slotIndex);
-        private void HandleRemove(int slotIndex) => controller.RemovePlayer(slotIndex);
+        private void HandleRemove(int slotIndex) =>
+            GameAudio.Play(controller.RemovePlayer(slotIndex) ? GameSfx.UiBack : GameSfx.UiError);
     }
 }

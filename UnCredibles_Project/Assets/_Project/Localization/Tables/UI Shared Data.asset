@@ -578,6 +578,26 @@ MonoBehaviour:
     m_Key: pause.hint
     m_Metadata:
       m_Items: []
+  - m_Id: 6263442617401350
+    m_Key: rules.mission
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6263442617401351
+    m_Key: rules.controls
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6263442617401352
+    m_Key: rules.start
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6263442617401353
+    m_Key: rules.press
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6263442617401380
+    m_Key: vote.voted
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

@@ -13,6 +13,7 @@ namespace UnCredibles.Minigames.Churro
         [SerializeField] private TMP_Text roundText;
         [SerializeField, Min(0f)] private float introVisibleSeconds = 1.2f;
 
+        private GameObject roundPill;
         private float hideTimer;
         private int shownRound;
         private int shownTotal;
@@ -24,7 +25,7 @@ namespace UnCredibles.Minigames.Churro
             controller.RoundEnded += HandleRoundEnded;
             L10n.LanguageChanged += ShowRound;
             bannerText.gameObject.SetActive(false);
-            roundText.text = string.Empty;
+            BuildRoundPill();
             enabled = false; // Update only runs while a banner is visible
         }
 
@@ -38,7 +39,26 @@ namespace UnCredibles.Minigames.Churro
         // The round counter stays on screen, so it follows a language change; the banners are short-lived.
         private void ShowRound()
         {
-            if (shownRound > 0) roundText.text = L10n.Format(L10n.Minigames, "churro.round", shownRound, shownTotal);
+            if (shownRound <= 0) return;
+            roundText.text = L10n.Format(L10n.Minigames, "churro.round", shownRound, shownTotal);
+            roundPill.SetActive(true);
+        }
+
+        // The round counter in a paper pill, top centre, where other minigames show the time (Churro has none).
+        // The font is the title one, set by MinigameUI on every text of the HUD canvas.
+        private void BuildRoundPill()
+        {
+            var pill = PaperUI.Pill("Round pill", roundText.transform.parent, PaperUI.Paper, 76f);
+            PaperUI.Place(pill.rectTransform, new Vector2(.5f, 1f), new Vector2(0f, -24f), new Vector2(340f, 76f));
+            roundText.transform.SetParent(pill.transform, false);
+            PaperUI.Stretch(roundText.rectTransform);
+            roundText.color = PaperUI.Ink;
+            roundText.fontSize = 46f;
+            roundText.alignment = TextAlignmentOptions.Center;
+            roundText.textWrappingMode = TextWrappingModes.NoWrap;
+            roundText.text = string.Empty;
+            roundPill = pill.gameObject;
+            roundPill.SetActive(false);
         }
 
         private void HandleRoundStarted(int round, int total)

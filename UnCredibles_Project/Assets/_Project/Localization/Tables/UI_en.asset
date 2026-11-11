@@ -532,6 +532,26 @@ MonoBehaviour:
     m_Localized: "ESC / START: resume    CTRL / B: quit to menu"
     m_Metadata:
       m_Items: []
+  - m_Id: 6263442617401350
+    m_Localized: "MISSION"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6263442617401351
+    m_Localized: "CONTROLS"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6263442617401352
+    m_Localized: "START"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6263442617401353
+    m_Localized: "PRESS A / SPACE"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6263442617401380
+    m_Localized: "VOTED!"
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

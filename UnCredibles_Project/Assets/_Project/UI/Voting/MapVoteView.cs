@@ -10,42 +10,81 @@ using UnCredibles.Localization;
 
 namespace UnCredibles.UI.Voting
 {
-    // A screen-space route map over the garage. The Core owns the ballot and its result.
+    // A screen-space route map over the garage, drawn with the art bible's paper kit (PaperUI): a taped
+    // title label, the turquoise timer pill, the 3 stops of the route as small paper cards and every
+    // candidate as a tilted polaroid. The Core owns the ballot and its result; this only shows it, so
+    // online clients see the same through MatchVote.Changed.
     public sealed class MapVoteView : MonoBehaviour
     {
+        private static readonly Color Backdrop = new Color(.114f, .114f, .106f, .85f); // see-through ink
+        private static readonly Color FadedPaper = new Color(.957f, .922f, .867f, .55f);
+        private static readonly Color FadedInk = new Color(.114f, .114f, .106f, .45f);
+        private static readonly Color Dimmed = new Color(.62f, .62f, .6f);
+        private static readonly Color EmptyPhoto = new Color(.114f, .114f, .106f, .12f);
+        private static readonly Vector2 Middle = new Vector2(.5f, .5f);
+        private const int UrgentSeconds = 3;
+        private static readonly Vector2 CardTopAnchor = new Vector2(.5f, 1f);
+        // Polaroid, top to bottom: inset, photo (16:9), name, status, player discs, wider bottom margin.
+        private const float CardTop = 90f;        // top edge of the cards, under the route
+        private const float PhotoInset = 14f;
+        private const float NameHeight = 52f;
+        private const float StatusHeight = 30f;
+        private const float BottomMargin = 34f;   // room for the vote stamp under the discs
+        private const float StopWidth = 420f;
+        private const float StopStep = 480f;
+        private const float BadgeSize = 56f;
+        private const float BadgeGap = 10f;
+        private const float StampSeconds = .15f;
+
+        // Bangers; set by GarageFrontend right after adding this component (falls back to TMP's default).
+        public TMP_FontAsset TitleFont { get; set; }
+
         private CoreRoot core;
         private GameObject root;
         private TMP_Text heading;
+        private Image timerPill;
         private TMP_Text timer;
         private TMP_Text hint;
-        private readonly TMP_Text[] stops = new TMP_Text[MatchVote.VotedRounds];
+        private readonly Stop[] stops = new Stop[MatchVote.VotedRounds];
         private readonly List<Card> cards = new List<Card>();
         private int renderedCandidateCount = -1;
         private int shownSeconds = -1;
+        private int shownRound = -1;
+
+        private sealed class Stop
+        {
+            public Image panel;
+            public Image disc;
+            public TMP_Text number;
+            public TMP_Text label;
+        }
 
         private sealed class Card
         {
             public Image background;
+            public Image thumbnail;
             public TMP_Text title;
             public TMP_Text footer;
-            public Image thumbnail;
+            public GameObject inRoute;
             public Button button;
+            public float badgeY; // centre of the disc row, from the card's top edge
             public readonly Badge[] badges = new Badge[PlayerRegistry.MaxPlayers];
         }
 
         private sealed class Badge
         {
-            public Image background;
-            public Outline outline;
+            public Image disc;
             public TMP_Text label;
+            public RectTransform stamp;
+            public bool voted;
+            public float stampTime = -1f;
         }
 
-        private const float BadgeWidth = 64f;
-        private const float BadgeHeight = 42f;
-        private const float BadgeGap = 8f;
-        private const float BadgeY = -170f;
         private readonly bool[] votedBy = new bool[PlayerRegistry.MaxPlayers];
         private readonly bool[] hoveredBy = new bool[PlayerRegistry.MaxPlayers];
+        // What the last Render showed per slot (-1 = nothing): a change is a move or a vote to play a sound for.
+        private readonly int[] shownCursor = new int[PlayerRegistry.MaxPlayers];
+        private readonly int[] shownVote = new int[PlayerRegistry.MaxPlayers];
 
         private IEnumerator Start()
         {
@@ -78,57 +117,78 @@ namespace UnCredibles.UI.Voting
         private void Update()
         {
             if (root == null || !root.activeSelf || core == null) return;
+            AnimateStamps(Time.unscaledDeltaTime);
             int seconds = Mathf.CeilToInt(core.Vote.SecondsLeft);
             if (seconds == shownSeconds) return;
             shownSeconds = seconds;
-            timer.text = $"{seconds} s";
+            timer.SetText("{0} s", seconds);
+            timerPill.color = seconds <= UrgentSeconds ? PaperUI.Alarm : PaperUI.TimerTeal;
         }
 
         private void OnStateChanged(GameState previous, GameState current)
         {
             if (root == null) return;
             shownSeconds = -1; // a new ballot rewrites the timer on its first frame
+            shownRound = -1;   // and its first render makes no sound
             root.SetActive(current == GameState.Voting);
             if (current == GameState.Voting) Render();
         }
 
         private void Build()
         {
-            root = new GameObject("Mapa de votacion", typeof(RectTransform), typeof(Canvas),
-                typeof(CanvasScaler), typeof(GraphicRaycaster));
-            root.transform.SetParent(transform, false);
-            var canvas = root.GetComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            canvas.sortingOrder = 200;
-            var scaler = root.GetComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1920, 1080);
-            scaler.matchWidthOrHeight = .5f;
+            for (int i = 0; i < shownCursor.Length; i++) shownCursor[i] = shownVote[i] = -1;
+            var canvas = PaperUI.Canvas("Mapa de votacion", transform, 200);
+            root = canvas.gameObject;
+            root.AddComponent<GraphicRaycaster>(); // the cards take mouse clicks
 
-            var background = Panel("Fondo", root.transform, new Color(.035f, .065f, .10f, .98f));
-            Stretch(background.rectTransform, Vector2.zero, Vector2.zero);
+            var backdrop = new GameObject("Fondo", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
+            backdrop.transform.SetParent(root.transform, false);
+            backdrop.color = Backdrop;
+            backdrop.raycastTarget = false;
+            PaperUI.Stretch(backdrop.rectTransform);
 
-            heading = Label("Titulo", root.transform, L10n.Get(L10n.UI, "vote.title"), 68, TextAlignmentOptions.Center);
-            Place(heading.rectTransform, 0, 407, 1700, 90);
-            heading.fontStyle = FontStyles.Bold;
-            heading.color = new Color(1f, .79f, .35f);
-            timer = Label("Tiempo", root.transform, "12 s", 46, TextAlignmentOptions.Center);
-            Place(timer.rectTransform, 0, 323, 380, 65);
+            var label = PaperUI.Panel("Titulo", root.transform, PaperUI.Paper, -1.5f, true);
+            Place(label.rectTransform, 0f, 440f, 1150f, 110f);
+            heading = Label("Texto", label.transform, TitleFont, 76f, 40f, PaperUI.Ink);
+            PaperUI.Stretch(heading.rectTransform, 14f);
 
-            var route = Panel("Ruta", root.transform, new Color(.09f, .15f, .20f));
-            Place(route.rectTransform, 0, 195, 1580, 130);
-            var road = Panel("Camino", route.transform, new Color(.36f, .49f, .50f));
-            Place(road.rectTransform, 0, 0, 1020, 4);
-            for (int i = 0; i < stops.Length; i++)
-            {
-                stops[i] = Label("Parada " + (i + 1), route.transform, "?", 29, TextAlignmentOptions.Center);
-                Place(stops[i].rectTransform, (i - 1) * 500, 0, 480, 100);
-            }
-            hint = Label("Instrucciones", root.transform, L10n.Get(L10n.UI, "vote.hint"), 27,
-                TextAlignmentOptions.Center);
-            Place(hint.rectTransform, 0, -436, 1700, 70);
-            hint.color = new Color(.76f, .84f, .9f);
+            timerPill = PaperUI.Pill("Tiempo", root.transform, PaperUI.TimerTeal, 72f);
+            Place(timerPill.rectTransform, 0f, 330f, 210f, 72f);
+            timer = Label("Texto", timerPill.transform, TitleFont, 56f, 30f, PaperUI.Paper);
+            PaperUI.Stretch(timer.rectTransform, 6f);
+
+            // The road joins the 3 stops; drawn first so the cards sit on it.
+            var road = new GameObject("Camino", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
+            road.transform.SetParent(root.transform, false);
+            road.color = PaperUI.Ink;
+            road.raycastTarget = false;
+            Place(road.rectTransform, 0f, 222f, StopStep * 2f, 8f);
+            for (int i = 0; i < stops.Length; i++) stops[i] = CreateStop(i);
+
+            var footer = PaperUI.Pill("Instrucciones", root.transform, PaperUI.Paper, 60f);
+            Place(footer.rectTransform, 0f, -478f, 1560f, 60f);
+            hint = Label("Texto", footer.transform, TitleFont, 30f, 16f, PaperUI.Ink);
+            PaperUI.Stretch(hint.rectTransform, 10f);
+            hint.rectTransform.offsetMin = new Vector2(30f, 6f);
+            hint.rectTransform.offsetMax = new Vector2(-30f, -6f);
+            hint.text = L10n.Get(L10n.UI, "vote.hint");
             root.SetActive(false);
+        }
+
+        private Stop CreateStop(int index)
+        {
+            var stop = new Stop();
+            stop.panel = PaperUI.Panel("Parada " + (index + 1), root.transform, PaperUI.Paper, index % 2 == 0 ? -1.5f : 1.5f);
+            Place(stop.panel.rectTransform, (index - 1) * StopStep, 222f, StopWidth, 90f);
+            stop.disc = PaperUI.Disc("Numero", stop.panel.transform, PaperUI.Ink);
+            PaperUI.Place(stop.disc.rectTransform, new Vector2(0f, .5f), new Vector2(14f, 0f), new Vector2(62f, 62f));
+            stop.number = Label("Texto", stop.disc.transform, TitleFont, 38f, 20f, PaperUI.Paper);
+            PaperUI.Stretch(stop.number.rectTransform);
+            stop.number.text = (index + 1).ToString();
+            stop.label = Label("Nombre", stop.panel.transform, TitleFont, 34f, 18f, PaperUI.Ink);
+            PaperUI.Stretch(stop.label.rectTransform, 10f);
+            stop.label.rectTransform.offsetMin = new Vector2(88f, 10f);
+            return stop;
         }
 
         private void Render()
@@ -145,13 +205,8 @@ namespace UnCredibles.UI.Voting
 
             int round = core.Vote.VotedMinigames.Count;
             heading.text = round >= MatchVote.VotedRounds ? L10n.Get(L10n.UI, "vote.route_decided") : L10n.Format(L10n.UI, "vote.round", round + 1, MatchVote.VotedRounds);
-            for (int i = 0; i < stops.Length; i++)
-            {
-                string name = i < round ? MinigameName(core.Vote.VotedMinigames[i]) : i == round ? L10n.Get(L10n.UI, "vote.voting") : L10n.Get(L10n.UI, "vote.undecided");
-                stops[i].text = $"{i + 1:00}   {name}";
-                stops[i].color = i < round ? new Color(.45f, .95f, .69f) : i == round ?
-                    new Color(1f, .79f, .35f) : new Color(.58f, .67f, .73f);
-            }
+            for (int i = 0; i < stops.Length; i++) RenderStop(stops[i], i, round);
+            PlayFeedback(round);
 
             for (int i = 0; i < cards.Count; i++)
             {
@@ -159,27 +214,75 @@ namespace UnCredibles.UI.Voting
                 bool picked = Contains(core.Vote.VotedMinigames, candidates[i]);
                 int votes = 0;
                 int selectors = 0;
-                foreach (var slot in core.Players.Slots)
+                for (int slot = 0; slot < votedBy.Length; slot++)
                 {
-                    int index = slot.SlotIndex;
-                    votedBy[index] = hoveredBy[index] = false;
-                    if (!slot.IsOccupied || slot.IsAI || picked) continue;
-                    votedBy[index] = core.Vote.Votes.TryGetValue(slot.PlayerId, out int choice) && choice == i;
-                    hoveredBy[index] = IsLocalVoter(slot) &&
-                        (core.Vote.Cursor.TryGetValue(slot.PlayerId, out int cursor) ? cursor == i : i == FirstAvailable());
-                    if (votedBy[index]) votes++;
-                    if (hoveredBy[index]) selectors++;
+                    votedBy[slot] = !picked && shownVote[slot] == i;
+                    hoveredBy[slot] = !picked && shownCursor[slot] == i;
+                    if (votedBy[slot]) votes++;
+                    if (hoveredBy[slot]) selectors++;
                 }
                 LayoutBadges(card);
-                card.background.color = picked ? new Color(.10f, .15f, .17f) : selectors > 0 ?
-                    new Color(.24f, .39f, .43f) : new Color(.13f, .22f, .28f);
-                card.title.color = picked ? new Color(.52f, .59f, .61f) : Color.white;
-                card.footer.text = picked ? L10n.Get(L10n.UI, "vote.in_route") :
-                    votes == 1 ? L10n.Get(L10n.UI, "vote.one_vote") : votes > 1 ? L10n.Format(L10n.UI, "vote.votes", votes) : L10n.Get(L10n.UI, "vote.available");
+                // Pointed at by a local player: the photo lifts a little off the table.
+                float lift = selectors > 0 ? 1.06f : 1f;
+                card.background.rectTransform.localScale = new Vector3(lift, lift, 1f);
+                card.background.color = picked ? Dimmed : Color.white;
+                card.thumbnail.color = card.thumbnail.sprite == null ? EmptyPhoto : picked ? Dimmed : Color.white;
+                card.title.color = picked ? FadedInk : PaperUI.Ink;
+                card.inRoute.SetActive(picked);
+                card.footer.gameObject.SetActive(!picked);
+                card.footer.text = votes == 1 ? L10n.Get(L10n.UI, "vote.one_vote") : votes > 1 ? L10n.Format(L10n.UI, "vote.votes", votes) : L10n.Get(L10n.UI, "vote.available");
                 card.button.interactable = !picked && core.Vote.CanChange;
             }
             hint.text = round >= MatchVote.VotedRounds ? L10n.Get(L10n.UI, "vote.route_decided") :
                 L10n.Get(L10n.UI, "vote.hint_full");
+        }
+
+        // Done: paper with a turquoise number and the chosen name. Current: white, ink number, a bit bigger.
+        // Pending: faded paper.
+        private void RenderStop(Stop stop, int index, int round)
+        {
+            bool done = index < round;
+            bool current = index == round;
+            stop.label.text = done ? MinigameName(core.Vote.VotedMinigames[index]) :
+                current ? L10n.Get(L10n.UI, "vote.voting") : L10n.Get(L10n.UI, "vote.undecided");
+            stop.panel.color = done ? PaperUI.Paper : current ? Color.white : FadedPaper;
+            stop.disc.color = done ? PaperUI.TimerTeal : current ? PaperUI.Ink : FadedPaper;
+            stop.number.color = done || current ? PaperUI.Paper : FadedInk;
+            stop.label.color = done || current ? PaperUI.Ink : FadedInk;
+            float scale = current ? 1.08f : 1f;
+            stop.panel.rectTransform.localScale = new Vector3(scale, scale, 1f);
+        }
+
+        // Works out every slot's cursor and confirmed vote, and sounds the change against the last render.
+        // Deduced from what is shown, so an online client hears it too. A new ballot starts silent.
+        private void PlayFeedback(int round)
+        {
+            bool sameBallot = round == shownRound;
+            shownRound = round;
+            bool moved = false;
+            bool confirmed = false;
+            int first = FirstAvailable();
+            foreach (var slot in core.Players.Slots)
+            {
+                int index = slot.SlotIndex;
+                int vote = -1;
+                int cursor = -1;
+                if (slot.IsOccupied && !slot.IsAI)
+                {
+                    if (core.Vote.Votes.TryGetValue(slot.PlayerId, out int choice)) vote = choice;
+                    if (IsLocalVoter(slot)) cursor = core.Vote.Cursor.TryGetValue(slot.PlayerId, out int at) ? at : first;
+                }
+                if (sameBallot)
+                {
+                    // A cursor that appears or disappears (voter joined, left or became a bot) is not a move.
+                    moved |= cursor >= 0 && shownCursor[index] >= 0 && cursor != shownCursor[index];
+                    confirmed |= vote >= 0 && vote != shownVote[index];
+                }
+                shownCursor[index] = cursor;
+                shownVote[index] = vote;
+            }
+            if (confirmed) GameAudio.Play(GameSfx.UiConfirm);
+            else if (moved) GameAudio.Play(GameSfx.UiMove);
         }
 
         private bool IsLocalVoter(UnCredibles.Players.PlayerSlot slot)
@@ -197,12 +300,23 @@ namespace UnCredibles.UI.Voting
             return 0;
         }
 
+        // Polaroid: white frame, the thumbnail as the photo, the name written on the bottom margin.
         private Card CreateCard(int index, MinigameData data, int count)
         {
             var card = new Card();
-            card.background = Panel("Destino " + data.DisplayName, root.transform, new Color(.13f, .22f, .28f));
             float width = Mathf.Min(365f, 1540f / Mathf.Max(1, count) - 14f);
-            Place(card.background.rectTransform, (index - (count - 1) * .5f) * (width + 22f), -119, width, 395);
+            float photoWidth = width - PhotoInset * 2f;
+            float photoHeight = photoWidth * 9f / 16f;
+            // Height fits the content (y = distance from the card's top edge to each row's centre).
+            float nameY = PhotoInset + photoHeight + NameHeight * .5f;
+            float statusY = nameY + (NameHeight + StatusHeight) * .5f;
+            card.badgeY = statusY + StatusHeight * .5f + 4f + BadgeSize * .5f;
+            float height = card.badgeY + BadgeSize * .5f + BottomMargin;
+
+            float tilt = index % 2 == 0 ? -2.5f : 2f;
+            card.background = PaperUI.Panel("Destino " + data.DisplayName, root.transform, Color.white, tilt, true);
+            card.background.raycastTarget = true;
+            Place(card.background.rectTransform, (index - (count - 1) * .5f) * (width + 22f), CardTop - height * .5f, width, height);
             card.button = card.background.gameObject.AddComponent<Button>();
             int selectedIndex = index;
             card.button.onClick.AddListener(() =>
@@ -216,57 +330,115 @@ namespace UnCredibles.UI.Voting
                 }
                 if (voter != null) core.Vote.Cast(voter.PlayerId, selectedIndex);
             });
-            card.thumbnail = Panel("Miniatura", card.background.transform, new Color(.18f, .28f, .32f));
-            Place(card.thumbnail.rectTransform, 0, 73, width - 28, 208);
-            if (data.Thumbnail != null) { card.thumbnail.sprite = data.Thumbnail; card.thumbnail.color = Color.white; }
-            card.title = Label("Nombre", card.background.transform, MinigameName(data), 31, TextAlignmentOptions.Center);
-            Place(card.title.rectTransform, 0, -80, width - 24, 60);
-            card.title.fontStyle = FontStyles.Bold;
-            card.footer = Label("Votos", card.background.transform, L10n.Get(L10n.UI, "vote.available"), 19, TextAlignmentOptions.Center);
-            Place(card.footer.rectTransform, 0, -127, width - 24, 28);
-            card.footer.color = new Color(1f, .79f, .35f);
+
+            card.thumbnail = new GameObject("Miniatura", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
+            card.thumbnail.transform.SetParent(card.background.transform, false);
+            card.thumbnail.raycastTarget = false;
+            card.thumbnail.preserveAspect = true;
+            card.thumbnail.sprite = data.Thumbnail;
+            PlaceFromTop(card.thumbnail.rectTransform, 0f, PhotoInset + photoHeight * .5f, photoWidth, photoHeight);
+
+            card.title = Label("Nombre", card.background.transform, TitleFont, 46f, 24f, PaperUI.Ink);
+            card.title.text = MinigameName(data);
+            PlaceFromTop(card.title.rectTransform, 0f, nameY, width - 30f, NameHeight);
+            card.footer = Label("Votos", card.background.transform, TitleFont, 28f, 16f, PaperUI.TimerTeal);
+            PlaceFromTop(card.footer.rectTransform, 0f, statusY, width - 30f, StatusHeight);
+
             for (int slot = 0; slot < card.badges.Length; slot++)
-                card.badges[slot] = CreateBadge(card.background.transform, slot);
+                card.badges[slot] = CreateBadge(card.background.transform, slot, card.badgeY);
+            card.inRoute = CreateInRouteStamp(card.background.transform, width, height);
             return card;
         }
 
-        private static Badge CreateBadge(Transform parent, int slotIndex)
+        // "EN LA RUTA": an ink line crossing the photo out and a red rubber stamp over it.
+        private GameObject CreateInRouteStamp(Transform parent, float width, float height)
+        {
+            var group = new GameObject("En la ruta", typeof(RectTransform));
+            group.transform.SetParent(parent, false);
+            PaperUI.Stretch((RectTransform)group.transform);
+            var strike = new GameObject("Tachon", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
+            strike.transform.SetParent(group.transform, false);
+            strike.color = PaperUI.Ink;
+            strike.raycastTarget = false;
+            Place(strike.rectTransform, 0f, 0f, Mathf.Sqrt(width * width + height * height) - 20f, 10f);
+            strike.rectTransform.localEulerAngles = new Vector3(0f, 0f, Mathf.Atan2(height, width) * Mathf.Rad2Deg);
+            var stamp = PaperUI.Pill("Sello", group.transform, PaperUI.Alarm, 72f);
+            Place(stamp.rectTransform, 0f, 30f, width - 20f, 72f);
+            stamp.rectTransform.localEulerAngles = new Vector3(0f, 0f, -16f);
+            var label = Label("Texto", stamp.transform, TitleFont, 48f, 24f, PaperUI.Paper);
+            PaperUI.Stretch(label.rectTransform, 8f);
+            label.text = L10n.Get(L10n.UI, "vote.in_route");
+            group.SetActive(false);
+            return group;
+        }
+
+        // Player disc with the tag ("J1"); a confirmed vote also gets a small red stamp.
+        private Badge CreateBadge(Transform parent, int slotIndex, float y)
         {
             var badge = new Badge();
-            badge.background = Panel("Chapa P" + (slotIndex + 1), parent, PlayerIdentity.ColorFor(slotIndex));
-            Place(badge.background.rectTransform, 0, BadgeY, BadgeWidth, BadgeHeight);
-            badge.background.raycastTarget = false;
-            badge.outline = badge.background.gameObject.AddComponent<Outline>();
-            badge.outline.effectDistance = new Vector2(3f, -3f);
-            badge.label = Label("Texto", badge.background.transform, PlayerIdentity.LabelFor(slotIndex), 26,
-                TextAlignmentOptions.Center);
-            Stretch(badge.label.rectTransform, Vector2.zero, Vector2.zero);
-            badge.label.fontStyle = FontStyles.Bold;
-            badge.background.gameObject.SetActive(false);
+            badge.disc = PaperUI.Disc("Ficha P" + (slotIndex + 1), parent, PlayerIdentity.ColorFor(slotIndex));
+            PlaceFromTop(badge.disc.rectTransform, 0f, y, BadgeSize, BadgeSize);
+            badge.label = Label("Texto", badge.disc.transform, TitleFont, 30f, 16f, PaperUI.Ink);
+            PaperUI.Stretch(badge.label.rectTransform, 4f);
+            badge.label.text = PlayerIdentity.LabelFor(slotIndex);
+            var stamp = PaperUI.Pill("Sello", badge.disc.transform, PaperUI.Alarm, 26f);
+            badge.stamp = stamp.rectTransform;
+            Place(badge.stamp, 0f, -30f, 96f, 26f);
+            badge.stamp.localEulerAngles = new Vector3(0f, 0f, -12f);
+            var stampLabel = Label("Texto", badge.stamp, TitleFont, 20f, 10f, PaperUI.Paper);
+            PaperUI.Stretch(stampLabel.rectTransform, 2f);
+            stampLabel.text = L10n.Get(L10n.UI, "vote.voted");
+            badge.stamp.gameObject.SetActive(false);
+            badge.disc.gameObject.SetActive(false);
             return badge;
         }
 
-        // Confirmed votes are solid; a local player only pointing at the card gets a hollow badge.
+        // Confirmed votes are solid discs with a stamp; a local player only pointing at the card gets a faded disc.
         private void LayoutBadges(Card card)
         {
             int visible = 0;
             for (int i = 0; i < card.badges.Length; i++)
                 if (votedBy[i] || hoveredBy[i]) visible++;
-            float x = -(visible - 1) * (BadgeWidth + BadgeGap) * .5f;
+            float x = -(visible - 1) * (BadgeSize + BadgeGap) * .5f;
             for (int i = 0; i < card.badges.Length; i++)
             {
                 var badge = card.badges[i];
                 bool shown = votedBy[i] || hoveredBy[i];
-                badge.background.gameObject.SetActive(shown);
+                badge.disc.gameObject.SetActive(shown);
+                bool voted = shown && votedBy[i];
+                badge.stamp.gameObject.SetActive(voted);
+                if (voted && !badge.voted)
+                {
+                    badge.stampTime = 0f;
+                    badge.stamp.localScale = new Vector3(2.2f, 2.2f, 1f);
+                }
+                badge.voted = voted;
                 if (!shown) continue;
-                bool voted = votedBy[i];
                 Color color = PlayerIdentity.ColorFor(i);
-                bool bright = color.r * .299f + color.g * .587f + color.b * .114f > .6f;
-                badge.background.color = voted ? color : new Color(color.r, color.g, color.b, .18f);
-                badge.outline.effectColor = voted ? new Color(1f, 1f, 1f, .9f) : color;
-                badge.label.color = voted && bright ? new Color(.1f, .1f, .1f) : voted ? Color.white : color;
-                badge.background.rectTransform.anchoredPosition = new Vector2(x, BadgeY);
-                x += BadgeWidth + BadgeGap;
+                if (!voted) color.a = .45f;
+                badge.disc.color = color;
+                badge.label.color = voted ? PaperUI.Ink : FadedInk;
+                badge.disc.rectTransform.anchoredPosition = new Vector2(x, -card.badgeY);
+                x += BadgeSize + BadgeGap;
+            }
+        }
+
+        // The vote stamp slams down: from big to its size in a moment.
+        private void AnimateStamps(float dt)
+        {
+            for (int c = 0; c < cards.Count; c++)
+            {
+                var badges = cards[c].badges;
+                for (int i = 0; i < badges.Length; i++)
+                {
+                    var badge = badges[i];
+                    if (badge.stampTime < 0f) continue;
+                    badge.stampTime += dt;
+                    float t = Mathf.Clamp01(badge.stampTime / StampSeconds);
+                    float scale = Mathf.Lerp(2.2f, 1f, t);
+                    badge.stamp.localScale = new Vector3(scale, scale, 1f);
+                    if (t >= 1f) badge.stampTime = -1f;
+                }
             }
         }
 
@@ -278,43 +450,24 @@ namespace UnCredibles.UI.Voting
             return text == key ? data.DisplayName : text;
         }
 
-        private static Image Panel(string name, Transform parent, Color color)
+        // Centred, auto-sized label of the paper kit.
+        private static TMP_Text Label(string name, Transform parent, TMP_FontAsset font, float size, float min, Color color)
         {
-            var go = new GameObject(name, typeof(RectTransform), typeof(Image));
-            go.transform.SetParent(parent, false);
-            var image = go.GetComponent<Image>();
-            image.color = color;
-            return image;
+            var label = PaperUI.Text(name, parent, font, size, color, TextAlignmentOptions.Center);
+            label.enableAutoSizing = true;
+            label.fontSizeMin = min;
+            label.fontSizeMax = size;
+            return label;
         }
 
-        private static TMP_Text Label(string name, Transform parent, string content, float size, TextAlignmentOptions align)
-        {
-            var go = new GameObject(name, typeof(RectTransform), typeof(TextMeshProUGUI));
-            go.transform.SetParent(parent, false);
-            var text = go.GetComponent<TextMeshProUGUI>();
-            text.font = TMP_Settings.defaultFontAsset;
-            text.text = content;
-            text.fontSize = size;
-            text.alignment = align;
-            text.color = Color.white;
-            text.textWrappingMode = TextWrappingModes.Normal;
-            text.raycastTarget = false;
-            return text;
-        }
+        private static void Place(RectTransform rect, float x, float y, float width, float height) =>
+            PaperUI.Place(rect, Middle, new Vector2(x, y), new Vector2(width, height));
 
-        private static void Place(RectTransform rect, float x, float y, float width, float height)
+        // Centred on a point y below the parent's top edge (cards grow to fit, so their rows hang from the top).
+        private static void PlaceFromTop(RectTransform rect, float x, float y, float width, float height)
         {
-            rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(.5f, .5f);
-            rect.anchoredPosition = new Vector2(x, y);
-            rect.sizeDelta = new Vector2(width, height);
-        }
-
-        private static void Stretch(RectTransform rect, Vector2 min, Vector2 max)
-        {
-            rect.anchorMin = Vector2.zero;
-            rect.anchorMax = Vector2.one;
-            rect.offsetMin = min;
-            rect.offsetMax = max;
+            PaperUI.Place(rect, CardTopAnchor, new Vector2(x, -y), new Vector2(width, height));
+            rect.pivot = Middle;
         }
 
         private static bool Contains(IReadOnlyList<MinigameData> list, MinigameData data)

@@ -118,6 +118,7 @@ namespace UnCredibles.Minigames.CrossyRoad
             else if (avatar.IsAlive && !watch.Carrying && avatar.IsCarrying) watch.Punch = 1f;
             else if (avatar.IsAlive && watch.Carrying && !avatar.IsCarrying)
             {
+                GameAudio.Play(GameSfx.Deliver); // alive and no longer carrying: she was delivered
                 trauma = Mathf.Max(trauma, 0.3f);
                 watch.Punch = 1f;
             }
@@ -134,6 +135,7 @@ namespace UnCredibles.Minigames.CrossyRoad
 
         private void Hit(Vector3 position)
         {
+            GameAudio.Play(GameSfx.RunOver); // just the thud: a long "wah-wah" on every hit got tiring with four players
             trauma = 1f;
             if (Mathf.Approximately(Time.timeScale, 1f)) // never fight the pause menu
             {
@@ -147,6 +149,7 @@ namespace UnCredibles.Minigames.CrossyRoad
         // Shove: a small shake, a tiny freeze and a burst of sparks at the body.
         private void Shoved(Vector3 position)
         {
+            GameAudio.Play(GameSfx.HitRival);
             trauma = Mathf.Max(trauma, 0.5f);
             if (hitStopEnd <= 0f && Mathf.Approximately(Time.timeScale, 1f))
             {

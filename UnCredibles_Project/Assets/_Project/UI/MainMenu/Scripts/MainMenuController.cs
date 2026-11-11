@@ -1,4 +1,5 @@
 using UnCredibles.Core;
+using UnCredibles.Minigames;
 using UnCredibles.UI.Garage;
 using UnityEngine;
 using UnityEngine.UI;
@@ -45,6 +46,13 @@ namespace UnCredibles.UI.MainMenu
         private float slideTime = -1f;             // < 0 = not sliding
         private float slideOffset;
         private readonly System.Collections.Generic.List<float> slideTargets = new System.Collections.Generic.List<float>();
+        // Art bible look (comic panel with tabs at home, paper sheets elsewhere), applied over the scene's plain buttons by ApplyArt.
+        private const float HomePanelWidth = 440f;  // to the bottom end of its diagonal edge
+        private const float QuitShift = 60f;        // ACEPTAR / CANCELAR clear of SALIR's tab
+        private TMP_FontAsset titleFont;
+        private bool artRequested;
+        private GameObject quitSheet;
+        private TMP_Text quitTitle;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetTitle() => titleSeen = false; // also with domain reload off in the editor
@@ -68,6 +76,135 @@ namespace UnCredibles.UI.MainMenu
             connectionStatus.text = "";
             ShowMultiplayerSetup(false);
             if (!titleSeen) BuildTitle();
+            if (artRequested) Style();
+        }
+
+        // Called by GarageFrontend with Bangers; styles now, or at Awake if this menu has not woken up yet.
+        public void ApplyArt(TMP_FontAsset font)
+        {
+            titleFont = font;
+            artRequested = true;
+            if (quitButton != null) Style();
+        }
+
+#if UNITY_EDITOR
+        // Edit-mode preview only, on GarageMenuPreview's hidden throwaway copy of the canvas: the look Awake and
+        // ApplyArt give at runtime, without the title screen (no input hooks outside Play).
+        public void BuildPreview(TMP_FontAsset font)
+        {
+            BuildQuit();
+            titleFont = font;
+            Style();
+        }
+#endif
+
+        private void Style()
+        {
+            artRequested = false;
+            foreach (Transform child in mainPanel.transform)
+            {
+                var button = child.GetComponent<Button>();
+                if (button == null || button == quitAccept || button == quitCancel) continue;
+                MenuTab.Apply(button, titleFont);
+            }
+            BuildHomePanel();
+            StyleQuitConfirm();
+            StyleMultiplayerSetup();
+            if (pressStart != null) SignButton.Text(pressStart, titleFont, pressStart.color, true);
+        }
+
+        // Mustard halftone panel down the left of the screen, behind the logo and the options; its diagonal
+        // edge crosses the texts. Under the title screen it waits and slides in first with the buttons.
+        private void BuildHomePanel()
+        {
+            var panel = new GameObject("Home panel", typeof(RectTransform), typeof(CanvasRenderer), typeof(HalftonePanel)).GetComponent<HalftonePanel>();
+            panel.transform.SetParent(mainPanel.transform, false);
+            panel.transform.SetAsFirstSibling();
+            panel.color = SignButton.Mustard;
+            panel.raycastTarget = false;
+            var rect = panel.rectTransform;
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = new Vector2(0f, 1f);
+            rect.pivot = new Vector2(0f, .5f);
+            rect.anchoredPosition = Vector2.zero;
+            rect.sizeDelta = new Vector2(HomePanelWidth, 0f);
+            if (pressStart != null) titleHidden.Insert(0, panel.gameObject);
+        }
+
+        // ACEPTAR / CANCELAR as pills on a small paper sheet with an ink tab, next to SALIR.
+        private void StyleQuitConfirm()
+        {
+            var accept = (RectTransform)quitAccept.transform;
+            var cancel = (RectTransform)quitCancel.transform;
+            foreach (var rect in new[] { accept, cancel })
+            {
+                rect.anchoredPosition += new Vector2(QuitShift, 0f);
+                rect.sizeDelta -= new Vector2(16f, 16f); // a gap between them and the sheet's edge
+                var label = rect.GetComponentInChildren<TMP_Text>(true).rectTransform;
+                label.sizeDelta = new Vector2(rect.sizeDelta.x - 10f, label.sizeDelta.y);
+            }
+            SignButton.Pill(quitAccept, titleFont, SignButton.Brick, PaperUI.Paper);
+            SignButton.Pill(quitCancel, titleFont, PaperUI.Ink, PaperUI.Paper);
+
+            float left = accept.anchoredPosition.x - accept.sizeDelta.x * .5f - 8f;
+            float right = cancel.anchoredPosition.x + cancel.sizeDelta.x * .5f + 16f;
+            var sheet = PaperUI.Panel("Quit sheet", mainPanel.transform, PaperUI.Paper, 1.5f);
+            sheet.transform.SetSiblingIndex(accept.GetSiblingIndex()); // under the two buttons
+            PaperUI.Place(sheet.rectTransform, accept.anchorMin,
+                new Vector2((left + right) * .5f, accept.anchoredPosition.y + 12f), new Vector2(right - left, accept.sizeDelta.y + 56f));
+            var tab = PaperUI.Pill("Tab", sheet.transform, PaperUI.Ink, 40f);
+            PaperUI.Place(tab.rectTransform, new Vector2(0f, 1f), new Vector2(20f, 18f), new Vector2(160f, 40f));
+            quitTitle = PaperUI.Text("Label", tab.transform, titleFont, 28f, PaperUI.Paper, TextAlignmentOptions.Center);
+            PaperUI.Stretch(quitTitle.rectTransform);
+            quitSheet = sheet.gameObject;
+            quitSheet.SetActive(quitAccept.gameObject.activeSelf);
+        }
+
+        // The online panel as a paper sheet: title on a taped label, the code field as a pasted note.
+        private void StyleMultiplayerSetup()
+        {
+            var root = multiplayerSetupPanel.transform;
+            var background = root.Find("Panel") != null ? root.Find("Panel").GetComponent<Image>() : null;
+            if (background != null)
+            {
+                background.sprite = PaperUI.PanelSprite;
+                background.type = Image.Type.Sliced;
+                background.pixelsPerUnitMultiplier = 1f;
+                background.color = PaperUI.Paper;
+                background.rectTransform.localEulerAngles = new Vector3(0f, 0f, -1.5f);
+                SignButton.AddShadow(background);
+            }
+            var title = root.Find("Text - MULTIPLAYER") != null ? root.Find("Text - MULTIPLAYER").GetComponent<TMP_Text>() : null;
+            if (title != null)
+            {
+                var label = PaperUI.Panel("Title label", root, Color.white, -2f, true);
+                label.transform.SetSiblingIndex(title.transform.GetSiblingIndex());
+                PaperUI.Place(label.rectTransform, title.rectTransform.anchorMin, title.rectTransform.anchoredPosition, new Vector2(440f, 90f));
+                title.rectTransform.localEulerAngles = new Vector3(0f, 0f, -2f);
+                SignButton.Text(title, titleFont, PaperUI.Ink, false);
+            }
+            var caption = root.Find("Text - CODIGO DE SALA") != null ? root.Find("Text - CODIGO DE SALA").GetComponent<TMP_Text>() : null;
+            if (caption != null) SignButton.Text(caption, titleFont, PaperUI.Ink, false);
+
+            if (roomCodeInput.targetGraphic is Image field)
+            {
+                field.sprite = PaperUI.PanelSprite;
+                field.type = Image.Type.Sliced;
+                field.pixelsPerUnitMultiplier = 1.6f; // smaller corners on a short field
+                field.color = Color.white;
+                field.rectTransform.localEulerAngles = new Vector3(0f, 0f, 1f);
+                SignButton.AddShadow(field);
+            }
+            if (titleFont != null) roomCodeInput.fontAsset = titleFont;
+            roomCodeInput.textComponent.color = PaperUI.Ink;
+            if (roomCodeInput.placeholder is TMP_Text hint) hint.color = SignButton.SoftInk;
+            roomCodeInput.customCaretColor = true;
+            roomCodeInput.caretColor = PaperUI.Ink;
+
+            SignButton.Pill(createRoomButton, titleFont, PaperUI.Ink, PaperUI.Paper, -1f);
+            SignButton.Pill(joinRoomButton, titleFont, SignButton.SofaBlue, PaperUI.Paper, 1f);
+            SignButton.Pill(backButton, titleFont, SignButton.Brick, PaperUI.Paper, -1f);
+            SignButton.Text(connectionStatus, titleFont, PaperUI.Ink, false);
         }
 
         private void BuildTitle()
@@ -233,24 +370,45 @@ namespace UnCredibles.UI.MainMenu
             backButton.onClick.RemoveListener(CloseMultiplayerSetup);
         }
 
-        private void OpenSingleplayer() => CoreRoot.Instance.OpenPartyLobby(SessionMode.Local);
+        private void OpenSingleplayer()
+        {
+            GameAudio.Play(GameSfx.UiConfirm);
+            CoreRoot.Instance.OpenPartyLobby(SessionMode.Local);
+        }
 
-        private void OpenMultiplayerSetup() => ShowMultiplayerSetup(true);
-        private void CloseMultiplayerSetup() => ShowMultiplayerSetup(false);
+        private void OpenMultiplayerSetup()
+        {
+            GameAudio.Play(GameSfx.UiConfirm);
+            ShowMultiplayerSetup(true);
+        }
+
+        private void CloseMultiplayerSetup()
+        {
+            GameAudio.Play(GameSfx.UiBack);
+            ShowMultiplayerSetup(false);
+        }
 
         private void CreateRoom()
         {
-            if (!CoreRoot.Instance.Online.CanConnect) return;
+            bool can = CoreRoot.Instance.Online.CanConnect;
+            GameAudio.Play(can ? GameSfx.UiConfirm : GameSfx.UiError);
+            if (!can) return;
             enteringOnline = true;
             CoreRoot.Instance.Online.CreateHost();
         }
         private void JoinRoom()
         {
-            if (!CoreRoot.Instance.Online.CanConnect || string.IsNullOrWhiteSpace(roomCodeInput.text)) return;
+            bool can = CoreRoot.Instance.Online.CanConnect && !string.IsNullOrWhiteSpace(roomCodeInput.text);
+            GameAudio.Play(can ? GameSfx.UiConfirm : GameSfx.UiError);
+            if (!can) return;
             enteringOnline = true;
             CoreRoot.Instance.Online.JoinHost(roomCodeInput.text);
         }
-        private void OpenSettings() => SettingsRequested?.Invoke();
+        private void OpenSettings()
+        {
+            GameAudio.Play(GameSfx.UiConfirm);
+            SettingsRequested?.Invoke();
+        }
 
         public void ResetView() => ShowMultiplayerSetup(false);
 
@@ -278,7 +436,11 @@ namespace UnCredibles.UI.MainMenu
             if (step == 0f) step = template.rect.height + 25f;
 
             quitButton = CopyButton(template, "SALIR", "menu.quit", new Vector2(template.anchoredPosition.x, lowest - step), template.sizeDelta);
-            quitButton.onClick.AddListener(() => ShowQuitConfirm(true));
+            quitButton.onClick.AddListener(() =>
+            {
+                GameAudio.Play(GameSfx.UiConfirm);
+                ShowQuitConfirm(true);
+            });
             var size = new Vector2(template.sizeDelta.x * .5f, template.sizeDelta.y);
             float right = template.anchoredPosition.x + template.sizeDelta.x * .5f;
             float y0 = lowest - step;
@@ -286,7 +448,7 @@ namespace UnCredibles.UI.MainMenu
             quitAccept.onClick.AddListener(Quit);
             quitAccept.gameObject.AddComponent<SelectionHighlight.KeepSize>();
             quitCancel = CopyButton(template, "CANCELAR", "menu.quit_cancel", new Vector2(right + size.x * 1.5f, y0), size);
-            quitCancel.onClick.AddListener(() => ShowQuitConfirm(false));
+            quitCancel.onClick.AddListener(CancelQuit);
             quitCancel.gameObject.AddComponent<SelectionHighlight.KeepSize>();
             ShowQuitConfirm(false);
         }
@@ -309,10 +471,21 @@ namespace UnCredibles.UI.MainMenu
             return button;
         }
 
+        private void CancelQuit()
+        {
+            GameAudio.Play(GameSfx.UiBack);
+            ShowQuitConfirm(false);
+        }
+
         private void ShowQuitConfirm(bool show)
         {
             quitAccept.gameObject.SetActive(show);
             quitCancel.gameObject.SetActive(show);
+            if (quitSheet != null)
+            {
+                quitSheet.SetActive(show);
+                if (show) FitQuitTitle();
+            }
             if (EventSystem.current != null && EventSystem.current.currentSelectedGameObject != null)
                 EventSystem.current.SetSelectedGameObject(show ? quitCancel.gameObject : quitButton.gameObject);
         }
@@ -324,7 +497,7 @@ namespace UnCredibles.UI.MainMenu
             if ((Gamepad.current != null && Gamepad.current.buttonEast.wasPressedThisFrame) ||
                 (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame))
             {
-                ShowQuitConfirm(false);
+                CancelQuit();
                 return;
             }
             var selected = EventSystem.current != null ? EventSystem.current.currentSelectedGameObject : null;
@@ -333,7 +506,17 @@ namespace UnCredibles.UI.MainMenu
             {
                 quitAccept.gameObject.SetActive(false);
                 quitCancel.gameObject.SetActive(false);
+                if (quitSheet != null) quitSheet.SetActive(false);
             }
+        }
+
+        // The tab reads like the SALIR sign, in the current language, and fits its text.
+        private void FitQuitTitle()
+        {
+            string text = UnCredibles.Localization.L10n.Get(UnCredibles.Localization.L10n.UI, "menu.quit");
+            quitTitle.text = text;
+            var tab = (RectTransform)quitTitle.transform.parent;
+            tab.sizeDelta = new Vector2(quitTitle.GetPreferredValues(text).x + 40f, tab.sizeDelta.y);
         }
 
         private static void Quit()

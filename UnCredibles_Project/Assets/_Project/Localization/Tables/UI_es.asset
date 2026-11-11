@@ -530,6 +530,26 @@ MonoBehaviour:
     m_Localized: "ESC / START: continuar    CTRL / B: salir al men\xFA"
     m_Metadata:
       m_Items: []
+  - m_Id: 6263442617401350
+    m_Localized: "OBJETIVO"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6263442617401351
+    m_Localized: "CONTROLES"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6263442617401352
+    m_Localized: "EMPEZAR"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6263442617401353
+    m_Localized: "PULSA A / ESPACIO"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6263442617401380
+    m_Localized: "\xA1VOTADO!"
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

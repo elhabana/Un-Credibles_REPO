@@ -49,7 +49,7 @@ namespace UnCredibles.Minigames.GarageMice
         [SerializeField, Min(0f), Tooltip("Seconds a player hit by a broom cannot move.")] private float stunSeconds = 1.25f;
         [SerializeField, Min(0f), Tooltip("Seconds after a hit before the same player can be stunned again.")]
         private float stunImmunitySeconds = 1.8f;
-        [SerializeField, Tooltip("One per slot, already in its colour: 0 red, 1 blue, 2 green, 3 yellow.")]
+        [SerializeField, Tooltip("One per slot, already in its colour: 0 blue, 1 red, 2 green, 3 yellow.")]
         private GarageMicePlayer[] playerPrefabs = new GarageMicePlayer[UnCredibles.Players.PlayerRegistry.MaxPlayers];
 
         [Header("Mice")]

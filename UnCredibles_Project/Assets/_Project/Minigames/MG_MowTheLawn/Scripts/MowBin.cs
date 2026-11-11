@@ -27,7 +27,12 @@ namespace UnCredibles.Minigames.MowTheLawn
             foreach (var tinted in tintedRenderers) tinted.SetPropertyBlock(block);
         }
 
-        public void Bounce() => bounceTimer = BounceSeconds;
+        // A bag went in (host and online clients alike).
+        public void Bounce()
+        {
+            bounceTimer = BounceSeconds;
+            GameAudio.Play(GameSfx.Deliver);
+        }
 
         // Ticked by MowTheLawnController.
         public void Tick(float deltaTime)

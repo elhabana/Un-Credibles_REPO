@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnCredibles.BatPad;
 using UnCredibles.Core;
+using UnCredibles.Minigames;
 using UnCredibles.Networking;
 using UnCredibles.Players;
 using UnCredibles.Players.Inputs;
@@ -161,20 +162,31 @@ namespace UnCredibles.UI.PartyLobby
                 if (joinFrame[slot.SlotIndex] == Time.frameCount) continue; // the join press is not a ready press
 
                 ReadCustomizeStick(slot.SlotIndex, slot.Input.Move);
-                if (slot.Input.WasPressed(PlayerAction.Jump)) Players.SetReady(slot.SlotIndex, !slot.IsReady);
-                else if (slot.Input.WasPressed(PlayerAction.Crouch)) Players.SetReady(slot.SlotIndex, false);
+                if (slot.Input.WasPressed(PlayerAction.Jump))
+                {
+                    GameAudio.Play(slot.IsReady ? GameSfx.UiBack : GameSfx.UiConfirm);
+                    Players.SetReady(slot.SlotIndex, !slot.IsReady);
+                }
+                else if (slot.Input.WasPressed(PlayerAction.Crouch)) Unready(slot);
                 else if (slot.Input.WasPressed(PlayerAction.Pause))
                 {
                     // The phone shows Pause as an exit button: it leaves at once.
                     // Keyboard and gamepad keep the two steps (un-ready first, then leave).
-                    if (slot.IsReady && !(slot.Input is BatPadInput)) Players.SetReady(slot.SlotIndex, false);
+                    if (slot.IsReady && !(slot.Input is BatPadInput)) Unready(slot);
                     else
                     {
                         if (slot.Input is BatPadInput leaving) batPad.SendBye(leaving); // "thanks for playing" on the phone
-                        RemovePlayer(slot.SlotIndex);
+                        if (RemovePlayer(slot.SlotIndex)) GameAudio.Play(GameSfx.UiBack);
                     }
                 }
             }
+        }
+
+        // Crouch / B / Esc only sound when they actually un-ready.
+        private void Unready(PlayerSlot slot)
+        {
+            if (slot.IsReady) GameAudio.Play(GameSfx.UiBack);
+            Players.SetReady(slot.SlotIndex, false);
         }
 
         // ---------- Customisation (helmet, outfit, boots) ----------
@@ -195,6 +207,7 @@ namespace UnCredibles.UI.PartyLobby
         public void StepPart(int slotIndex, CharacterPartSlot partSlot, int step)
         {
             if (!CanCustomize(slotIndex)) return;
+            GameAudio.Play(GameSfx.UiMove);
             partRow[slotIndex] = (int)partSlot;
             var current = Slots[slotIndex].Loadout;
             var next = current.With(partSlot, PartCatalog.Step(partSlot, current.Get(partSlot), step));
@@ -214,6 +227,7 @@ namespace UnCredibles.UI.PartyLobby
         public void MovePartRow(int slotIndex, int delta)
         {
             if (!CanCustomize(slotIndex)) return;
+            GameAudio.Play(GameSfx.UiMove);
             int rows = Enum.GetValues(typeof(CharacterPartSlot)).Length;
             partRow[slotIndex] = ((partRow[slotIndex] + delta) % rows + rows) % rows;
             CustomizationChanged?.Invoke();
@@ -333,6 +347,7 @@ namespace UnCredibles.UI.PartyLobby
         public void BackToMainMenu()
         {
             if (starting) return;
+            GameAudio.Play(GameSfx.UiBack);
             StopCountdown(false);
             deviceSlots.Clear();
             core.ReturnToMainMenu();
@@ -364,6 +379,7 @@ namespace UnCredibles.UI.PartyLobby
             deviceSlots[control.device] = slot.SlotIndex;
             joinFrame[slot.SlotIndex] = Time.frameCount;
             if (!HasHost()) Players.SetHost(slot.SlotIndex);
+            GameAudio.Play(GameSfx.UiConfirm);
         }
 
         // Online host: they are in their room from the start, with whatever device they use.
@@ -393,6 +409,7 @@ namespace UnCredibles.UI.PartyLobby
                 Players.ReplaceInput(slot.SlotIndex, input);
                 deviceSlots[device] = slot.SlotIndex;
                 joinFrame[slot.SlotIndex] = Time.frameCount;
+                GameAudio.Play(slot.IsReady ? GameSfx.UiBack : GameSfx.UiConfirm);
                 Players.SetReady(slot.SlotIndex, !slot.IsReady); // the press also counts as Ready
                 return true;
             }
@@ -411,8 +428,17 @@ namespace UnCredibles.UI.PartyLobby
                 else StepPart(mine, (CharacterPartSlot)partRow[mine], dx);
                 return;
             }
-            if (IsJoinButton(control)) room.SendReady(!IsMyPlayerReady());
-            else if (IsCancelButton(control)) room.SendReady(false);
+            if (IsJoinButton(control))
+            {
+                bool ready = !IsMyPlayerReady();
+                GameAudio.Play(ready ? GameSfx.UiConfirm : GameSfx.UiBack);
+                room.SendReady(ready);
+            }
+            else if (IsCancelButton(control))
+            {
+                if (IsMyPlayerReady()) GameAudio.Play(GameSfx.UiBack);
+                room.SendReady(false);
+            }
         }
 
         private bool IsMyPlayerReady()
@@ -433,6 +459,7 @@ namespace UnCredibles.UI.PartyLobby
                 joinFrame[slot.SlotIndex] = Time.frameCount;
                 batPad.AssignSlot(phone, slot.SlotIndex);
                 if (!HasHost()) Players.SetHost(slot.SlotIndex);
+                GameAudio.Play(GameSfx.UiConfirm);
             }
         }
 
