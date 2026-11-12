@@ -52,6 +52,7 @@ MonoBehaviour:
   - {fileID: 313}
   - {fileID: 323}
   - {fileID: 703}
+  figures: {fileID: 11400000, guid: 7bf4c2ec883171c45a0d3fb70778e371, type: 2}
   blade: {fileID: 441}
   fillIndicator: {fileID: 501}
   boostFlame: {fileID: 601}

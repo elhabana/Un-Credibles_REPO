@@ -11,9 +11,13 @@ namespace UnCredibles.Minigames.Churro
     public sealed class ChurroPlayer : MonoBehaviour
     {
         private const float SinkDepth = 1.5f;
+        private const float FigureScale = .55f;
 
         [SerializeField] private Transform visual;
-        [SerializeField] private Renderer[] bodyRenderers = new Renderer[0];
+        [SerializeField, Tooltip("Placeholder body, hidden once the slot's figure is mounted.")]
+        private Renderer[] bodyRenderers = new Renderer[0];
+        [SerializeField, Tooltip("Lobby figures: the slot's one, dressed the same, stands inside Visual.")]
+        private PlayerFigureSet figures;
 
         private ChurroSettings settings;
         private Vector3 floatPosition;
@@ -27,6 +31,7 @@ namespace UnCredibles.Minigames.Churro
         private bool hasRemote;
         private bool remoteDucking;
         private float duck; // 0 standing .. 1 fully crouched, only visual
+        private PlayerCharacterAnimator character;
 
         public PlayerSlot Slot { get; private set; }
         public float Angle { get; private set; }
@@ -43,7 +48,13 @@ namespace UnCredibles.Minigames.Churro
             floatPosition = transform.position;
             Angle = ChurroSpinner.AngleOf(center, floatPosition);
 
-            PlayerPresentation.Attach(this, slot, bodyRenderers);
+            var outfit = figures != null ? figures.Mount(slot, visual, Vector3.zero, FigureScale) : null;
+            if (outfit != null)
+            {
+                foreach (var placeholder in bodyRenderers) placeholder.gameObject.SetActive(false);
+                character = outfit.GetComponent<PlayerCharacterAnimator>();
+            }
+            PlayerPresentation.Attach(this, slot, outfit != null ? outfit.VisibleRenderers().ToArray() : bodyRenderers);
 
             // Face the kid in the middle.
             var toCenter = center - floatPosition;
@@ -62,6 +73,7 @@ namespace UnCredibles.Minigames.Churro
             IsDucking = false;
             duck = 0f;
             visual.localScale = Vector3.one;
+            if (character != null) AnimateDuck(0f, false);
             gameObject.SetActive(true);
         }
 
@@ -80,6 +92,11 @@ namespace UnCredibles.Minigames.Churro
             visual.localPosition = Vector3.zero;
             IsDucking = false;
             visual.localScale = Vector3.one;
+            if (character != null)
+            {
+                character.SetCrouching(false);
+                character.SetAirborne(true); // flails into the water
+            }
         }
 
         private void TickOnFloat(float deltaTime, bool canJump)
@@ -158,9 +175,16 @@ namespace UnCredibles.Minigames.Churro
             AnimateDuck(deltaTime, remoteDucking && IsIn);
         }
 
-        // Squashed down while ducking, back up quickly when released.
+        // Squashed down while ducking, back up quickly when released. The figure crouches and tucks its
+        // legs in the air with poses instead: squashing it would warp its skeleton.
         private void AnimateDuck(float deltaTime, bool ducking)
         {
+            if (character != null)
+            {
+                character.SetCrouching(ducking);
+                character.SetAirborne(height > .02f);
+                return;
+            }
             duck = Mathf.MoveTowards(duck, ducking ? 1f : 0f, deltaTime * 12f);
             visual.localScale = new Vector3(1f + duck * 0.2f, 1f - duck * 0.5f, 1f + duck * 0.2f);
         }

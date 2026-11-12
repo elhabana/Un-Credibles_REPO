@@ -18,8 +18,19 @@ namespace UnCredibles.Minigames.MowTheLawn
         private const float KnockDecay = 22f;     // how fast a crash push fades (m/s per second)
         private const float CrashSpeedKept = 0.85f; // speed kept after crashing into a mower
 
+        private const float FigureScale = .9f;
+        private const float FigureHeight = 2.55f * FigureScale; // PF_PlayerFigure is 2.55 tall
+        // Hip joint this far in front of the SeatBack (the pelvis is in between), in figure heights.
+        private const float BackGap = .07f;
+        // Ankles resting on top of the Hood, either side of the steering column (Visual space, right one).
+        private static readonly Vector3 FootRest = new Vector3(.2f, .74f, .36f);
+        // Hands at 9 and 3 o'clock, in the SteeringWheel's space (a cylinder of radius .5).
+        private static readonly Vector3 WheelGrip = new Vector3(.45f, 0f, 0f);
+
         [SerializeField] private Transform visual;
         [SerializeField] private Renderer[] bodyRenderers = new Renderer[0];
+        [SerializeField, Tooltip("Lobby figures: the slot's one, dressed the same, drives sitting on the Seat inside Visual.")]
+        private PlayerFigureSet figures;
         [SerializeField, Tooltip("Spins while driving.")] private Transform blade;
         [SerializeField, Tooltip("Grows on Y as the next bag fills up.")] private Transform fillIndicator;
         [SerializeField, Tooltip("Exhaust flames, shown while the turbo lasts.")] private Transform boostFlame;
@@ -57,6 +68,7 @@ namespace UnCredibles.Minigames.MowTheLawn
         private Vector3 flameScale;
         private Vector3 ringScale;
         private bool hasRemote;
+        private PlayerCharacterAnimator driver;
 
         public PlayerSlot Slot { get; private set; }
         public Color Color => color;
@@ -80,7 +92,7 @@ namespace UnCredibles.Minigames.MowTheLawn
             Slot = slot;
             settings = mowSettings;
             bags = bagPool;
-            PlayerPresentation.Attach(this, slot, bodyRenderers);
+            PlayerPresentation.Attach(this, slot, MountDriver(slot));
             if (fillIndicator != null) fillScale = fillIndicator.localScale;
             if (boostFlame != null) flameScale = boostFlame.localScale;
             if (turboRing != null) ringScale = turboRing.localScale;
@@ -88,6 +100,32 @@ namespace UnCredibles.Minigames.MowTheLawn
             path.Clear();
             path.Add(transform.position);
             UpdateFillIndicator();
+        }
+
+        // The slot's figure sits on top of the Seat cube, back against the SeatBack, feet on the Hood
+        // and a hand each side of the wheel. Returns what the name tag stands over: the mower and the driver.
+        private Renderer[] MountDriver(PlayerSlot slot)
+        {
+            var seat = visual != null ? visual.Find("Seat") : null;
+            var back = visual != null ? visual.Find("SeatBack") : null;
+            var wheel = visual != null ? visual.Find("SteeringWheel") : null;
+            if (figures == null || seat == null || back == null || wheel == null) return bodyRenderers;
+            var hip = new Vector3(0f, seat.localPosition.y + seat.localScale.y * .5f,
+                back.localPosition.z + back.localScale.z * .5f + BackGap * FigureHeight);
+            var outfit = figures.Mount(slot, visual, hip, FigureScale);
+            if (outfit == null) return bodyRenderers;
+            driver = outfit.GetComponent<PlayerCharacterAnimator>();
+            if (driver != null)
+            {
+                var leftFoot = new Vector3(-FootRest.x, FootRest.y, FootRest.z);
+                driver.Sit(PlayerCharacterAnimator.AddPoint(visual, "FootRest_L", leftFoot),
+                    PlayerCharacterAnimator.AddPoint(visual, "FootRest_R", FootRest));
+                driver.Hold(PlayerCharacterAnimator.AddPoint(wheel, "Grip_L", -WheelGrip),
+                    PlayerCharacterAnimator.AddPoint(wheel, "Grip_R", WheelGrip));
+            }
+            var renderers = new List<Renderer>(bodyRenderers);
+            renderers.AddRange(outfit.VisibleRenderers());
+            return renderers.ToArray();
         }
 
         // Host: drive with the input, cut grass and fill bags.
@@ -359,6 +397,7 @@ namespace UnCredibles.Minigames.MowTheLawn
                 visual.localRotation = Quaternion.Euler(lean, spin, stunned ? Mathf.Sin(bobTime) * 10f : 0f);
             }
             if (blade != null) blade.Rotate(0f, 900f * deltaTime, 0f, Space.Self);
+            if (driver != null) driver.SetArmsUp(boosting); // hands off the wheel during the turbo
         }
 
         // Protected tails pulse so everybody sees they cannot be cut right now.

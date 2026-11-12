@@ -141,6 +141,7 @@ MonoBehaviour:
   bodyRenderers:
   - {fileID: 3619021356006731905}
   - {fileID: 616669333314510451}
+  figures: {fileID: 11400000, guid: 7bf4c2ec883171c45a0d3fb70778e371, type: 2}
 --- !u!1 &1249356851175174002
 GameObject:
   m_ObjectHideFlags: 0

@@ -225,14 +225,15 @@ namespace UnCredibles.UI.MainMenu
         {
             slideClosing = !opening;
             slideOffset = ((RectTransform)mainPanel.transform.parent).rect.width * .6f;
-            if (opening)
+            // Closing without a previous opening (menu shown directly) has no targets yet: take them from where the buttons are.
+            if (opening || slideTargets.Count != titleHidden.Count)
             {
                 slideTargets.Clear();
                 foreach (var hidden in titleHidden)
                 {
                     var rect = (RectTransform)hidden.transform;
                     slideTargets.Add(rect.anchoredPosition.x);
-                    rect.anchoredPosition -= new Vector2(slideOffset, 0f);
+                    if (opening) rect.anchoredPosition -= new Vector2(slideOffset, 0f);
                 }
             }
             slideTime = 0f;

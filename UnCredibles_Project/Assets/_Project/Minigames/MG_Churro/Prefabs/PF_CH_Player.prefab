@@ -49,6 +49,7 @@ MonoBehaviour:
   bodyRenderers:
   - {fileID: 303}
   - {fileID: 403}
+  figures: {fileID: 11400000, guid: 7bf4c2ec883171c45a0d3fb70778e371, type: 2}
 --- !u!1 &200
 GameObject:
   m_ObjectHideFlags: 0
