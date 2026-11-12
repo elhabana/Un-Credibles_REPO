@@ -183,6 +183,12 @@ namespace UnCredibles.UI.PartyLobby
                 EventSystem.current.SetSelectedGameObject((show ? levelButtons[(int)BotDifficulty.Medium] : addAIButton).gameObject);
         }
 
+        public bool CanAddBot => addAIButton.gameObject.activeSelf;
+        public GameObject RemoveButton => removeButton.gameObject;
+        public bool ChoosingLevel => choosingLevel;
+        public void OpenLevels() => ShowLevels(true);
+        public void CloseLevels() => ShowLevels(false);
+
         private void OnAddAI() => ShowLevels(true);
         private void OnInvite() => InviteClicked?.Invoke(SlotIndex);
         private void OnRemove() => RemoveClicked?.Invoke(SlotIndex);

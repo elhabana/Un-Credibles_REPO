@@ -562,6 +562,18 @@ MonoBehaviour:
     m_Localized: "Botas de h\xE9roe"
     m_Metadata:
       m_Items: []
+  - m_Id: 7300000000000001
+    m_Localized: "SELECT / TAB: menú (quitar bots, salir)     X / E: añadir bot     Y / SHIFT: QR del móvil"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7300000000000002
+    m_Localized: "STICK / FLECHAS: moverse     A / ENTER: elegir     X / E: vestir bot     B / ESC: volver"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7300000000000003
+    m_Localized: "ARRIBA / ABAJO: casco, ropa o botas     IZQUIERDA / DERECHA: cambiar     A / B: terminar"
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

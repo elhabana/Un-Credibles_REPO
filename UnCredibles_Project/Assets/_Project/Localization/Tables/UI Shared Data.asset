@@ -610,6 +610,18 @@ MonoBehaviour:
     m_Key: part.HeroCostume_Boots
     m_Metadata:
       m_Items: []
+  - m_Id: 7300000000000001
+    m_Key: lobby.hint_menu
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7300000000000002
+    m_Key: lobby.hint_cursor
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7300000000000003
+    m_Key: lobby.hint_dress
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

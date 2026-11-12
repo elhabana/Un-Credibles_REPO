@@ -2,8 +2,11 @@ using TMPro;
 using UnCredibles.BatPad;
 using UnCredibles.Minigames;
 using UnCredibles.Players;
+using UnCredibles.Players.Inputs;
 using UnCredibles.UI.Garage;
 using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 using UnCredibles.Localization;
 
@@ -43,6 +46,12 @@ namespace UnCredibles.UI.PartyLobby
         private bool locked;
         private Texture2D batPadQrTexture;
         private Vector2 titleCenter;
+        private bool menuWasOpen;
+        private bool cursorMode;
+        private int dressSlot = -1; // bot card being dressed from the cursor
+        private Vector2 dressLast;
+        private GameObject pendingFocus;
+        private int hintMode; // 0 lobby, 1 cursor and its menus, 2 dressing a bot
 
         private void Awake()
         {
@@ -51,11 +60,7 @@ namespace UnCredibles.UI.PartyLobby
             titleCenter = titleLabel.anchoredPosition; // baked where the title sits; LayoutTitle moves it
             addPlayerCallout.text = L10n.Get(L10n.UI, "lobby.add_player");
             addPlayerCallout.gameObject.SetActive(false);
-            phoneButton.onClick.AddListener(() =>
-            {
-                phoneOverlay.transform.SetAsLastSibling(); // above the cards and the outfit arrows
-                phoneOverlay.SetActive(true);
-            });
+            phoneButton.onClick.AddListener(OpenPhone);
             phoneClose.onClick.AddListener(() => phoneOverlay.SetActive(false));
             batPadQr.gameObject.SetActive(false);
             phoneButton.gameObject.SetActive(false);
@@ -82,8 +87,178 @@ namespace UnCredibles.UI.PartyLobby
             codePill.rectTransform.sizeDelta = new Vector2(pillWidth, 68f);
         }
 
+        private void OpenPhone()
+        {
+            phoneOverlay.transform.SetAsLastSibling(); // above the cards and the outfit arrows
+            phoneOverlay.SetActive(true);
+            if (EventSystem.current != null) EventSystem.current.SetSelectedGameObject(phoneClose.gameObject);
+        }
+
+        // Pads and keys have no pointer: X / E opens the bot level choice on the first free card, Y / Shift the
+        // phone QR. While one is open the EventSystem drives it (stick + A) and B closes it.
+        private void HandlePadShortcuts()
+        {
+            if (controller.Players == null) return;
+            LobbySlotView choosing = null;
+            foreach (var view in slotViews)
+                if (view.ChoosingLevel) choosing = view;
+            bool open = cursorMode || choosing != null || phoneOverlay.activeSelf;
+            if (open)
+            {
+                controller.MenuFrame = Time.frameCount;
+                bool menu = AnyMenuPressed();
+                if (dressSlot >= 0) DressBot();
+                else if (menu || AnyDevicePressed(PlayerAction.Crouch) || AnyDevicePressed(PlayerAction.Pause) ||
+                    phoneOverlay.activeSelf && AnyDevicePressed(PlayerAction.Ability))
+                {
+                    // B steps back one level (level choice / QR, then the cursor); Select / Tab closes it all.
+                    GameAudio.Play(GameSfx.UiBack);
+                    if (choosing != null) choosing.CloseLevels();
+                    else if (phoneOverlay.activeSelf)
+                    {
+                        phoneOverlay.SetActive(false);
+                        if (cursorMode && EventSystem.current != null) EventSystem.current.SetSelectedGameObject(phoneButton.gameObject);
+                    }
+                    else cursorMode = false;
+                    if (menu)
+                    {
+                        phoneOverlay.SetActive(false);
+                        cursorMode = false;
+                    }
+                }
+                else if (cursorMode && choosing == null && !phoneOverlay.activeSelf && AnyDevicePressed(PlayerAction.Interact))
+                    StartDressing();
+                else if (cursorMode && pendingFocus != null)
+                {
+                    if (EventSystem.current != null) EventSystem.current.SetSelectedGameObject(pendingFocus);
+                    pendingFocus = null;
+                }
+                else if (cursorMode) KeepCursorFocus();
+            }
+            else if (AnyMenuPressed())
+            {
+                GameAudio.Play(GameSfx.UiConfirm);
+                cursorMode = true;
+                KeepCursorFocus();
+            }
+            else if (AnyDevicePressed(PlayerAction.Interact))
+            {
+                LobbySlotView free = null;
+                foreach (var view in slotViews)
+                    if (free == null && view.CanAddBot) free = view;
+                if (free == null) GameAudio.Play(GameSfx.UiError);
+                else
+                {
+                    GameAudio.Play(GameSfx.UiConfirm);
+                    free.OpenLevels();
+                }
+            }
+            else if (phoneButton.gameObject.activeSelf && AnyDevicePressed(PlayerAction.Ability))
+            {
+                GameAudio.Play(GameSfx.UiConfirm);
+                OpenPhone();
+            }
+
+            if (locked) // the match is starting: the edit buttons are gone
+            {
+                cursorMode = false;
+                dressSlot = -1;
+            }
+            bool nowOpen = cursorMode || phoneOverlay.activeSelf;
+            foreach (var view in slotViews) nowOpen |= view.ChoosingLevel;
+            // Closed: no button keeps the focus, or the next A would press it as well as toggle Ready.
+            if (menuWasOpen && !nowOpen && EventSystem.current != null) EventSystem.current.SetSelectedGameObject(null);
+            menuWasOpen = nowOpen;
+            int mode = dressSlot >= 0 ? 2 : nowOpen ? 1 : 0;
+            if (mode == hintMode) return;
+            hintMode = mode;
+            ShowHint();
+        }
+
+        // X / E on a bot's card (cursor mode): the stick dresses that bot like a player dresses itself.
+        private void StartDressing()
+        {
+            var selected = EventSystem.current != null ? EventSystem.current.currentSelectedGameObject : null;
+            int card = -1;
+            for (int i = 0; i < slotViews.Length; i++)
+                if (selected != null && selected.transform.IsChildOf(slotViews[i].transform)) card = i;
+            if (card < 0 || !controller.Slots[card].IsAI || !controller.CanCustomize(card))
+            {
+                GameAudio.Play(GameSfx.UiError);
+                return;
+            }
+            GameAudio.Play(GameSfx.UiConfirm);
+            dressSlot = card;
+            dressLast = StrongestMove(); // a stick already pushed does not count as a step
+            EventSystem.current.SetSelectedGameObject(null); // the stick is for the outfit now
+        }
+
+        private void DressBot()
+        {
+            if (!controller.Slots[dressSlot].IsAI || AnyDevicePressed(PlayerAction.Jump) || AnyDevicePressed(PlayerAction.Crouch) ||
+                AnyDevicePressed(PlayerAction.Pause) || AnyDevicePressed(PlayerAction.Interact) || AnyMenuPressed())
+            {
+                GameAudio.Play(GameSfx.UiBack);
+                // Next frame: the A that finished must not also press the button it lands on.
+                var remove = slotViews[dressSlot].RemoveButton;
+                pendingFocus = remove.activeInHierarchy ? remove : null;
+                dressSlot = -1;
+                return;
+            }
+            const float push = .5f;
+            var move = StrongestMove();
+            if (move.y > push && dressLast.y <= push) controller.MovePartRow(dressSlot, -1);
+            else if (move.y < -push && dressLast.y >= -push) controller.MovePartRow(dressSlot, 1);
+            else if (move.x > push && dressLast.x <= push) controller.StepPart(dressSlot, (CharacterPartSlot)controller.SelectedPartRow(dressSlot), 1);
+            else if (move.x < -push && dressLast.x >= -push) controller.StepPart(dressSlot, (CharacterPartSlot)controller.SelectedPartRow(dressSlot), -1);
+            dressLast = move;
+        }
+
+        private Vector2 StrongestMove()
+        {
+            var move = Vector2.zero;
+            foreach (var slot in controller.Players.Slots)
+                if (slot.IsOccupied && !slot.IsAI && slot.Input is DeviceInput input && input.Move.sqrMagnitude > move.sqrMagnitude)
+                    move = input.Move;
+            return move;
+        }
+
+        // Keyboard and gamepads of this machine only: phones and online players cannot drive these menus.
+        private bool AnyDevicePressed(PlayerAction action)
+        {
+            foreach (var slot in controller.Players.Slots)
+                if (slot.IsOccupied && !slot.IsAI && slot.Input is DeviceInput input && input.WasPressed(action)) return true;
+            return false;
+        }
+
+        // Select on a pad, Tab on the keyboard: the cursor over the cards (add / remove bot, QR, leave).
+        private bool AnyMenuPressed()
+        {
+            foreach (var slot in controller.Players.Slots)
+                if (slot.IsOccupied && !slot.IsAI && slot.Input is DeviceInput input &&
+                    (input.Device is Gamepad pad && pad.selectButton.wasPressedThisFrame ||
+                     input.Device is Keyboard keys && keys.tabKey.wasPressedThisFrame)) return true;
+            return false;
+        }
+
+        // The pressed button may have just hidden (bot added, player removed): move to the first one still there.
+        private void KeepCursorFocus()
+        {
+            var events = EventSystem.current;
+            if (events == null) return;
+            var current = events.currentSelectedGameObject;
+            if (current != null && current.activeInHierarchy) return;
+            foreach (var button in GetComponentsInChildren<Button>())
+                if (button.interactable && button.navigation.mode != Navigation.Mode.None) // outfit arrows opt out
+                {
+                    events.SetSelectedGameObject(button.gameObject);
+                    return;
+                }
+        }
+
         private void Update()
         {
+            HandlePadShortcuts();
             if (!addPlayerCallout.gameObject.activeSelf) return;
             addPlayerCallout.alpha = Mathf.Lerp(0.35f, 1f, Mathf.PingPong(Time.unscaledTime * CalloutBlinkSpeed, 1f));
         }
@@ -156,6 +331,12 @@ namespace UnCredibles.UI.PartyLobby
 
         private void ShowHint()
         {
+            // Inside the cursor or dressing a bot the bottom line lists only the controls that work there.
+            if (hintMode > 0)
+            {
+                hintText.text = L10n.Get(L10n.UI, hintMode == 2 ? "lobby.hint_dress" : "lobby.hint_cursor");
+                return;
+            }
             hintText.text = !controller.IsOnline
                 ? L10n.Get(L10n.UI, "lobby.hint_local")
                 : controller.IsAuthority
@@ -163,6 +344,8 @@ namespace UnCredibles.UI.PartyLobby
                     : L10n.Get(L10n.UI, "lobby.hint_client");
             // Second line: how to change helmet, outfit and boots.
             hintText.text += System.Environment.NewLine + L10n.Get(L10n.UI, "lobby.hint_outfit");
+            // Third line, only for who can edit the cards: the menu, bots and phone QR.
+            if (controller.CanEditSlots) hintText.text += System.Environment.NewLine + L10n.Get(L10n.UI, "lobby.hint_menu");
         }
 
         // Slots, QR caption and callout are redrawn by RenderBatPad; the bottom hint is set again.

@@ -80,6 +80,10 @@ namespace UnCredibles.UI.PartyLobby
         public event Action SlotsChanged;
         public event Action<int> CountdownTick; // 3, 2, 1 ... 0 = START
         public event Action CountdownCancelled;
+
+        // Last frame a lobby menu was open; set by PartyLobbyView. The frame after still counts, so the A that
+        // confirms the menu does not also toggle Ready.
+        public int MenuFrame { get; set; } = -10;
         public event Action<string> Notice;     // short message for the hint line
 
         private void OnEnable() => StartCoroutine(Initialize());
@@ -154,6 +158,7 @@ namespace UnCredibles.UI.PartyLobby
             DressNewPlayers();
             RemoveExpiredAway();
             if (UsesPhones) JoinPressingPhones();
+            if (Time.frameCount - MenuFrame <= 1) return; // a lobby menu (bot level, phone QR) has the pads
             var slots = Players.Slots;
             for (int i = 0; i < slots.Count; i++)
             {

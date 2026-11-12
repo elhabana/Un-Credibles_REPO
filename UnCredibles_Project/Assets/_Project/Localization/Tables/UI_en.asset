@@ -564,6 +564,18 @@ MonoBehaviour:
     m_Localized: Hero boots
     m_Metadata:
       m_Items: []
+  - m_Id: 7300000000000001
+    m_Localized: "SELECT / TAB: menu (remove bots, leave)     X / E: add bot     Y / SHIFT: phone QR"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7300000000000002
+    m_Localized: "STICK / ARROWS: move     A / ENTER: choose     X / E: dress bot     B / ESC: back"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7300000000000003
+    m_Localized: "UP / DOWN: helmet, outfit or boots     LEFT / RIGHT: change     A / B: done"
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

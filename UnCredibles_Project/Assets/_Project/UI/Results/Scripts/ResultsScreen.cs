@@ -5,6 +5,7 @@ using UnCredibles.Core;
 using UnCredibles.Players;
 using UnCredibles.Players.Inputs;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using UnCredibles.Localization;
 
@@ -86,6 +87,9 @@ namespace UnCredibles.UI.Results
             titleText.text = isFinal ? L10n.Get(L10n.UI, "results.final_title") : L10n.Get(L10n.UI, "results.title");
             roundText.text = isFinal ? L10n.Get(L10n.UI, "results.total_points") : L10n.Format(L10n.UI, "results.round", round, totalRounds);
             finalButtons.SetActive(isFinal);
+            // The pad needs a focused button to navigate the final screen.
+            if (isFinal && EventSystem.current != null && EventSystem.current.currentSelectedGameObject == null)
+                EventSystem.current.SetSelectedGameObject((lobbyButton.gameObject.activeSelf ? lobbyButton : mainMenuButton).gameObject);
             titleText.gameObject.SetActive(isFinal);
             roundText.gameObject.SetActive(isFinal);
             listBackground.SetActive(!isFinal);
@@ -104,8 +108,8 @@ namespace UnCredibles.UI.Results
         {
             var standings = core.Room.Standings;
             isFinal = standings.IsFinal;
-            ShowHeader(standings.Round, standings.TotalRounds);
             lobbyButton.gameObject.SetActive(false); // only the host takes everybody back to the lobby
+            ShowHeader(standings.Round, standings.TotalRounds);
             sheet.SetHint(L10n.Get(L10n.UI, "results.waiting_host"));
             var podiumEntries = new List<PodiumEntry>(standings.Rows.Count);
             bool humanWon = false;

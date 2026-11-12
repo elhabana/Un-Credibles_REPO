@@ -175,10 +175,7 @@ namespace UnCredibles.UI.MainMenu
 
         private bool TryRevealMenu()
         {
-            var mouse = Mouse.current;
-            if (!Application.isFocused || mouse == null || mouse.delta.ReadValue() == Vector2.zero) return false;
-            var pointer = mouse.position.ReadValue();
-            if (!RectTransformUtility.RectangleContainsScreenPoint(strip, pointer, StripCamera)) return false;
+            if (!OpenPressed() && !MouseReachedStrip()) return false;
 
             waitingForEdge = false;
             strip.gameObject.SetActive(false);
@@ -187,6 +184,24 @@ namespace UnCredibles.UI.MainMenu
             ShowMultiplayerSetup(false); // shows the buttons with JUGAR LOCAL selected
             StartSlide(true);
             return true;
+        }
+
+        private bool MouseReachedStrip()
+        {
+            var mouse = Mouse.current;
+            if (!Application.isFocused || mouse == null || mouse.delta.ReadValue() == Vector2.zero) return false;
+            return RectTransformUtility.RectangleContainsScreenPoint(strip, mouse.position.ReadValue(), StripCamera);
+        }
+
+        // Pad and keys open the drawer too: A, Start or right (stick / d-pad); Enter, Space or right arrow.
+        private static bool OpenPressed()
+        {
+            var pad = Gamepad.current;
+            var keys = Keyboard.current;
+            return (pad != null && (pad.buttonSouth.wasPressedThisFrame || pad.startButton.wasPressedThisFrame ||
+                                    pad.dpad.right.wasPressedThisFrame || pad.leftStick.right.wasPressedThisFrame)) ||
+                   (keys != null && (keys.enterKey.wasPressedThisFrame || keys.spaceKey.wasPressedThisFrame ||
+                                     keys.rightArrowKey.wasPressedThisFrame));
         }
 
         private void CloseDrawer()
