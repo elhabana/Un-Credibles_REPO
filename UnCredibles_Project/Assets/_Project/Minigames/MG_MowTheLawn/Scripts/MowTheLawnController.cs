@@ -10,13 +10,15 @@ namespace UnCredibles.Minigames.MowTheLawn
     // Mow the lawn: every mower cuts grass and fills bags that it drags behind like a tail.
     // Bags only score when unloaded into your own bin, in your corner of the garden.
     // Driving into a rival's tail knocks those bags loose; ramming a rival with the turbo makes it
-    // drop bags and spin. In the final frenzy all grass grows back and every bag is worth more.
+    // drop bags and spin. Moles pop out as obstacles and steal the last bag of a tail passing by; touch
+    // a fleeing mole to make it drop the bag. In the final frenzy all grass grows back and every bag is worth more.
     // The only Update of the minigame: lawn, AI, mowers, bins and bags are ticked from here in order.
     public sealed class MowTheLawnController : MinigameController
     {
         private const byte BagDeliveredEvent = 1;
         private const byte FrenzyStartedEvent = 2;
         private const byte RamEvent = 3;
+        private const byte HitEvent = 4; // ring, sound and "-N" (cut tails, moles)
 
         [SerializeField] private MowTheLawnSettings settings;
         [SerializeField] private MowLawn lawn;
@@ -31,16 +33,31 @@ namespace UnCredibles.Minigames.MowTheLawn
         private readonly List<Vector3> dropped = new List<Vector3>(32);
         private readonly float[] cutCooldowns = new float[PlayerRegistry.MaxPlayers];
         private readonly float[] unloadTimers = new float[PlayerRegistry.MaxPlayers];
+        private MowMoles moles;
 
         public bool IsFrenzy { get; private set; }
         public override bool IsTimerUrgent => IsFrenzy;
         public float TimeLeft => Timer != null && Timer.IsRunning ? Timer.Remaining : float.MaxValue;
+        public MowMoles Moles => moles;
         public event Action FrenzyStarted;
+
+        // How full the bag a player is filling is, 0..1 (host and online clients alike).
+        public float BagFill(int playerId)
+        {
+            foreach (var mower in mowers)
+                if (mower.Slot.PlayerId == playerId) return Mathf.Clamp01(mower.Fill);
+            return 0f;
+        }
 
         protected override void OnInitialize(MinigameContext context)
         {
             lawn.Initialize(settings);
             bags.Initialize(settings, lawn);
+            // Built in code with the bins' material, so the scene needs nothing new.
+            moles = new GameObject("Moles").AddComponent<MowMoles>();
+            moles.transform.SetParent(transform, false);
+            var binRenderer = binPrefab.GetComponentInChildren<Renderer>(true);
+            moles.Initialize(settings, lawn, bags, binRenderer != null ? binRenderer.sharedMaterial : null);
 
             foreach (var player in Players)
             {
@@ -111,6 +128,7 @@ namespace UnCredibles.Minigames.MowTheLawn
             lawn.Tick(deltaTime);
             bags.Tick(deltaTime, !IsReplica);
             foreach (var bin in bins) bin.Tick(deltaTime);
+            moles.Tick(deltaTime, !IsReplica && IsPlaying, mowers, bins, IsFrenzy);
             if (fx != null) fx.Tick(deltaTime);
 
             if (IsReplica)
@@ -133,7 +151,9 @@ namespace UnCredibles.Minigames.MowTheLawn
 
             CollideMowers();
             CollideWithBins();
+            CollideWithMoles();
             CutTails(deltaTime);
+            MolesSteal();
             PickUpLooseBags();
             UnloadIntoBins(deltaTime);
         }
@@ -173,7 +193,7 @@ namespace UnCredibles.Minigames.MowTheLawn
             {
                 dropped.Clear();
                 victim.CutTailAt(victim.BagCount - lost, dropped);
-                foreach (var position in dropped) bags.Drop(position);
+                foreach (var position in dropped) bags.Drop(position, victim.Color);
             }
             victim.Stun(settings.StunSeconds, settings.RamImmunitySeconds);
             if (fx != null) fx.Ram(victim.Position, lost);
@@ -227,15 +247,100 @@ namespace UnCredibles.Minigames.MowTheLawn
                         offset.y = 0f;
                         if (offset.sqrMagnitude > reach * reach) continue;
 
+                        var cutPoint = tail[i]; // CutTailAt rebuilds the tail list
                         dropped.Clear();
-                        victim.CutTailAt(i, dropped);
-                        foreach (var position in dropped) bags.Drop(position);
+                        int lost = victim.CutTailAt(i, dropped);
+                        foreach (var position in dropped) bags.Drop(position, victim.Color);
                         cutCooldowns[a] = settings.CutCooldown;
+                        Hit(cutPoint, lost);
                         ShowMechanic("tail", attacker.Slot);
                         break;
                     }
                 }
             }
+        }
+
+        // Moles out of the ground are solid: crashing into one without the turbo dazes the mower for a
+        // moment. A fleeing one touched by any mower drops the bag it stole; one bonked with the turbo
+        // hides at once and gives back part of the turbo.
+        private void CollideWithMoles()
+        {
+            float minDistance = settings.MoleRadius + settings.MowerRadius;
+            foreach (var mole in moles.Moles)
+            {
+                if (!MowMoles.IsSolid(mole)) continue;
+                foreach (var mower in mowers)
+                {
+                    var offset = mower.Position - mole.Position;
+                    offset.y = 0f;
+                    float distance = offset.magnitude;
+                    if (distance >= minDistance) continue;
+
+                    if (mole.State == MowMoles.MoleState.Fleeing)
+                    {
+                        bags.Drop(mole.Position, mole.BagColor);
+                        moles.Hide(mole);
+                        Hit(mole.Position, 0);
+                        break;
+                    }
+                    if (mower.IsBoosting)
+                    {
+                        moles.Hide(mole);
+                        mower.RechargeTurbo(settings.MoleBonkRecharge);
+                        Hit(mole.Position, 0);
+                        break;
+                    }
+                    var normal = distance > 0.001f ? offset / distance : -mower.Forward;
+                    if (!mower.IsStunned)
+                    {
+                        mower.Stun(settings.MoleStunSeconds, 0f);
+                        Hit(mole.Position, 0);
+                    }
+                    mower.Bump(lawn.ClampInside(mole.Position + normal * minDistance, settings.MowerRadius), normal * settings.BumpForce);
+                }
+            }
+        }
+
+        // A mole that is out takes the last bag of a tail passing too close, then runs away with it.
+        private void MolesSteal()
+        {
+            float reach = settings.MoleStealReach;
+            foreach (var mole in moles.Moles)
+            {
+                if (mole.State != MowMoles.MoleState.Up) continue;
+                foreach (var victim in mowers)
+                {
+                    if (victim.BagCount == 0 || victim.IsTailProtected || !TailNear(victim, mole.Position, reach)) continue;
+                    dropped.Clear();
+                    victim.CutTailAt(victim.BagCount - 1, dropped); // also protects the rest of the tail
+                    moles.Steal(mole, victim.Color);
+                    Hit(mole.Position, 1);
+                    break;
+                }
+            }
+        }
+
+        private static bool TailNear(MowerPlayer mower, Vector3 point, float reach)
+        {
+            foreach (var bag in mower.BagPositions)
+            {
+                var offset = bag - point;
+                offset.y = 0f;
+                if (offset.sqrMagnitude <= reach * reach) return true;
+            }
+            return false;
+        }
+
+        // Hit feedback here and on online clients.
+        private void Hit(Vector3 position, int lost)
+        {
+            if (fx != null) fx.TailCut(position, lost);
+            var message = BeginEvent(HitEvent);
+            message.Write(position.x);
+            message.Write(position.y);
+            message.Write(position.z);
+            message.Write((byte)Mathf.Min(lost, 255));
+            SendEvent();
         }
 
         private void PickUpLooseBags()
@@ -315,7 +420,7 @@ namespace UnCredibles.Minigames.MowTheLawn
 
         // ---------- Online ----------
 
-        // Mowers (position, heading, bags, next bag fill, turbo / protected / stunned / turbo ready) and loose bags.
+        // Mowers (position, heading, bags, next bag fill, turbo / protected / stunned / turbo ready), loose bags and moles.
         protected override void WriteSnapshot(BinaryWriter writer)
         {
             writer.Write((byte)mowers.Count);
@@ -331,6 +436,7 @@ namespace UnCredibles.Minigames.MowTheLawn
                 writer.Write((byte)((mower.IsBoosting ? 1 : 0) | (mower.IsTailProtected ? 2 : 0) | (mower.IsStunned ? 4 : 0) | (mower.CanBoost ? 8 : 0)));
             }
             bags.WriteState(writer);
+            moles.WriteState(writer);
         }
 
         protected override void ReadSnapshot(BinaryReader reader)
@@ -347,6 +453,7 @@ namespace UnCredibles.Minigames.MowTheLawn
                     mowers[i].ApplyRemote(position, yaw, bagCount, fill, (flags & 1) != 0, (flags & 2) != 0, (flags & 4) != 0, (flags & 8) != 0);
             }
             bags.ReadState(reader);
+            moles.ReadState(reader);
         }
 
         protected override void OnNetworkEvent(byte eventId, BinaryReader reader)
@@ -363,6 +470,12 @@ namespace UnCredibles.Minigames.MowTheLawn
                 int index = reader.ReadByte();
                 int lost = reader.ReadByte();
                 if (fx != null && index < mowers.Count) fx.Ram(mowers[index].Position, lost);
+            }
+            else if (eventId == HitEvent)
+            {
+                var cutPoint = new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
+                int lost = reader.ReadByte();
+                if (fx != null) fx.TailCut(cutPoint, lost);
             }
             else if (eventId == FrenzyStartedEvent && !IsFrenzy)
             {

@@ -86,7 +86,7 @@ namespace UnCredibles.Tests
         [Test]
         public void DroppedBagsCanOnlyBePickedUpAfterTheDelay()
         {
-            bags.Drop(lawn.Center);
+            bags.Drop(lawn.Center, Color.red);
             var landed = bags.GetLoosePosition(0);
             Assert.AreEqual(0, bags.PickUp(landed, settings.MowerRadius), "fresh bags cannot be grabbed back at once");
 
@@ -98,7 +98,7 @@ namespace UnCredibles.Tests
         [Test]
         public void LooseBagsVanishAfterTheirLifetimeOnlyOnTheHost()
         {
-            bags.Drop(lawn.Center);
+            bags.Drop(lawn.Center, Color.red);
             bags.Tick(settings.LooseBagLifetime + 0.1f, false);
             Assert.AreEqual(1, bags.LooseCount, "clients wait for the host's snapshot");
             bags.Tick(0.01f, true);
@@ -108,11 +108,90 @@ namespace UnCredibles.Tests
         [Test]
         public void TooManyLooseBagsDropTheOldest()
         {
-            for (int i = 0; i < settings.MaxLooseBags + 5; i++) bags.Drop(lawn.Center);
+            for (int i = 0; i < settings.MaxLooseBags + 5; i++) bags.Drop(lawn.Center, Color.red);
             Assert.AreEqual(settings.MaxLooseBags, bags.LooseCount);
         }
 
+        [Test]
+        public void LooseBagsKeepAFadedOwnerColourOnlineToo()
+        {
+            bags.Drop(lawn.Center, Color.red);
+            var stream = new System.IO.MemoryStream();
+            bags.WriteState(new System.IO.BinaryWriter(stream));
+
+            var client = Track(new GameObject("ClientBags")).AddComponent<MowBags>();
+            Set(client, "bagPrefab", Get(bags, "bagPrefab"));
+            client.Initialize(settings, lawn);
+            stream.Position = 0;
+            client.ReadState(new System.IO.BinaryReader(stream));
+
+            Assert.AreEqual(1, client.LooseCount);
+            var tint = LooseTint(client, 0);
+            Assert.AreEqual(LooseTint(bags, 0).r, tint.r, 0.01f);
+            Assert.Greater(tint.r, tint.g, "still reads as the owner's red");
+            Assert.Greater(tint.g, 0f, "faded towards white");
+        }
+
+        // ---------- Moles ----------
+
+        [Test]
+        public void MolesShakeFirstThenStandOutThenHide()
+        {
+            var moles = CreateMoles();
+            TickMoles(moles, settings.MoleInterval + 0.01f);
+            Assert.AreEqual(1, moles.Moles.Count);
+            var mole = moles.Moles[0];
+            Assert.AreEqual(MowMoles.MoleState.Warning, mole.State);
+            Assert.IsFalse(MowMoles.IsSolid(mole), "a shaking mound is not in the way yet");
+
+            TickMoles(moles, settings.MoleWarnSeconds + 0.01f);
+            Assert.AreEqual(MowMoles.MoleState.Up, mole.State);
+            Assert.IsTrue(MowMoles.IsSolid(mole));
+            Assert.AreEqual(0f, lawn.GetHeight(mole.Position), "popping out leaves bare soil");
+
+            TickMoles(moles, settings.MoleUpSeconds + 0.01f);
+            Assert.AreEqual(MowMoles.MoleState.Hidden, mole.State);
+        }
+
+        [Test]
+        public void AMoleWithAStolenBagRunsThenBurrowsAndClientsSeeIt()
+        {
+            var moles = CreateMoles();
+            TickMoles(moles, settings.MoleInterval + 0.01f);
+            TickMoles(moles, settings.MoleWarnSeconds + 0.01f);
+            var mole = moles.Moles[0];
+            moles.Steal(mole, Color.red);
+            Assert.AreEqual(MowMoles.MoleState.Fleeing, mole.State);
+
+            var stream = new System.IO.MemoryStream();
+            moles.WriteState(new System.IO.BinaryWriter(stream));
+            var client = CreateMoles();
+            stream.Position = 0;
+            client.ReadState(new System.IO.BinaryReader(stream));
+            Assert.AreEqual(MowMoles.MoleState.Fleeing, client.Moles[0].State);
+            Assert.AreEqual(1f, client.Moles[0].BagColor.r, 0.01f);
+            Assert.AreEqual(mole.Position.x, client.Moles[0].Position.x, 1e-4f);
+
+            TickMoles(moles, settings.MoleFleeSeconds + 0.01f);
+            Assert.AreEqual(MowMoles.MoleState.Hidden, mole.State, "nobody caught it: the bag is gone");
+        }
+
         // ---------- Mower ----------
+
+        [Test]
+        public void TurboDialEmptiesWhenUsedAndRefillsWithTheCooldown()
+        {
+            var mower = CreateMower(out _);
+            var dial = mower.GetComponentInChildren<MowTurboDial>();
+            Assert.IsNotNull(dial);
+            Assert.AreEqual(1f, dial.Shown);
+
+            mower.Boost();
+            mower.Tick(1f, lawn);
+            Assert.Less(dial.Shown, 0.5f, "drains fast once used");
+            mower.Tick(settings.BoostCooldown, lawn);
+            Assert.AreEqual(1f, dial.Shown);
+        }
 
         [Test]
         public void CuttingATailDropsThatBagAndEverythingBehindAndProtectsTheRest()
@@ -199,11 +278,31 @@ namespace UnCredibles.Tests
             return mower;
         }
 
+        private MowMoles CreateMoles()
+        {
+            var moles = Track(new GameObject("Moles")).AddComponent<MowMoles>();
+            moles.Initialize(settings, lawn, bags, null);
+            return moles;
+        }
+
+        private static void TickMoles(MowMoles moles, float seconds) =>
+            moles.Tick(seconds, true, new List<MowerPlayer>(), new List<MowBin>(), false);
+
         private T Track<T>(T item) where T : Object
         {
             created.Add(item);
             return item;
         }
+
+        private static Color LooseTint(MowBags pool, int index)
+        {
+            var loose = (System.Collections.IList)Get(pool, "loose");
+            var bag = loose[index];
+            return (Color)bag.GetType().GetField("Tint").GetValue(bag);
+        }
+
+        private static object Get(object target, string field) =>
+            target.GetType().GetField(field, BindingFlags.NonPublic | BindingFlags.Instance).GetValue(target);
 
         private static void Set(object target, string field, object value) =>
             target.GetType().GetField(field, BindingFlags.NonPublic | BindingFlags.Instance).SetValue(target, value);

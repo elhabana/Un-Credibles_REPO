@@ -4,8 +4,8 @@ using UnityEngine;
 
 namespace UnCredibles.Minigames.MowTheLawn
 {
-    // Hit feedback for rams: a shock ring on the ground, a floating "-3" over the victim and a
-    // camera shake. Pooled objects built in code; ticked by MowTheLawnController.
+    // Hit feedback for rams and cut tails: a shock ring on the ground, a floating "-3" over the
+    // victim and a camera shake (smaller for a cut tail). Pooled objects built in code; ticked by MowTheLawnController.
     public sealed class MowFx : MonoBehaviour
     {
         private const float RingSeconds = 0.4f;
@@ -23,6 +23,7 @@ namespace UnCredibles.Minigames.MowTheLawn
             public TMP_Text Text;
             public float Age;
             public Vector3 Origin;
+            public float Size;
         }
 
         private readonly List<Effect> rings = new List<Effect>();
@@ -30,9 +31,18 @@ namespace UnCredibles.Minigames.MowTheLawn
 
         public void Ram(Vector3 position, int bagsLost)
         {
-            GameAudio.Play(GameSfx.HitRival);
             GameAudio.Play(GameSfx.Stun); // a ram always stuns the victim
+            Hit(position, bagsLost, ringSize, shake);
+        }
+
+        // A rival drove through a tail: `position` is where it was cut.
+        public void TailCut(Vector3 position, int bagsLost) => Hit(position, bagsLost, ringSize * 0.6f, shake * 0.4f);
+
+        private void Hit(Vector3 position, int bagsLost, float size, float shakeAmount)
+        {
+            GameAudio.Play(GameSfx.HitRival);
             var ring = Take(rings, CreateRing);
+            ring.Size = size;
             ring.Origin = position + Vector3.up * 0.05f;
             ring.Transform.position = ring.Origin;
 
@@ -42,7 +52,7 @@ namespace UnCredibles.Minigames.MowTheLawn
                 text.Origin = position + Vector3.up * 1.6f;
                 text.Text.text = $"-{bagsLost}";
             }
-            if (cameraFit != null) cameraFit.Shake(shake);
+            if (cameraFit != null) cameraFit.Shake(shakeAmount);
         }
 
         public void Tick(float deltaTime)
@@ -57,7 +67,7 @@ namespace UnCredibles.Minigames.MowTheLawn
                     ring.Transform.gameObject.SetActive(false);
                     continue;
                 }
-                float size = Mathf.Lerp(0.5f, ringSize, 1f - (1f - t) * (1f - t));
+                float size = Mathf.Lerp(0.5f, ring.Size, 1f - (1f - t) * (1f - t));
                 ring.Transform.localScale = new Vector3(size, 0.02f * (1f - t) + 0.005f, size);
             }
 

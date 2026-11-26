@@ -34,7 +34,7 @@ namespace UnCredibles.Minigames.MowTheLawn
         [SerializeField, Tooltip("Spins while driving.")] private Transform blade;
         [SerializeField, Tooltip("Grows on Y as the next bag fills up.")] private Transform fillIndicator;
         [SerializeField, Tooltip("Exhaust flames, shown while the turbo lasts.")] private Transform boostFlame;
-        [SerializeField, Tooltip("Ring on the ground, shown when the turbo is ready.")] private Transform turboRing;
+        [SerializeField, Tooltip("Old ring on the ground for a ready turbo; hidden, the turbo dial shows it now.")] private Transform turboRing;
 
         // Recorded points of the drive, newest first. The mower itself is always the start of the
         // tail; points are only added once it moved PathStep away from the newest one.
@@ -45,6 +45,7 @@ namespace UnCredibles.Minigames.MowTheLawn
         private MowBags bags;
         private Color color => PlayerIdentity.ColorFor(Slot.SlotIndex, Slot.IsAI);
         private float clippings;
+        private float lastFill;
         private float bobTime;
         private Vector3 fillScale;
         private float forwardSpeed;
@@ -62,11 +63,9 @@ namespace UnCredibles.Minigames.MowTheLawn
         private bool remoteBoosting;
         private bool remoteProtected;
         private bool remoteStunned;
-        private bool remoteBoostReady;
-        private bool wasBoostReady;
-        private float ringPop;
+        private bool wasBoosting;
+        private MowTurboDial turboDial;
         private Vector3 flameScale;
-        private Vector3 ringScale;
         private bool hasRemote;
         private PlayerCharacterAnimator driver;
 
@@ -93,9 +92,10 @@ namespace UnCredibles.Minigames.MowTheLawn
             settings = mowSettings;
             bags = bagPool;
             PlayerPresentation.Attach(this, slot, MountDriver(slot));
+            if (turboDial == null) turboDial = MowTurboDial.Create(transform);
             if (fillIndicator != null) fillScale = fillIndicator.localScale;
             if (boostFlame != null) flameScale = boostFlame.localScale;
-            if (turboRing != null) ringScale = turboRing.localScale;
+            if (turboRing != null) turboRing.gameObject.SetActive(false);
 
             path.Clear();
             path.Add(transform.position);
@@ -178,7 +178,7 @@ namespace UnCredibles.Minigames.MowTheLawn
                 AddBags(1);
             }
 
-            AfterMove(deltaTime, IsBoosting, IsTailProtected, IsStunned, CanBoost && !IsStunned, drift.magnitude);
+            AfterMove(deltaTime, IsBoosting, IsTailProtected, IsStunned, drift.magnitude);
         }
 
         private float MaxSpeed => settings.Speed * settings.SpeedFactor(BagCount) * SpeedMultiplier;
@@ -192,11 +192,16 @@ namespace UnCredibles.Minigames.MowTheLawn
             drift = transform.forward * forwardSpeed;
         }
 
+        // Bonked a mole: part of the turbo comes back.
+        // shortcut: online clients only see it once the turbo is ready again; send the cooldown if that matters.
+        public void RechargeTurbo(float fraction) =>
+            boostCooldown = Mathf.Max(0f, boostCooldown - settings.BoostCooldown * fraction);
+
         // Rammed: spins out of control for a while and cannot be rammed again for a moment.
         public void Stun(float seconds, float immunitySeconds)
         {
             stunTimer = seconds;
-            ramImmunityTimer = immunitySeconds;
+            ramImmunityTimer = Mathf.Max(ramImmunityTimer, immunitySeconds);
             boostTimer = 0f;
         }
 
@@ -270,9 +275,10 @@ namespace UnCredibles.Minigames.MowTheLawn
             remoteBoosting = boosting;
             remoteProtected = tailProtected;
             remoteStunned = stunned;
-            remoteBoostReady = boostReady;
             hasRemote = true;
             clippings = fill * settings.CellsPerBag;
+            // Only "ready" is sent; the recharge itself is replayed locally (AfterMove, TickRemote).
+            if (boostReady) boostCooldown = 0f;
 
             if (bagCount > tail.Count) AddBags(bagCount - tail.Count);
             else if (bagCount < tail.Count) CutTailAt(bagCount, null);
@@ -283,6 +289,7 @@ namespace UnCredibles.Minigames.MowTheLawn
         public void TickRemote(float deltaTime, MowLawn lawn)
         {
             float speed = 0f;
+            if (boostCooldown > 0f) boostCooldown -= deltaTime;
             if (hasRemote)
             {
                 var previous = transform.position;
@@ -293,24 +300,30 @@ namespace UnCredibles.Minigames.MowTheLawn
                 speed = (transform.position - previous).magnitude / Mathf.Max(deltaTime, 0.0001f);
                 lawn.Cut(BladePosition, settings.BladeRadius);
             }
-            AfterMove(deltaTime, remoteBoosting, remoteProtected, remoteStunned, remoteBoostReady, speed);
+            AfterMove(deltaTime, remoteBoosting, remoteProtected, remoteStunned, speed);
         }
 
         // ---------- Shared ----------
 
-        private void AfterMove(float deltaTime, bool boosting, bool tailProtected, bool stunned, bool boostReady, float speed)
+        private void AfterMove(float deltaTime, bool boosting, bool tailProtected, bool stunned, float speed)
         {
+            if (boosting && !wasBoosting)
+            {
+                boostCooldown = settings.BoostCooldown; // already so on the host; starts the dial on clients
+                GameAudio.Play(GameSfx.Jump);
+            }
+            wasBoosting = boosting;
             RecordPath();
             PlaceTail(Mathf.Min(1f, 20f * deltaTime));
             UpdateFillIndicator();
+            if (turboDial != null) turboDial.Show(1f - boostCooldown / Mathf.Max(.01f, settings.BoostCooldown), deltaTime);
             AnimateVisual(deltaTime, boosting, stunned, speed);
             AnimateTail(tailProtected);
-            AnimateTurbo(deltaTime, boosting, boostReady);
+            AnimateTurbo(boosting);
         }
 
-        // Flames out of the exhaust during the turbo; a ring under the mower when it is ready again,
-        // with a little pop the moment it comes back.
-        private void AnimateTurbo(float deltaTime, bool boosting, bool ready)
+        // Flames out of the exhaust during the turbo.
+        private void AnimateTurbo(bool boosting)
         {
             if (boostFlame != null)
             {
@@ -321,13 +334,6 @@ namespace UnCredibles.Minigames.MowTheLawn
                     boostFlame.localScale = new Vector3(flameScale.x, flameScale.y, flameScale.z * flicker);
                 }
             }
-            if (turboRing == null) return;
-            if (ready && !wasBoostReady) ringPop = 1f;
-            wasBoostReady = ready;
-            ringPop = Mathf.Max(0f, ringPop - deltaTime * 4f);
-            turboRing.gameObject.SetActive(ready);
-            float pulse = 1f + ringPop * 0.6f + Mathf.Sin(Time.time * 5f) * 0.04f;
-            turboRing.localScale = new Vector3(ringScale.x * pulse, ringScale.y, ringScale.z * pulse);
         }
 
         private void RecordPath()
@@ -407,10 +413,13 @@ namespace UnCredibles.Minigames.MowTheLawn
             foreach (var bag in tail) bag.transform.localScale = new Vector3(scale, scale, scale);
         }
 
+        // The grass tray fills up (the player's HUD badge shows it too); a bag that just filled up makes a sound.
         private void UpdateFillIndicator()
         {
-            if (fillIndicator == null) return;
             float fill = Mathf.Clamp01(Fill);
+            if (fill < lastFill - .5f) GameAudio.Play(GameSfx.HitSoft);
+            lastFill = fill;
+            if (fillIndicator == null) return;
             fillIndicator.gameObject.SetActive(fill > 0.02f);
             fillIndicator.localScale = new Vector3(fillScale.x, fillScale.y * fill, fillScale.z);
         }

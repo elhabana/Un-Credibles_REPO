@@ -7,15 +7,17 @@ namespace UnCredibles.Minigames.MowTheLawn
 {
     // Bot: mows the tallest grass it finds, grabs loose bags nearby, goes home to unload once its
     // tail is long enough (or time is running out), sometimes cuts a rival's tail and rams rivals
-    // carrying bags with the turbo. It slows down for sharp turns.
+    // carrying bags with the turbo. It steers around moles and chases one running off with a bag.
+    // It slows down for sharp turns.
     // It only writes into an AIInput, like a person would.
     public sealed class MowerAIBrain
     {
         private const float EdgeMargin = 1.5f;
         private const float ReachedDistance = 0.8f;
         private const float RamRange = 3.2f;
+        private const float MoleAvoidRange = 2.2f;
 
-        private enum Goal { Grass, LooseBag, RivalTail, Ram, Unload }
+        private enum Goal { Grass, LooseBag, RivalTail, Ram, Unload, Mole }
 
         private readonly MowerPlayer player;
         private readonly AIInput input;
@@ -38,6 +40,7 @@ namespace UnCredibles.Minigames.MowTheLawn
         private bool hasGrassTarget;
         private Goal goal;
         private MowerPlayer ramTarget;
+        private MowMoles.Mole moleTarget;
 
         public MowerPlayer Player => player;
 
@@ -73,6 +76,11 @@ namespace UnCredibles.Minigames.MowTheLawn
                 target = ChooseTarget();
             }
             if (goal == Goal.Ram && ramTarget != null) target = ramTarget.Position; // track it every frame
+            if (goal == Goal.Mole && moleTarget != null)
+            {
+                if (moleTarget.State == MowMoles.MoleState.Fleeing) target = moleTarget.Position;
+                else thinkTimer = 0f; // got it (or it got away): pick something else next frame
+            }
             Steer();
         }
 
@@ -80,6 +88,7 @@ namespace UnCredibles.Minigames.MowTheLawn
         {
             var position = player.Position;
             ramTarget = null;
+            moleTarget = null;
 
             if (ShouldUnload())
             {
@@ -88,6 +97,11 @@ namespace UnCredibles.Minigames.MowTheLawn
             }
             goal = Goal.LooseBag;
             if (TryNearestLooseBag(position, out var looseBag)) return looseBag;
+            if (TryThief(position, out moleTarget))
+            {
+                goal = Goal.Mole;
+                return moleTarget.Position;
+            }
 
             if (Random.value < aggression)
             {
@@ -136,6 +150,23 @@ namespace UnCredibles.Minigames.MowTheLawn
                 found = true;
             }
             return found;
+        }
+
+        // A mole running off with a bag, close enough to catch.
+        private bool TryThief(Vector3 position, out MowMoles.Mole best)
+        {
+            best = null;
+            if (game.Moles == null) return false;
+            float bestDistance = settings.AILooseBagRange * settings.AILooseBagRange;
+            foreach (var mole in game.Moles.Moles)
+            {
+                if (mole.State != MowMoles.MoleState.Fleeing) continue;
+                float distance = Flat(mole.Position - position).sqrMagnitude;
+                if (distance >= bestDistance) continue;
+                bestDistance = distance;
+                best = mole;
+            }
+            return best != null;
         }
 
         // A nearby rival worth ramming: it carries bags and can be hit right now.
@@ -215,6 +246,20 @@ namespace UnCredibles.Minigames.MowTheLawn
                 if (position.x > center.x + lawn.HalfWidth - EdgeMargin) direction.x -= 1f;
                 if (position.z < center.z - lawn.HalfDepth + EdgeMargin) direction.z += 1f;
                 if (position.z > center.z + lawn.HalfDepth - EdgeMargin) direction.z -= 1f;
+                direction.Normalize();
+            }
+
+            // Keep clear of moles (and their mounds about to open), except the one being chased.
+            if (game.Moles != null)
+            {
+                foreach (var mole in game.Moles.Moles)
+                {
+                    if (mole.State == MowMoles.MoleState.Hidden || mole == moleTarget) continue;
+                    var away = Flat(position - mole.Position);
+                    float gap = away.magnitude;
+                    if (gap >= MoleAvoidRange || gap < .001f) continue;
+                    direction += away / gap * (1f - gap / MoleAvoidRange) * 1.5f;
+                }
                 direction.Normalize();
             }
 

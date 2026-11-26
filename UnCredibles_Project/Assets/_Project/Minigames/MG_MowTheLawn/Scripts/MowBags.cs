@@ -13,6 +13,7 @@ namespace UnCredibles.Minigames.MowTheLawn
         private const float BlinkSeconds = 2f;
         private const float ThrowSeconds = 0.35f;
         private const float ThrowHeight = 1.6f;
+        private const float LooseFade = .45f;
 
         [SerializeField] private MowBagView bagPrefab;
 
@@ -22,6 +23,7 @@ namespace UnCredibles.Minigames.MowTheLawn
             public Vector3 From;
             public Vector3 To;
             public float Age;
+            public Color Tint;
         }
 
         private readonly Stack<MowBagView> pool = new Stack<MowBagView>();
@@ -29,6 +31,7 @@ namespace UnCredibles.Minigames.MowTheLawn
         private readonly List<LooseBag> thrown = new List<LooseBag>(); // flying into a bin, only visual
         private readonly List<Vector3> received = new List<Vector3>();
         private readonly List<float> receivedAges = new List<float>();
+        private readonly List<Color> receivedTints = new List<Color>();
         private MowTheLawnSettings settings;
         private MowLawn lawn;
 
@@ -56,12 +59,13 @@ namespace UnCredibles.Minigames.MowTheLawn
             pool.Push(view);
         }
 
-        // A bag knocked out of a tail: it jumps a little away and lands loose on the lawn.
-        public void Drop(Vector3 from)
+        // A bag knocked out of a tail: it jumps a little away and lands loose on the lawn,
+        // its tie a faded version of the colour of the mower that lost it.
+        public void Drop(Vector3 from, Color ownerColor)
         {
             var offset = Random.insideUnitCircle * settings.ScatterDistance;
             var to = lawn.ClampInside(new Vector3(from.x + offset.x, lawn.Center.y, from.z + offset.y), settings.BagRadius);
-            AddLoose(from, to, 0f);
+            AddLoose(from, to, 0f, Color.Lerp(ownerColor, Color.white, LooseFade));
             // Too many on the lawn: the oldest one is gone.
             if (loose.Count > settings.MaxLooseBags) RemoveLoose(0);
         }
@@ -137,6 +141,10 @@ namespace UnCredibles.Minigames.MowTheLawn
                 writer.Write(bag.To.x);
                 writer.Write(bag.To.z);
                 writer.Write((byte)Mathf.Clamp(Mathf.RoundToInt(bag.Age * 10f), 0, 255));
+                Color32 tint = bag.Tint;
+                writer.Write(tint.r);
+                writer.Write(tint.g);
+                writer.Write(tint.b);
             }
         }
 
@@ -146,17 +154,29 @@ namespace UnCredibles.Minigames.MowTheLawn
             received.Clear();
             int count = reader.ReadByte();
             receivedAges.Clear();
+            receivedTints.Clear();
             for (int i = 0; i < count; i++)
             {
                 received.Add(new Vector3(reader.ReadSingle(), lawn.Center.y, reader.ReadSingle()));
                 receivedAges.Add(reader.ReadByte() / 10f);
+                receivedTints.Add(new Color32(reader.ReadByte(), reader.ReadByte(), reader.ReadByte(), 255));
             }
 
             while (loose.Count > received.Count) RemoveLoose(loose.Count - 1);
             for (int i = 0; i < received.Count; i++)
             {
-                if (i >= loose.Count) AddLoose(received[i], received[i], Mathf.Max(HopSeconds, receivedAges[i]));
-                else if ((loose[i].To - received[i]).sqrMagnitude > 0.01f)
+                if (i >= loose.Count)
+                {
+                    AddLoose(received[i], received[i], Mathf.Max(HopSeconds, receivedAges[i]), receivedTints[i]);
+                    continue;
+                }
+                // Picked-up bags shift the list: a slot may now hold another mower's bag.
+                if (loose[i].Tint != receivedTints[i])
+                {
+                    loose[i].Tint = receivedTints[i];
+                    loose[i].View.SetTint(receivedTints[i]);
+                }
+                if ((loose[i].To - received[i]).sqrMagnitude > 0.01f)
                 {
                     loose[i].From = loose[i].To = received[i];
                     loose[i].Age = Mathf.Max(HopSeconds, receivedAges[i]);
@@ -165,12 +185,12 @@ namespace UnCredibles.Minigames.MowTheLawn
             }
         }
 
-        private void AddLoose(Vector3 from, Vector3 to, float age)
+        private void AddLoose(Vector3 from, Vector3 to, float age, Color tint)
         {
             var view = Rent();
-            view.SetTint(Color.white);
+            view.SetTint(tint);
             view.transform.SetPositionAndRotation(from, Quaternion.Euler(0f, Random.Range(0f, 360f), 0f));
-            loose.Add(new LooseBag { View = view, From = from, To = to, Age = age });
+            loose.Add(new LooseBag { View = view, From = from, To = to, Age = age, Tint = tint });
         }
 
         private void RemoveLoose(int index)

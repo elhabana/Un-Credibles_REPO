@@ -79,6 +79,23 @@ namespace UnCredibles.Minigames.MowTheLawn
         [SerializeField, Min(1)] private int frenzyPointsPerBag = 2;
         [SerializeField, Min(1f), Tooltip("Speed multiplier for everybody during the frenzy.")] private float frenzySpeed = 1.15f;
 
+        [Header("Moles (obstacles that steal a bag from tails passing by)")]
+        [SerializeField, Min(0), Tooltip("Moles out at the same time (0 = no moles).")] private int maxMoles = 3;
+        [SerializeField, Min(0), Tooltip("Moles out at the same time during the final frenzy.")] private int frenzyMaxMoles = 4;
+        [SerializeField, Min(0.1f), Tooltip("Seconds between two moles coming out.")] private float moleInterval = 3f;
+        [SerializeField, Min(0f), Tooltip("Seconds the mound shakes before the mole pops out.")] private float moleWarnSeconds = 1f;
+        [SerializeField, Min(0.1f), Tooltip("Seconds a mole stays out (solid) before hiding again.")] private float moleUpSeconds = 5f;
+        [SerializeField, Min(0.1f), Tooltip("Seconds a mole runs with a stolen bag before burrowing with it.")] private float moleFleeSeconds = 3f;
+        [SerializeField, Min(0.1f), Tooltip("Running speed of a mole with a bag (mowers do 7).")] private float moleSpeed = 4f;
+        [SerializeField, Min(0.1f), Tooltip("Solid radius of a mole; mowers bump into it.")] private float moleRadius = 0.5f;
+        [SerializeField, Min(0.1f), Tooltip("A tail bag this close to a mole that is out gets stolen.")] private float moleStealReach = 1.3f;
+        [SerializeField, Min(0f), Tooltip("Moles never pop out closer than this to a bin or another mole.")] private float moleClearance = 2.5f;
+        [SerializeField, Tooltip("Moles pop out this far ahead of a mower (min, max).")] private Vector2 moleAhead = new Vector2(3f, 5f);
+        [SerializeField, Min(0f), Tooltip("A mole that is out runs at tail bags closer than this.")] private float moleLungeRange = 3f;
+        [SerializeField, Min(0.1f), Tooltip("Speed of a mole running at a tail.")] private float moleLungeSpeed = 5f;
+        [SerializeField, Min(0f), Tooltip("Seconds a mower is dazed after crashing into a mole without the turbo.")] private float moleStunSeconds = 0.5f;
+        [SerializeField, Range(0f, 1f), Tooltip("Turbo recharged by bonking a mole with the turbo.")] private float moleBonkRecharge = 0.5f;
+
         [Header("AI")]
         [SerializeField, Min(0.05f), Tooltip("Seconds between AI decisions.")] private float aiThinkInterval = 0.35f;
         [SerializeField, Min(0f), Tooltip("Loose bags closer than this attract a bot.")] private float aiLooseBagRange = 6f;
@@ -133,6 +150,22 @@ namespace UnCredibles.Minigames.MowTheLawn
         public float FrenzySeconds => frenzySeconds;
         public int FrenzyPointsPerBag => frenzyPointsPerBag;
         public float FrenzySpeed => frenzySpeed;
+
+        public int MaxMoles => maxMoles;
+        public int FrenzyMaxMoles => frenzyMaxMoles;
+        public float MoleInterval => moleInterval;
+        public float MoleWarnSeconds => moleWarnSeconds;
+        public float MoleUpSeconds => moleUpSeconds;
+        public float MoleFleeSeconds => moleFleeSeconds;
+        public float MoleSpeed => moleSpeed;
+        public float MoleRadius => moleRadius;
+        public float MoleStealReach => moleStealReach;
+        public float MoleClearance => moleClearance;
+        public Vector2 MoleAhead => moleAhead;
+        public float MoleLungeRange => moleLungeRange;
+        public float MoleLungeSpeed => moleLungeSpeed;
+        public float MoleStunSeconds => moleStunSeconds;
+        public float MoleBonkRecharge => moleBonkRecharge;
 
         public float AIThinkInterval => aiThinkInterval;
         public float AILooseBagRange => aiLooseBagRange;
