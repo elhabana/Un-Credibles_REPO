@@ -219,6 +219,7 @@ Formato general: `PREFIJO_Ambito_Nombre_Variante`.
 | Physic Material | `PM_` | `PM_CR_Oil.physicMaterial` |
 | Cubemap | `CUBEMAP_` | `CUBEMAP_Shared_Sky.cubemap` |
 | Render Texture | `RT_` | `RT_UI_Podium.renderTexture` |
+| Vídeo | `VID_` | `VID_MG_MowTheLawn_Preview.mp4` |
 | Timeline | `TIMELINE_` | `TIMELINE_Garage_Intro.playable` |
 | Preset | `PRESET_` | `PRESET_Shared_TextureUI.preset` |
 

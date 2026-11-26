@@ -28,6 +28,10 @@ namespace UnCredibles.Minigames
             new DebugPlayer { inputSource = InputSourceType.AI },
         };
         [SerializeField] private bool skipCountdown;
+        [SerializeField, Tooltip("Show the rules card first, like a real match (humans press Jump to start).")]
+        private bool showRulesCard;
+        [SerializeField, Tooltip("Everybody wears its default suit, like the lobby gives. Empty in the editor = the project's catalog.")]
+        private CharacterPartCatalog partCatalog;
 
         private PlayerRegistry registry;
 
@@ -41,13 +45,15 @@ namespace UnCredibles.Minigames
             }
 
             registry = new PlayerRegistry();
+            var catalog = FindCatalog();
             int gamepadIndex = 0;
             int count = Mathf.Min(players.Length, PlayerRegistry.MaxPlayers);
             for (int i = 0; i < count; i++)
             {
                 var input = CreateInput(players[i].inputSource, ref gamepadIndex);
                 var type = input is AIInput ? PlayerType.AIPlayer : PlayerType.LocalPlayer;
-                registry.TryAddPlayer(type, input, players[i].playerName, out _);
+                if (registry.TryAddPlayer(type, input, players[i].playerName, out var slot) && catalog != null)
+                    registry.SetLoadout(slot.SlotIndex, catalog.DefaultLoadout());
             }
 
             var active = new List<PlayerSlot>(PlayerRegistry.MaxPlayers);
@@ -55,8 +61,9 @@ namespace UnCredibles.Minigames
             Debug.Log($"[DebugBootstrap] Running {minigame.name} with {active.Count} temporary player(s).", this);
 
             minigame.Finished += LogResults;
-            minigame.Initialize(new MinigameContext(minigame.Data, active, true));
-            if (skipCountdown) minigame.StartGame();
+            // Not a debug session when the card is wanted: offline that only brings the card (no network here).
+            minigame.Initialize(new MinigameContext(minigame.Data, active, !showRulesCard));
+            if (skipCountdown && !showRulesCard) minigame.StartGame();
             else minigame.StartCountdown();
         }
 
@@ -64,6 +71,17 @@ namespace UnCredibles.Minigames
         {
             if (minigame != null) minigame.Finished -= LogResults;
             registry?.Clear();
+        }
+
+        private CharacterPartCatalog FindCatalog()
+        {
+            if (partCatalog != null) return partCatalog;
+#if UNITY_EDITOR
+            // Debug runs only happen in the editor: no need to wire the catalog in every minigame scene.
+            foreach (var guid in UnityEditor.AssetDatabase.FindAssets("t:" + nameof(CharacterPartCatalog)))
+                return UnityEditor.AssetDatabase.LoadAssetAtPath<CharacterPartCatalog>(UnityEditor.AssetDatabase.GUIDToAssetPath(guid));
+#endif
+            return null;
         }
 
         private IPlayerInput CreateInput(InputSourceType source, ref int gamepadIndex)

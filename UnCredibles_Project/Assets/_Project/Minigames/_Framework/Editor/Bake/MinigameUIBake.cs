@@ -62,6 +62,13 @@ namespace UnCredibles.Minigames.Editor
         private const float KeyInset = 28f;
         private const float DiscSize = 90f;
         private const float DiscSpacing = 145f;
+        // Mechanics pages.
+        private const float MechanicFrameHeight = 520f;
+        private const float MechanicPanelHeight = 360f;
+        private const int MaxPages = 6;
+        private const int MaxMechanicControls = 2;
+        private const float GlyphSize = 52f;
+        private const float RowInset = 24f;
 
         private static Sprite panelSprite;
         private static Sprite pillSprite;
@@ -368,10 +375,13 @@ namespace UnCredibles.Minigames.Editor
             Place(pressLabel.rectTransform, new Vector2(.5f, 0f), new Vector2(0f, 24f), new Vector2(RightWidth - 40f, 56f));
 
             var card = canvas.gameObject.AddComponent<MinigameRulesCard>();
+            BuildMechanicPages(sheet, card);
             Assign(card, "titleFont", titleFont);
             Assign(card, "group", group);
             Assign(card, "sheet", sheet);
             Assign(card, "title", title);
+            Assign(card, "missionBox", mission.gameObject);
+            Assign(card, "mediaBox", frame.gameObject);
             Assign(card, "missionTab", missionTab);
             Assign(card, "rules", rules);
             Assign(card, "controlsBox", controls.gameObject);
@@ -393,6 +403,126 @@ namespace UnCredibles.Minigames.Editor
             Assign(card, "startLabel", startLabel);
             Assign(card, "pressLabel", pressLabel);
             return canvas.gameObject;
+        }
+
+        // Mechanics layout of the rules card (the card hides the classic boxes when a minigame has pages):
+        // the clip big on the left with arrows and page dots, and where the media frame was, the page's
+        // title tab, text and control rows (gamepad glyph / keyboard key + action).
+        private static void BuildMechanicPages(RectTransform sheet, MinigameRulesCard card)
+        {
+            var frame = NewPanel("Mechanic video", sheet, Color.white, 1f);
+            Place(frame.rectTransform, TopLeft, new Vector2(Margin, -195f), new Vector2(LeftWidth, MechanicFrameHeight));
+            var clipSize = new Vector2(LeftWidth - 40f, (LeftWidth - 40f) * 9f / 16f);
+            var dots = NewImage("Placeholder", frame.transform);
+            dots.sprite = discSprite;
+            dots.type = Image.Type.Tiled;
+            dots.pixelsPerUnitMultiplier = 3f;
+            dots.color = DotColor;
+            Center(dots.rectTransform, Middle, Vector2.zero, clipSize);
+            var placeholderName = NewText("Name", dots.transform, titleFont, 64f, PaperUI.Ink, TextAlignmentOptions.Center);
+            placeholderName.textWrappingMode = TextWrappingModes.Normal;
+            AutoSize(placeholderName, 32f, 64f);
+            Stretch(placeholderName.rectTransform, 24f);
+
+            var video = new GameObject("Clip", typeof(RectTransform), typeof(RawImage)).GetComponent<RawImage>();
+            video.transform.SetParent(frame.transform, false);
+            video.raycastTarget = false;
+            Center(video.rectTransform, Middle, Vector2.zero, clipSize);
+            var player = video.gameObject.AddComponent<VideoPlayer>();
+            player.playOnAwake = false;
+            player.isLooping = true;
+            player.audioOutputMode = VideoAudioOutputMode.None;
+            player.renderMode = VideoRenderMode.RenderTexture;
+            video.gameObject.SetActive(false);
+
+            // Ink discs on the frame's sides: a hint that the stick turns the pages.
+            var previous = NewArrow("Previous", frame.transform, new Vector2(0f, .5f), "<");
+            var next = NewArrow("Next", frame.transform, new Vector2(1f, .5f), ">");
+
+            var dotsRoot = new GameObject("Page dots", typeof(RectTransform)).GetComponent<RectTransform>();
+            dotsRoot.SetParent(sheet, false);
+            Center(dotsRoot, TopLeft, new Vector2(Margin + LeftWidth * .5f, -195f - MechanicFrameHeight - 32f), new Vector2(LeftWidth, 30f));
+            var pageDots = new Image[MaxPages];
+            for (int i = 0; i < MaxPages; i++)
+            {
+                pageDots[i] = NewDisc("Dot", dotsRoot, PaperUI.Ink);
+                Center(pageDots[i].rectTransform, Middle, Vector2.zero, new Vector2(18f, 18f));
+            }
+            var hint = NewText("Browse hint", sheet, titleFont, 28f, PaperUI.Ink, TextAlignmentOptions.Center);
+            AutoSize(hint, 18f, 28f);
+            Center(hint.rectTransform, TopLeft, new Vector2(Margin + LeftWidth * .5f, -195f - MechanicFrameHeight - 72f), new Vector2(LeftWidth, 40f));
+
+            var panel = NewPanel("Mechanic", sheet, Color.white, 2f).rectTransform;
+            Center(panel, TopRight, new Vector2(-Margin - RightWidth * .5f, -40f - MechanicPanelHeight * .5f),
+                new Vector2(RightWidth, MechanicPanelHeight));
+            var tab = NewTab(panel);
+            var step = NewText("Step", panel, titleFont, 30f, PaperUI.Ink, TextAlignmentOptions.Right);
+            Place(step.rectTransform, TopRight, new Vector2(-24f, -12f), new Vector2(120f, 40f));
+            var text = NewText("Text", panel, null, 30f, PaperUI.Ink, TextAlignmentOptions.TopLeft);
+            text.textWrappingMode = TextWrappingModes.Normal;
+            AutoSize(text, 20f, 30f);
+            Place(text.rectTransform, TopLeft, new Vector2(RowInset, -52f), new Vector2(RightWidth - RowInset * 2f, 160f));
+
+            var pads = new Image[MaxMechanicControls];
+            var padLabels = new TMP_Text[MaxMechanicControls];
+            var knobs = new GameObject[MaxMechanicControls];
+            var slashes = new TMP_Text[MaxMechanicControls];
+            var keys = new Image[MaxMechanicControls];
+            var keyLabels = new TMP_Text[MaxMechanicControls];
+            var actions = new TMP_Text[MaxMechanicControls];
+            for (int i = 0; i < MaxMechanicControls; i++)
+            {
+                float y = -228f - i * 66f;
+                pads[i] = NewDisc("Pad", panel, PaperUI.Ink);
+                Place(pads[i].rectTransform, TopLeft, new Vector2(RowInset, y), new Vector2(GlyphSize, GlyphSize));
+                padLabels[i] = NewText("Letter", pads[i].transform, titleFont, 34f, PaperUI.Paper, TextAlignmentOptions.Center);
+                Stretch(padLabels[i].rectTransform);
+                var knob = NewDisc("Stick", pads[i].transform, PaperUI.Paper);
+                Center(knob.rectTransform, Middle, Vector2.zero, new Vector2(24f, 24f));
+                knobs[i] = knob.gameObject;
+                slashes[i] = NewText("Or", panel, titleFont, 34f, PaperUI.Ink, TextAlignmentOptions.Center);
+                Place(slashes[i].rectTransform, TopLeft, new Vector2(RowInset + GlyphSize + 4f, y), new Vector2(28f, GlyphSize));
+                slashes[i].text = "/";
+                keys[i] = NewPill("Key", panel, PaperUI.Ink, KeyHeight);
+                Place(keys[i].rectTransform, TopLeft, new Vector2(RowInset + GlyphSize + 36f, y - 3f), new Vector2(KeyHeight, KeyHeight));
+                keyLabels[i] = NewText("Label", keys[i].transform, titleFont, 26f, PaperUI.Paper, TextAlignmentOptions.Center);
+                Stretch(keyLabels[i].rectTransform);
+                actions[i] = NewText("Action", panel, null, 28f, PaperUI.Ink, TextAlignmentOptions.Left);
+                AutoSize(actions[i], 18f, 28f);
+                Place(actions[i].rectTransform, TopLeft, new Vector2(RowInset, y), new Vector2(RightWidth, GlyphSize));
+            }
+
+            Assign(card, "mechanicFrame", frame.gameObject);
+            Assign(card, "mechanicVideo", video);
+            Assign(card, "mechanicPlayer", player);
+            Assign(card, "mechanicPlaceholder", dots.gameObject);
+            Assign(card, "mechanicPlaceholderName", placeholderName);
+            Assign(card, "previousArrow", previous);
+            Assign(card, "nextArrow", next);
+            Assign(card, "pageDotsRoot", dotsRoot);
+            AssignArray(card, "pageDots", pageDots);
+            Assign(card, "browseHint", hint);
+            Assign(card, "mechanicPanel", panel);
+            Assign(card, "mechanicTab", tab);
+            Assign(card, "mechanicStep", step);
+            Assign(card, "mechanicText", text);
+            AssignArray(card, "padGlyphs", pads);
+            AssignArray(card, "padLabels", padLabels);
+            AssignArray(card, "padKnobs", knobs);
+            AssignArray(card, "slashes", slashes);
+            AssignArray(card, "keyPills", keys);
+            AssignArray(card, "keyPillLabels", keyLabels);
+            AssignArray(card, "mechanicActions", actions);
+        }
+
+        private static RectTransform NewArrow(string name, Transform frame, Vector2 edge, string symbol)
+        {
+            var disc = NewDisc(name, frame, PaperUI.Ink);
+            Center(disc.rectTransform, edge, Vector2.zero, new Vector2(84f, 84f));
+            var label = NewText("Symbol", disc.transform, titleFont, 64f, PaperUI.Paper, TextAlignmentOptions.Center);
+            Stretch(label.rectTransform);
+            label.text = symbol;
+            return disc.rectTransform;
         }
 
         // Garage mice extras: controls pill at the bottom, countdown / results in the middle.

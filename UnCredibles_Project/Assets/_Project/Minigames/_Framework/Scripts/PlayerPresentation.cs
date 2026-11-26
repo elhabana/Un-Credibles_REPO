@@ -20,6 +20,7 @@ namespace UnCredibles.Minigames
 
         // Name tag over the head ("P1", "BOT"); lives beside the avatar, not under it.
         public TextMeshPro Label => label;
+        public PlayerSlot Slot => slot;
 
         public static PlayerPresentation Attach(Component avatar, PlayerSlot player, Renderer[] bodyRenderers = null)
         {

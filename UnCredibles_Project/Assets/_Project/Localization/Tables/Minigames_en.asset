@@ -171,6 +171,98 @@ MonoBehaviour:
     m_Localized: RESULTS
     m_Metadata:
       m_Items: []
+  - m_Id: 7400000000000001
+    m_Localized: "Help grandma across"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7400000000000002
+    m_Localized: "Pick her up on your side and take her across: +50. In the last 30 seconds she's worth double."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7400000000000003
+    m_Localized: "Move: Move"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7400000000000004
+    m_Localized: "Shove your rivals"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7400000000000005
+    m_Localized: "Without a grandma you're faster and can shove. Push them into the traffic!"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7400000000000006
+    m_Localized: "Jump: Shove"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7400000000000007
+    m_Localized: "Watch out for oil"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7400000000000008
+    m_Localized: "Tanker trucks leave oil slicks. On them you slide and can barely turn."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7400000000000009
+    m_Localized: "Move: Push the other way to stop"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7400000000000010
+    m_Localized: "Don't get run over"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7400000000000011
+    m_Localized: "If a car hits you, you lose 20 points and grandma goes flying. Traffic keeps getting busier."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7400000000000012
+    m_Localized: "Mow the lawn"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7400000000000013
+    m_Localized: "Drive over tall grass to fill bags. They trail behind you like a tail and slow you down a bit."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7400000000000014
+    m_Localized: "Move: Drive"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7400000000000015
+    m_Localized: "Empty into your bin"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7400000000000016
+    m_Localized: "Bags only score in your own bin, in your corner. In the final frenzy they're worth double."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7400000000000017
+    m_Localized: "Move: Drive up to your bin"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7400000000000018
+    m_Localized: "Cut rival tails"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7400000000000019
+    m_Localized: "Drive through another player's bags: they fall loose and you can grab them."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7400000000000020
+    m_Localized: "Move: Drive through them"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7400000000000021
+    m_Localized: "Ram with the turbo"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7400000000000022
+    m_Localized: "Hit a rival head-on with the turbo: they spin out and lose 3 bags."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7400000000000023
+    m_Localized: "Jump: Turbo"
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

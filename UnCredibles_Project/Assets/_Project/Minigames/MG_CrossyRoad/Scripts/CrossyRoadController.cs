@@ -26,6 +26,7 @@ namespace UnCredibles.Minigames.CrossyRoad
         private readonly List<CrossyRoadPlayer> avatars = new List<CrossyRoadPlayer>(PlayerRegistry.MaxPlayers);
         private readonly List<CrossyRoadAIBrain> brains = new List<CrossyRoadAIBrain>(PlayerRegistry.MaxPlayers);
         private readonly float[] respawnTimers = new float[PlayerRegistry.MaxPlayers];
+        private readonly bool[] wasOnOil = new bool[PlayerRegistry.MaxPlayers];
         private System.Func<Vector3, CrossyRoadPlayer, bool> isMoveBlocked;
         private CrossyRoadJuice juice;
 
@@ -96,7 +97,10 @@ namespace UnCredibles.Minigames.CrossyRoad
                     TickRespawn(i, deltaTime);
                     continue;
                 }
-                avatars[i].Tick(deltaTime, isMoveBlocked, oil.IsOnOil(avatars[i].Position));
+                bool onOil = oil.IsOnOil(avatars[i].Position);
+                if (onOil && !wasOnOil[i]) ShowMechanic("oil", avatars[i].Slot);
+                wasOnOil[i] = onOil;
+                avatars[i].Tick(deltaTime, isMoveBlocked, onOil);
             }
 
             HandleShoves();
@@ -131,6 +135,7 @@ namespace UnCredibles.Minigames.CrossyRoad
             grandmas.Return(avatar.CarriedGrandma);
             avatar.SetCarrying(-1);
             AwardPoints(avatar, Settings.PointsPerDelivery * (IsFinalRush ? Settings.FinalRushMultiplier : 1));
+            ShowMechanic("cross", avatar.Slot);
             if (Settings.ReturnToSpawnAfterDelivery) avatar.Respawn(FindFreeSpawn(avatar.SpawnPosition, avatar), 0f);
         }
 
@@ -160,6 +165,7 @@ namespace UnCredibles.Minigames.CrossyRoad
                 direction.y = 0f;
                 direction = direction.sqrMagnitude > 0.0001f ? direction.normalized : shover.transform.forward;
                 victim.Shoved(direction); // only knocked off course: a carried grandma stays
+                ShowMechanic("shove", shover.Slot);
             }
         }
 
@@ -213,6 +219,7 @@ namespace UnCredibles.Minigames.CrossyRoad
             if (avatar.IsCarrying) KnockGrandmaOff(avatar, Mathf.Sign(traffic.VelocityNear(avatar.Position.z)));
             avatar.Kill();
             respawnTimers[index] = Settings.RespawnDelay;
+            ShowMechanic("runover", avatar.Slot);
         }
 
         private void TickRespawn(int index, float deltaTime)

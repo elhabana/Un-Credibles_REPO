@@ -20,7 +20,16 @@ MonoBehaviour:
   minPlayers: 1
   maxPlayers: 4
   thumbnail: {fileID: 21300000, guid: 47b5c3f8209ce344ca13fd2c0109e7f3, type: 3}
-  preview: {fileID: 0}
+  preview: {fileID: 32900000, guid: 3fc8b6b0e9876cf42bdf3dfbe89e1e73, type: 3}
   music: {fileID: 8300000, guid: 05a37adc4cd47e34e9cb7849b59f64eb, type: 3}
   scoreIcon: {fileID: 0}
   rules: 
+  mechanics:
+  - key: mow
+    clip: {fileID: 32900000, guid: 5f2c7c679f915da4888e81b6397e8fe6, type: 3}
+  - key: unload
+    clip: {fileID: 32900000, guid: 06c82924e8636b045977064026b5bed9, type: 3}
+  - key: tail
+    clip: {fileID: 32900000, guid: 6cee752e940d379478bde5fdbd266ee7, type: 3}
+  - key: turbo
+    clip: {fileID: 32900000, guid: c2f63d4b9da37a84b9465a56d7489de5, type: 3}

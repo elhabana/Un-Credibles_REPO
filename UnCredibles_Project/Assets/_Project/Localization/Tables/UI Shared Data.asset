@@ -622,6 +622,22 @@ MonoBehaviour:
     m_Key: lobby.hint_dress
     m_Metadata:
       m_Items: []
+  - m_Id: 7400000000000101
+    m_Key: rules.key.move
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7400000000000102
+    m_Key: rules.key.jump
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7400000000000103
+    m_Key: rules.key.crouch
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7400000000000104
+    m_Key: rules.browse
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

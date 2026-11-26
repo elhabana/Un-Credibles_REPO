@@ -20,9 +20,18 @@ MonoBehaviour:
   minPlayers: 1
   maxPlayers: 4
   thumbnail: {fileID: 21300000, guid: 0b41f9c9b204570458da707f11b1b043, type: 3}
-  preview: {fileID: 0}
+  preview: {fileID: 32900000, guid: 1f926b6af03533f46b95cec2675c2487, type: 3}
   music: {fileID: 8300000, guid: 1b8227b29199b5643a29cee4a1e29b0a, type: 3}
   scoreIcon: {fileID: 0}
   rules: Carry grandmas across the road. +50 per grandma saved (+100 in the last
     30 seconds). A car hit costs 20 points. Without a grandma, press the button to
     shove players carrying one off course. Traffic gets busier over time.
+  mechanics:
+  - key: cross
+    clip: {fileID: 32900000, guid: 8aeb30c133080f24a979bb84d70bb5ca, type: 3}
+  - key: shove
+    clip: {fileID: 32900000, guid: ab43b6fd8978ebc49b2e1eebde90e3d4, type: 3}
+  - key: oil
+    clip: {fileID: 32900000, guid: 9db5c1686ad1c764c9a078366a0c9ab6, type: 3}
+  - key: runover
+    clip: {fileID: 32900000, guid: b3d13e75d7b34a1429a6281d5cfabc9d, type: 3}

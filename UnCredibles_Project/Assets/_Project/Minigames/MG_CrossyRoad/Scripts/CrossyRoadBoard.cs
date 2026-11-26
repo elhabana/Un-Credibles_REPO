@@ -14,6 +14,8 @@ namespace UnCredibles.Minigames.CrossyRoad
         [SerializeField] private CrossyRoadSettings settings;
         [SerializeField, Tooltip("Shared material for the lane tiles; colors come from the settings.")]
         private Material laneMaterial;
+        [SerializeField, Tooltip("Coloured lane tiles. Off when real scenery (PF_CR_Street) draws the ground.")]
+        private bool drawLaneTiles = true;
 
         private readonly TintedMaterials tints = new TintedMaterials();
         private bool built;
@@ -69,6 +71,7 @@ namespace UnCredibles.Minigames.CrossyRoad
                 var tileRenderer = tile.GetComponent<Renderer>();
                 if (laneMaterial != null) tileRenderer.sharedMaterial = laneMaterial;
                 tints.Apply(tileRenderer, LaneColor(lane));
+                tileRenderer.enabled = drawLaneTiles; // kept even hidden: the juice tints its stars from the goal tile
                 if (lane == GoalLane) GoalTile = tileRenderer;
             }
         }

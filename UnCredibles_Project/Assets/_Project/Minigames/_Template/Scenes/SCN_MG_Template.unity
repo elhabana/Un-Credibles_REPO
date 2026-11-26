@@ -262,6 +262,7 @@ MonoBehaviour:
   - inputSource: 4
     playerName: 
   skipCountdown: 0
+  partCatalog: {fileID: 0}
 --- !u!1 &200
 GameObject:
   m_ObjectHideFlags: 0

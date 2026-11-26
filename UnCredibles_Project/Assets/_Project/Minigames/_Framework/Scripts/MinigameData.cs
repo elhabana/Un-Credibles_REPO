@@ -22,6 +22,18 @@ namespace UnCredibles.Minigames
         [Tooltip("Points icon on the HUD badges (a grandma, a bag...). Empty = no icon.")]
         [SerializeField] private Sprite scoreIcon;
         [SerializeField, TextArea(3, 8)] private string rules;
+        [Tooltip("Pages of the rules card, one per mechanic. Empty = the classic card (rules text + preview).\n" +
+                 "Texts in the Minigames table: mech.<id>.<key> (title), .text and .controls (\"Move: ... · Jump: ...\").")]
+        [SerializeField] private Mechanic[] mechanics = System.Array.Empty<Mechanic>();
+
+        [System.Serializable]
+        public struct Mechanic
+        {
+            [Tooltip("Stable name: localization keys, the clip file and the minigame's ShowMechanic calls use it.")]
+            public string key;
+            [Tooltip("Short loop of this mechanic (UnCredibles > Rules Video records it).")]
+            public VideoClip clip;
+        }
 
         public string Id => id;
         public string DisplayName => displayName;
@@ -35,6 +47,7 @@ namespace UnCredibles.Minigames
         public AudioClip Music => music;
         public Sprite ScoreIcon => scoreIcon;
         public string Rules => rules;
+        public System.Collections.Generic.IReadOnlyList<Mechanic> Mechanics => mechanics ?? System.Array.Empty<Mechanic>();
 
         public bool SupportsPlayerCount(int count) => count >= minPlayers && count <= maxPlayers;
 

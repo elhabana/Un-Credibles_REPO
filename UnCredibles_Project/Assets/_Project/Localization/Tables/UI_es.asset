@@ -574,6 +574,22 @@ MonoBehaviour:
     m_Localized: "ARRIBA / ABAJO: casco, ropa o botas     IZQUIERDA / DERECHA: cambiar     A / B: terminar"
     m_Metadata:
       m_Items: []
+  - m_Id: 7400000000000101
+    m_Localized: "WASD"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7400000000000102
+    m_Localized: "ESPACIO"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7400000000000103
+    m_Localized: "CTRL"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7400000000000104
+    m_Localized: "MUEVE A LOS LADOS PARA VER M\xC1S"
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

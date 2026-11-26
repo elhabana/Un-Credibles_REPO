@@ -171,6 +171,98 @@ MonoBehaviour:
     m_Localized: RESULTADOS
     m_Metadata:
       m_Items: []
+  - m_Id: 7400000000000001
+    m_Localized: "Cruza con la abuela"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7400000000000002
+    m_Localized: "Rec\xF3gela en tu acera y ll\xE9vala al otro lado: +50. En los \xFAltimos 30 segundos vale el doble."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7400000000000003
+    m_Localized: "Move: Mu\xE9vete"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7400000000000004
+    m_Localized: "Empuja a tus rivales"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7400000000000005
+    m_Localized: "Sin abuela vas m\xE1s r\xE1pido y puedes empujar. \xA1M\xE1ndalos contra los coches!"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7400000000000006
+    m_Localized: "Jump: Empuja"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7400000000000007
+    m_Localized: "Cuidado con el aceite"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7400000000000008
+    m_Localized: "Los camiones cisterna dejan manchas. Encima resbalas y casi no puedes girar."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7400000000000009
+    m_Localized: "Move: Empuja al otro lado para frenar"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7400000000000010
+    m_Localized: "Que no te atropellen"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7400000000000011
+    m_Localized: "Si un coche te pilla pierdes 20 puntos y la abuela sale volando. El tr\xE1fico va a m\xE1s."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7400000000000012
+    m_Localized: "Corta el c\xE9sped"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7400000000000013
+    m_Localized: "Pasa por la hierba alta para llenar bolsas. Las arrastras detr\xE1s como una cola y te frenan un poco."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7400000000000014
+    m_Localized: "Move: Conduce"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7400000000000015
+    m_Localized: "Vac\xEDa en tu cubo"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7400000000000016
+    m_Localized: "Las bolsas solo punt\xFAan al llegar a tu cubo, en tu esquina. En el frenes\xED final valen el doble."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7400000000000017
+    m_Localized: "Move: Ac\xE9rcate a tu cubo"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7400000000000018
+    m_Localized: "Corta colas rivales"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7400000000000019
+    m_Localized: "Atraviesa las bolsas de otro jugador: se le sueltan y puedes recogerlas."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7400000000000020
+    m_Localized: "Move: P\xE1sales por encima"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7400000000000021
+    m_Localized: "Embiste con el turbo"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7400000000000022
+    m_Localized: "Choca de frente con el turbo: tu rival gira sin control y pierde 3 bolsas."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7400000000000023
+    m_Localized: "Jump: Turbo"
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

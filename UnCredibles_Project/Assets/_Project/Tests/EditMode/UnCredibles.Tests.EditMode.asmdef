@@ -7,6 +7,8 @@
         "UnCredibles.Player",
         "UnCredibles.Minigames",
         "UnCredibles.Minigames.CrossyRoad",
+        "UnCredibles.Minigames.MowTheLawn",
+        "Unity.TextMeshPro",
         "UnCredibles.Core",
         "UnCredibles.Networking",
         "Unity.Netcode.Runtime",

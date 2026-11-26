@@ -77,6 +77,11 @@ namespace UnCredibles.Minigames
 
         protected virtual void Start() => MinigameHost.TryHandOff(this);
 
+        // A mechanic of the rules card just happened to this player (keys as in MinigameData.Mechanics).
+        // Only the rules video recorder listens, to film each mechanic; gameplay never depends on it.
+        public static event Action<MinigameController, string, PlayerSlot> MechanicShown;
+        protected void ShowMechanic(string key, PlayerSlot player) => MechanicShown?.Invoke(this, key, player);
+
         public void Initialize(MinigameContext context)
         {
             if (context == null) throw new ArgumentNullException(nameof(context));

@@ -16,7 +16,13 @@ namespace UnCredibles.Players
         // Where the scene's sun comes from, seen by the figure: front, a bit above and to one side.
         private static readonly Quaternion KeyLight = Quaternion.Euler(-25f, 30f, 0f);
 
+        // A small idle face does not need the game's frame rate: four portrait cameras rendering every frame (a full
+        // URP render each, comic outlines included) cost ~17 ms of main thread in Crossy Road. Measured in the editor.
+        private const float RefreshRate = 12f;
+
         private RenderTexture texture;
+        private Camera view;
+        private float nextRender;
 
         public Texture Texture => texture;
         public GameObject Figure { get; private set; }
@@ -51,7 +57,10 @@ namespace UnCredibles.Players
             var forward = Figure.transform.forward;
 
             texture = new RenderTexture(Pixels, Pixels, 16) { antiAliasing = 4 };
-            var view = new GameObject("Camera").AddComponent<Camera>();
+            view = new GameObject("Camera").AddComponent<Camera>();
+            view.enabled = false; // rendered by hand in Update, a few times per second
+            // Staggered: the four badges do not all render in the same frame.
+            nextRender = Time.unscaledTime + slotIndex / (RefreshRate * PlayerRegistry.MaxPlayers);
             view.transform.SetParent(transform, false);
             view.transform.SetPositionAndRotation(head + forward * 10f, Quaternion.LookRotation(-forward));
             view.orthographic = true;
@@ -71,6 +80,14 @@ namespace UnCredibles.Players
                 transform.rotation = Quaternion.FromToRotation(KeyLight * forward, -sun.transform.forward);
                 break;
             }
+            view.Render(); // never shown empty, even before the first Update
+        }
+
+        private void Update()
+        {
+            if (view == null || Time.unscaledTime < nextRender) return;
+            nextRender = Mathf.Max(nextRender + 1f / RefreshRate, Time.unscaledTime); // no catch-up bursts after a hitch
+            view.Render();
         }
 
         private void OnDestroy()

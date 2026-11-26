@@ -124,7 +124,12 @@ namespace UnCredibles.Minigames.MowTheLawn
             if (!IsFrenzy && TimeLeft <= settings.FrenzySeconds) StartFrenzy();
 
             foreach (var brain in brains) brain.Tick(deltaTime); // before mowers read their input
-            foreach (var mower in mowers) mower.Tick(deltaTime, lawn);
+            foreach (var mower in mowers)
+            {
+                int bagsBefore = mower.BagCount;
+                mower.Tick(deltaTime, lawn);
+                if (mower.BagCount > bagsBefore) ShowMechanic("mow", mower.Slot);
+            }
 
             CollideMowers();
             CollideWithBins();
@@ -172,6 +177,7 @@ namespace UnCredibles.Minigames.MowTheLawn
             }
             victim.Stun(settings.StunSeconds, settings.RamImmunitySeconds);
             if (fx != null) fx.Ram(victim.Position, lost);
+            ShowMechanic("turbo", attacker.Slot);
 
             var message = BeginEvent(RamEvent);
             message.Write((byte)mowers.IndexOf(victim));
@@ -225,6 +231,7 @@ namespace UnCredibles.Minigames.MowTheLawn
                         victim.CutTailAt(i, dropped);
                         foreach (var position in dropped) bags.Drop(position);
                         cutCooldowns[a] = settings.CutCooldown;
+                        ShowMechanic("tail", attacker.Slot);
                         break;
                     }
                 }
@@ -263,6 +270,7 @@ namespace UnCredibles.Minigames.MowTheLawn
                 bags.Throw(from, bins[i].MouthPosition, mower.Color);
                 bins[i].Bounce();
                 Score.AddScore(mower.Slot.PlayerId, IsFrenzy ? settings.FrenzyPointsPerBag : 1);
+                ShowMechanic("unload", mower.Slot);
 
                 var message = BeginEvent(BagDeliveredEvent);
                 message.Write((byte)i);
