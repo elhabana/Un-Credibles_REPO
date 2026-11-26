@@ -15,6 +15,7 @@ Shader "UnCredibles/Shared/ComicFilter"
         _ShadowTint ("Shadow Tint", Color) = (0.75, 0.72, 0.95, 1)
         _ShadowThreshold ("Shadow Edge", Range(-1, 1)) = 0.1
         _Softness ("Edge Softness", Range(0.001, 0.5)) = 0.02
+        _ShadowNormalOffset ("Shadow Sample Offset (world units)", Range(0, 0.3)) = 0.06
 
         [Header(Halftone dots in the shadows)]
         _HalftoneStrength ("Dot Strength", Range(0, 1)) = 0.5
@@ -43,6 +44,7 @@ Shader "UnCredibles/Shared/ComicFilter"
             half4 _ShadowTint;
             half _ShadowThreshold;
             half _Softness;
+            half _ShadowNormalOffset;
             half _HalftoneStrength;
             half _HalftoneScale;
             half _HalftoneReach;
@@ -125,7 +127,10 @@ Shader "UnCredibles/Shared/ComicFilter"
                 UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
                 half3 normal = normalize(input.normalWS);
                 half3 viewDirection = GetWorldSpaceNormalizeViewDir(input.positionWS);
-                Light mainLight = GetMainLight(TransformWorldToShadowCoord(input.positionWS));
+                // Shadows sampled a bit off the surface: the hard band turns every self-shadow acne texel into
+                // flickering bands and dots on animated characters.
+                float3 shadowPosition = input.positionWS + normal * _ShadowNormalOffset;
+                Light mainLight = GetMainLight(TransformWorldToShadowCoord(shadowPosition));
                 half light = dot(normal, mainLight.direction) * mainLight.shadowAttenuation;
 
                 // A side lit by any other light is not a shadow side, or wall props stay dark whatever lights them.
@@ -134,11 +139,11 @@ Shader "UnCredibles/Shared/ComicFilter"
                 inputData.positionWS = input.positionWS;
                 #if USE_CLUSTER_LIGHT_LOOP
                 for (uint directional = 0; directional < min(URP_FP_DIRECTIONAL_LIGHTS_COUNT, MAX_VISIBLE_LIGHTS); directional++)
-                    light = max(light, OtherLight(directional, input.positionWS, normal));
+                    light = max(light, OtherLight(directional, shadowPosition, normal));
                 #endif
                 uint pixelLightCount = GetAdditionalLightsCount();
                 LIGHT_LOOP_BEGIN(pixelLightCount)
-                    light = max(light, OtherLight(lightIndex, input.positionWS, normal));
+                    light = max(light, OtherLight(lightIndex, shadowPosition, normal));
                 LIGHT_LOOP_END
 
                 half lit = smoothstep(_ShadowThreshold - _Softness, _ShadowThreshold + _Softness, light);

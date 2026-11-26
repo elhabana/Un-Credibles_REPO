@@ -7,7 +7,9 @@ namespace UnCredibles.Shared
     // Comic look over this object (and its children) without touching their materials: before each
     // camera renders, every mesh is drawn once more with the ComicFilter material on top of itself.
     // Disable or remove the component and everything looks as before. Works in the editor too.
-    // Animated characters (SkinnedMeshRenderer) are baked to a mesh once per frame (CPU skinning).
+    // Animated characters (SkinnedMeshRenderer): in Play Mode each one gets an overlay, a child SkinnedMeshRenderer on
+    // the same bones and mesh drawn with the filter, so the GPU skins it like any character. Baking every part to a
+    // mesh on the CPU each frame (still used for edit-mode previews) cost up to ~25 ms per frame in Crossy Road.
     [ExecuteAlways]
     [DisallowMultipleComponent]
     public sealed class ComicFilter : MonoBehaviour
@@ -21,6 +23,9 @@ namespace UnCredibles.Shared
         private readonly List<MeshFilter> meshFilters = new List<MeshFilter>();
         private readonly List<SkinnedMeshRenderer> skinned = new List<SkinnedMeshRenderer>();
         private readonly Dictionary<SkinnedMeshRenderer, Mesh> baked = new Dictionary<SkinnedMeshRenderer, Mesh>();
+        private readonly Dictionary<SkinnedMeshRenderer, SkinnedMeshRenderer> overlays = new Dictionary<SkinnedMeshRenderer, SkinnedMeshRenderer>();
+        private readonly HashSet<SkinnedMeshRenderer> overlaySet = new HashSet<SkinnedMeshRenderer>();
+        private const string OverlayName = "ComicFilter overlay";
         private int bakedFrame = -1;
 
         public Material Filter { get => filter; set => filter = value; }
@@ -31,12 +36,21 @@ namespace UnCredibles.Shared
             RenderPipelineManager.beginCameraRendering += Draw;
         }
 
-        private void OnDisable() => RenderPipelineManager.beginCameraRendering -= Draw;
+        private void OnDisable()
+        {
+            RenderPipelineManager.beginCameraRendering -= Draw;
+            foreach (var overlay in overlays.Values)
+                if (overlay != null) overlay.enabled = false; // switched off with the filter, back in Collect
+        }
 
         private void OnDestroy()
         {
             foreach (var mesh in baked.Values) Kill(mesh);
             baked.Clear();
+            foreach (var overlay in overlays.Values)
+                if (overlay != null) Kill(overlay.gameObject);
+            overlays.Clear();
+            overlaySet.Clear();
         }
 
         private void OnTransformChildrenChanged() => Collect();
@@ -61,7 +75,8 @@ namespace UnCredibles.Shared
             }
 
             skinned.Clear();
-            skinned.AddRange(includeChildren ? GetComponentsInChildren<SkinnedMeshRenderer>(true) : GetComponents<SkinnedMeshRenderer>());
+            foreach (var skin in includeChildren ? GetComponentsInChildren<SkinnedMeshRenderer>(true) : GetComponents<SkinnedMeshRenderer>())
+                if (!overlaySet.Contains(skin) && skin.name != OverlayName) skinned.Add(skin);
             var stale = new List<SkinnedMeshRenderer>();
             foreach (var key in baked.Keys)
                 if (!skinned.Contains(key)) stale.Add(key);
@@ -71,6 +86,50 @@ namespace UnCredibles.Shared
                 baked.Remove(key);
             }
             bakedFrame = -1;
+
+            stale.Clear();
+            foreach (var key in overlays.Keys)
+                if (key == null || !skinned.Contains(key)) stale.Add(key);
+            foreach (var key in stale)
+            {
+                if (overlays[key] != null) Kill(overlays[key].gameObject);
+                overlaySet.Remove(overlays[key]);
+                overlays.Remove(key);
+            }
+            if (Application.isPlaying && filter != null)
+                foreach (var skin in skinned) EnsureOverlay(skin);
+        }
+
+        // Same mesh, bones and bounds as the part, every submesh drawn with the filter. A child of the part, so it
+        // follows its GameObject on and off; its renderer follows the part's in Draw.
+        private void EnsureOverlay(SkinnedMeshRenderer skin)
+        {
+            if (!overlays.TryGetValue(skin, out var overlay) || overlay == null)
+            {
+                var go = new GameObject(OverlayName) { hideFlags = HideFlags.DontSave };
+                go.transform.SetParent(skin.transform, false);
+                overlay = go.AddComponent<SkinnedMeshRenderer>();
+                overlays[skin] = overlay;
+                overlaySet.Add(overlay);
+            }
+            overlay.gameObject.layer = skin.gameObject.layer;
+            overlay.sharedMesh = skin.sharedMesh;
+            overlay.bones = skin.bones;
+            overlay.rootBone = skin.rootBone;
+            overlay.localBounds = skin.localBounds;
+            overlay.updateWhenOffscreen = skin.updateWhenOffscreen;
+            overlay.quality = skin.quality;
+            overlay.shadowCastingMode = ShadowCastingMode.Off;
+            overlay.receiveShadows = true;
+            overlay.motionVectorGenerationMode = MotionVectorGenerationMode.ForceNoMotion;
+            int submeshes = skin.sharedMesh != null ? skin.sharedMesh.subMeshCount : 1;
+            var materials = new Material[Mathf.Max(1, submeshes)];
+            for (int i = 0; i < materials.Length; i++) materials[i] = filter;
+            overlay.sharedMaterials = materials;
+            if (skin.sharedMesh != null)
+                for (int i = 0; i < skin.sharedMesh.blendShapeCount; i++)
+                    overlay.SetBlendShapeWeight(i, skin.GetBlendShapeWeight(i));
+            overlay.enabled = skin.enabled;
         }
 
         private void Draw(ScriptableRenderContext context, Camera camera)
@@ -109,6 +168,11 @@ namespace UnCredibles.Shared
             bakedFrame = Time.renderedFrameCount;
             foreach (var skin in skinned)
             {
+                if (skin != null && overlays.TryGetValue(skin, out var overlay) && overlay != null)
+                {
+                    overlay.enabled = skin.enabled; // the GPU draws it; parts switched off by the outfit stay off
+                    continue;
+                }
                 if (!Visible(skin) || skin.sharedMesh == null) continue;
                 if (!baked.TryGetValue(skin, out var mesh) || mesh == null)
                 {
